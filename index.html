@@ -295,6 +295,7 @@ body{background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,'S
     <button class="sport-tab" data-sport="americanfootball_ncaaf" onclick="switchSport(this)">🏈 NCAAF</button>
     <button class="sport-tab" data-sport="baseball_mlb" onclick="switchSport(this)">⚾ MLB</button>
     <button class="sport-tab" data-sport="mma_ufc" onclick="switchSport(this)">🥊 UFC</button>
+    <button class="sport-tab" data-sport="padel_atp" onclick="switchSport(this)">🎾 PPL</button>
   </div>
   <div class="main-content">
     <div class="view active" id="view-games"><div class="games-inner" id="gamesInner"></div></div>
@@ -339,6 +340,7 @@ const SPORTS = {
   americanfootball_ncaaf: { label:'NCAAF', espn:'football/college-football' },
   baseball_mlb:           { label:'MLB',   espn:'baseball/mlb' },
   mma_ufc:                { label:'UFC',   espn:'mma/ufc', versus:true },
+  padel_atp:              { label:'PPL',   espn:null, versus:true },
 };
 const MARKET_LABELS = { h2h:'Moneyline', spreads:'Spread', totals:'Total' };
 
