@@ -294,6 +294,7 @@ body{background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,'S
     <button class="sport-tab active" data-sport="americanfootball_nfl" onclick="switchSport(this)">🏈 NFL</button>
     <button class="sport-tab" data-sport="americanfootball_ncaaf" onclick="switchSport(this)">🏈 NCAAF</button>
     <button class="sport-tab" data-sport="baseball_mlb" onclick="switchSport(this)">⚾ MLB</button>
+    <button class="sport-tab" data-sport="mma_ufc" onclick="switchSport(this)">🥊 UFC</button>
   </div>
   <div class="main-content">
     <div class="view active" id="view-games"><div class="games-inner" id="gamesInner"></div></div>
@@ -337,6 +338,7 @@ const SPORTS = {
   americanfootball_nfl:   { label:'NFL',   espn:'football/nfl' },
   americanfootball_ncaaf: { label:'NCAAF', espn:'football/college-football' },
   baseball_mlb:           { label:'MLB',   espn:'baseball/mlb' },
+  mma_ufc:                { label:'UFC',   espn:'mma/ufc', versus:true },
 };
 const MARKET_LABELS = { h2h:'Moneyline', spreads:'Spread', totals:'Total' };
 
@@ -576,6 +578,7 @@ function renderGameCard(g) {
   const ml = getMarket(g,'h2h'), sp = getMarket(g,'spreads'), tot = getMarket(g,'totals');
   const time = new Date(g.commence_time).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});
   const away = g.away_team, home = g.home_team;
+  const isVersus = SPORTS[currentSport]?.versus;
 
   const oddsBtn = (market, outcome) => {
     const label = market==='totals' ? outcome.name : outcome.name.split(' ').slice(-1)[0];
@@ -594,19 +597,21 @@ function renderGameCard(g) {
   const spH = sp ? `${oddsBtn('spreads', sp.find(o=>o.name===away)||sp[0])}${oddsBtn('spreads', sp.find(o=>o.name===home)||sp[1])}` : '<span class="no-odds">TBD</span>';
   const totH = tot ? `${oddsBtn('totals', tot.find(o=>o.name==='Over')||tot[0])}${oddsBtn('totals', tot.find(o=>o.name==='Under')||tot[1])}` : '<span class="no-odds">TBD</span>';
 
+  const marketsHtml = isVersus
+    ? `<div class="market-col" style="grid-column:1/-1"><div class="market-lbl">Moneyline</div><div class="odds-pair">${mlH}</div></div>`
+    : `<div class="market-col"><div class="market-lbl">Moneyline</div><div class="odds-pair">${mlH}</div></div>
+       <div class="market-col"><div class="market-lbl">Spread</div><div class="odds-pair">${spH}</div></div>
+       <div class="market-col"><div class="market-lbl">Total</div><div class="odds-pair">${totH}</div></div>`;
+
   return `<div class="game-card">
     <div class="game-card-top">
       <div class="game-teams">
         <div class="team-row away">${esc(away)}</div>
-        <div class="team-row home">@ ${esc(home)}</div>
+        <div class="team-row home">${isVersus ? 'vs' : '@'} ${esc(home)}</div>
       </div>
       <div class="game-meta"><div class="game-time">${time}</div></div>
     </div>
-    <div class="game-markets">
-      <div class="market-col"><div class="market-lbl">Moneyline</div><div class="odds-pair">${mlH}</div></div>
-      <div class="market-col"><div class="market-lbl">Spread</div><div class="odds-pair">${spH}</div></div>
-      <div class="market-col"><div class="market-lbl">Total</div><div class="odds-pair">${totH}</div></div>
-    </div>
+    <div class="game-markets">${marketsHtml}</div>
   </div>`;
 }
 
