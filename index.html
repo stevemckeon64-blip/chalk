@@ -531,55 +531,98 @@ async function fetchOdds(sport) {
   if (cached && Date.now() - cached.ts < ODDS_TTL) return cached.data;
   const espnPath = SPORTS[sport]?.espn;
   if (!espnPath) return [];
+  const isUFC = sport === 'mma_mixed_martial_arts';
   try {
-    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard`);
-    if (!res.ok) throw new Error(res.status);
-    const { events = [] } = await res.json();
-    const data = events
-      .filter(ev => ev.status?.type?.state === 'pre') // upcoming only
-      .map(ev => {
-        const comp = ev.competitions?.[0];
-        if (!comp) return null;
-        const home = comp.competitors?.find(c => c.homeAway === 'home');
-        const away = comp.competitors?.find(c => c.homeAway === 'away');
-        if (!home || !away) return null;
-        const homeName = home.team.displayName;
-        const awayName = away.team.displayName;
-        const o = comp.odds?.[0];
-        const markets = [];
-        if (o) {
-          // Moneyline
-          const hML = o.homeTeamOdds?.moneyLine, aML = o.awayTeamOdds?.moneyLine;
-          if (hML && aML && hML !== 0 && aML !== 0) {
-            markets.push({ key:'h2h', outcomes:[
-              { name:awayName, price:aML },
-              { name:homeName, price:hML },
-            ]});
-          }
-          // Spread — ESPN's details field is the home team spread e.g. "-3.5"
-          const homeSpread = parseFloat(o.details);
-          if (!isNaN(homeSpread)) {
-            markets.push({ key:'spreads', outcomes:[
-              { name:awayName, price:o.awayTeamOdds?.spreadOdds ?? -110, point:-homeSpread },
-              { name:homeName, price:o.homeTeamOdds?.spreadOdds ?? -110, point:homeSpread },
-            ]});
-          }
-          // Total
-          if (o.overUnder != null) {
-            markets.push({ key:'totals', outcomes:[
-              { name:'Over',  price:parseInt(o.over?.american  ?? '-110'), point:o.overUnder },
-              { name:'Under', price:parseInt(o.under?.american ?? '-110'), point:o.overUnder },
-            ]});
-          }
+    const fmtDate = d => d.toISOString().slice(0,10).replace(/-/g,'');
+    const today = new Date(), tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const fetchDay = async d => {
+      const url = `https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard` +
+                  (d ? `?dates=${fmtDate(d)}` : '');
+      const res = await fetch(url).catch(() => null);
+      return res?.ok ? (await res.json()).events || [] : [];
+    };
+
+    // Always fetch today + tomorrow so MLB/etc always has upcoming games
+    let events = [...await fetchDay(null), ...await fetchDay(tomorrow)];
+
+    // UFC events are weekly — scan ahead until we find one (up to 14 days)
+    if (isUFC && !events.some(e => e.status?.type?.state === 'pre')) {
+      for (let i = 2; i <= 14; i++) {
+        const d = new Date(today); d.setDate(today.getDate() + i);
+        const evs = await fetchDay(d);
+        events = [...events, ...evs];
+        if (evs.some(e => e.status?.type?.state === 'pre')) break;
+      }
+    }
+
+    // Deduplicate by id
+    const seen = new Set();
+    events = events.filter(ev => { if (seen.has(ev.id)) return false; seen.add(ev.id); return true; });
+
+    let upcoming = events.filter(ev => ev.status?.type?.state === 'pre');
+
+    // UFC main card: limit to first 5 fights of the soonest event day
+    if (isUFC && upcoming.length) {
+      upcoming.sort((a, b) => new Date(a.date) - new Date(b.date));
+      const eventDay = upcoming[0].date.slice(0, 10);
+      upcoming = upcoming.filter(ev => ev.date.slice(0, 10) === eventDay).slice(0, 5);
+    }
+
+    const data = upcoming.map(ev => {
+      const comp = ev.competitions?.[0];
+      if (!comp) return null;
+      const cs = comp.competitors || [];
+      // Team sports use homeAway; UFC has no homeAway — fall back to index
+      const home = cs.find(c => c.homeAway === 'home') || cs[1];
+      const away = cs.find(c => c.homeAway === 'away') || cs[0];
+      if (!home || !away) return null;
+      // Name: team sports → team.displayName; UFC → athlete.displayName
+      const getName = c => c.team?.displayName || c.athlete?.displayName || c.displayName || '?';
+      const homeName = getName(home);
+      const awayName = getName(away);
+
+      const o = comp.odds?.[0];
+      const markets = [];
+      if (o) {
+        // Moneyline — use != null so 0 is caught cleanly
+        const hML = o.homeTeamOdds?.moneyLine, aML = o.awayTeamOdds?.moneyLine;
+        if (hML != null && aML != null && hML !== 0 && aML !== 0) {
+          markets.push({ key:'h2h', outcomes:[
+            { name:awayName, price:aML },
+            { name:homeName, price:hML },
+          ]});
         }
-        return {
-          id: ev.id,
-          home_team: homeName,
-          away_team: awayName,
-          commence_time: ev.date,
-          bookmakers: markets.length ? [{ key:'espn', markets }] : [],
-        };
-      }).filter(Boolean);
+        // Spread — ESPN's 'details' is "ABBREV -X.X" (not just a number);
+        // prefer numeric o.spread field (absolute value) and use favorite flag for direction
+        const spreadAbs = typeof o.spread === 'number' ? o.spread
+          : parseFloat((o.details || '').match(/(\d+\.?\d*)$/)?.[1]);
+        if (!isNaN(spreadAbs) && spreadAbs > 0) {
+          let homeIsFav = o.homeTeamOdds?.favorite === true;
+          // Fallback: more negative moneyline = favorite
+          if (o.homeTeamOdds?.favorite == null && hML != null && aML != null) homeIsFav = hML < aML;
+          const homePt = homeIsFav ? -spreadAbs : spreadAbs;
+          markets.push({ key:'spreads', outcomes:[
+            { name:awayName, price:o.awayTeamOdds?.spreadOdds ?? -110, point:-homePt },
+            { name:homeName, price:o.homeTeamOdds?.spreadOdds ?? -110, point:homePt },
+          ]});
+        }
+        // Total
+        if (o.overUnder != null) {
+          markets.push({ key:'totals', outcomes:[
+            { name:'Over',  price:parseInt(o.over?.american  ?? '-110'), point:o.overUnder },
+            { name:'Under', price:parseInt(o.under?.american ?? '-110'), point:o.overUnder },
+          ]});
+        }
+      }
+      return {
+        id: ev.id, home_team: homeName, away_team: awayName,
+        commence_time: ev.date,
+        bookmakers: markets.length ? [{ key:'espn', markets }] : [],
+      };
+    }).filter(Boolean);
+
     oddsCache[sport] = { data, ts: Date.now() };
     return data;
   } catch(e) {
