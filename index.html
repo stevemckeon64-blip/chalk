@@ -294,8 +294,7 @@ body{background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,'S
     <button class="sport-tab active" data-sport="americanfootball_nfl" onclick="switchSport(this)">🏈 NFL</button>
     <button class="sport-tab" data-sport="americanfootball_ncaaf" onclick="switchSport(this)">🏈 NCAAF</button>
     <button class="sport-tab" data-sport="baseball_mlb" onclick="switchSport(this)">⚾ MLB</button>
-    <button class="sport-tab" data-sport="mma_ufc" onclick="switchSport(this)">🥊 UFC</button>
-    <button class="sport-tab" data-sport="padel_atp" onclick="switchSport(this)">🎾 PPL</button>
+    <button class="sport-tab" data-sport="mma_mixed_martial_arts" onclick="switchSport(this)">🥊 UFC</button>
   </div>
   <div class="main-content">
     <div class="view active" id="view-games"><div class="games-inner" id="gamesInner"></div></div>
@@ -339,8 +338,7 @@ const SPORTS = {
   americanfootball_nfl:   { label:'NFL',   espn:'football/nfl' },
   americanfootball_ncaaf: { label:'NCAAF', espn:'football/college-football' },
   baseball_mlb:           { label:'MLB',   espn:'baseball/mlb' },
-  mma_ufc:                { label:'UFC',   espn:'mma/ufc', versus:true },
-  padel_atp:              { label:'PPL',   espn:null, versus:true },
+  mma_mixed_martial_arts: { label:'UFC',   espn:'mma/ufc', versus:true },
 };
 const MARKET_LABELS = { h2h:'Moneyline', spreads:'Spread', totals:'Total' };
 
