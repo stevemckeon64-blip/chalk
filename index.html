@@ -350,7 +350,7 @@ const MARKET_LABELS = { h2h:'Moneyline', spreads:'Spread', totals:'Total' };
 // ── STATE ─────────────────────────────────────────────────────────
 let sb, user=null, profile=null, currentRoom=null, myRooms=[];
 let currentView='games', currentSport='americanfootball_nfl';
-let oddsCache={}, activeBet=null, pplCache=null, pplCacheTs=0;
+let oddsCache={}, activeBet=null, pplCache=null, pplCacheTs=0, pplNextTourney=null;
 
 // ── BOOT ─────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
@@ -571,6 +571,8 @@ async function fetchPPL() {
     if (!tr.ok) throw new Error(tr.status);
     const { data: tournaments } = await tr.json();
     const activeTourneys = tournaments.filter(t => t.status === 'live' || t.status === 'pending' || t.status === 'scheduled');
+    // Store next tournament for empty-state display
+    pplNextTourney = activeTourneys[0] || null;
     // Fetch matches from each active P1 tournament
     const today = new Date().toISOString().split('T')[0];
     const allMatches = (await Promise.all(activeTourneys.map(async t => {
@@ -626,7 +628,14 @@ async function loadGames(sport) {
 
 function renderGames(games) {
   const el = document.getElementById('gamesInner');
-  if (!games.length) { el.innerHTML = '<div class="empty-state">No upcoming games. Check back soon.</div>'; return; }
+  if (!games.length) {
+    let msg = 'No upcoming games. Check back soon.';
+    if (currentSport === 'padel_ppt' && pplNextTourney) {
+      const start = new Date(pplNextTourney.start_date).toLocaleDateString('en-US',{month:'long',day:'numeric'});
+      msg = `No matches scheduled right now.<br><br>Next up: <b>${esc(pplNextTourney.name)}</b><br>Check back ${start}.`;
+    }
+    el.innerHTML = `<div class="empty-state">${msg}</div>`; return;
+  }
   const sorted = [...games].sort((a,b) => new Date(a.commence_time)-new Date(b.commence_time));
   const byDate = {};
   for (const g of sorted) {
