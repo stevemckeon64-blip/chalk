@@ -31,7 +31,7 @@ body::after{
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(212,168,67,.15);border-radius:2px}
 
-/* ── AUTH ─────────────────────────────────────────────────── */
+/* ── AUTH ────────────────────────────────────────────── */
 #authWrap{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;
   background:radial-gradient(ellipse at 50% -10%,rgba(201,145,58,.15) 0%,transparent 60%)}
 .auth-box{background:var(--bg-c);border:1px solid var(--bdr-h);border-radius:var(--rl);
@@ -54,7 +54,7 @@ body::after{
 .auth-btn:disabled{opacity:.45;cursor:default;box-shadow:none}
 .auth-footer{font-size:11px;color:var(--t3);text-align:center;margin-top:18px;letter-spacing:.06em}
 
-/* ── APP SHELL ──────────────────────────────────────────────── */
+/* ── APP SHELL ─────────────────────────────────────────── */
 #appWrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
 /* HEADER */
@@ -105,7 +105,7 @@ body::after{
 .empty-state b{color:var(--t1)}
 .error-state{text-align:center;padding:40px;color:var(--loss)}
 
-/* ── GAMES ────────────────────────────────────────────────────── */
+/* ── GAMES ──────────────────────────────────────────────── */
 .games-inner{max-width:820px;margin:0 auto}
 .date-group-hdr{font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--t3);padding:6px 0;margin-top:12px}
 .game-card{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);margin-bottom:8px;overflow:hidden;transition:border-color .2s,box-shadow .2s}
@@ -133,7 +133,7 @@ body::after{
 .odds-btn.active .ob-odds{color:#000}
 .no-odds{font-size:11px;color:var(--t3);display:flex;align-items:center;justify-content:center;width:100%}
 
-/* ── BET SLIP ───────────────────────────────────────────────────── */
+/* ── BET SLIP ─────────────────────────────────────────────── */
 .modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:flex-end}
 .bet-slip-panel{background:var(--bg-s);border-left:1px solid var(--bdr-h);width:100%;max-width:340px;height:100%;display:flex;flex-direction:column;animation:slideIn .2s ease-out}
 @keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
@@ -168,7 +168,7 @@ body::after{
 .bs-place-btn:hover{opacity:.9;box-shadow:0 6px 32px rgba(201,145,58,.45)}
 .bs-place-btn:disabled{opacity:.45;cursor:default;box-shadow:none}
 
-/* ── MY BETS ───────────────────────────────────────────────────── */
+/* ── MY BETS ─────────────────────────────────────────────── */
 .bets-inner{max-width:680px;margin:0 auto}
 .bets-section-hdr{display:flex;align-items:center;justify-content:space-between;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--bdr)}
 .bets-section-hdr:first-child{margin-top:0}
@@ -189,7 +189,7 @@ body::after{
 .bet-footer .pos{color:var(--win);font-weight:800}.bet-footer .neg{color:var(--loss);font-weight:800}
 .bet-date{margin-left:auto;color:var(--t3)}
 
-/* ── LEADERBOARD ────────────────────────────────────────────────── */
+/* ── LEADERBOARD ──────────────────────────────────────────── */
 .lb-inner{max-width:600px;margin:0 auto}
 .lb-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px}
 .lb-title{font-size:18px;font-weight:900;letter-spacing:.03em}
@@ -210,7 +210,7 @@ body::after{
 .lb-pnl{font-size:11px;font-variant-numeric:tabular-nums;font-weight:700}
 .lb-pnl.pos{color:var(--win)}.lb-pnl.neg{color:var(--loss)}
 
-/* ── PROFILE ───────────────────────────────────────────────────── */
+/* ── PROFILE ────────────────────────────────────────────── */
 .profile-inner{max-width:520px;margin:0 auto}
 .profile-hero{text-align:center;padding:28px 0 24px}
 .profile-avatar-big{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#7A5A1A);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#000;margin:0 auto 14px;box-shadow:0 0 40px rgba(201,145,58,.28)}
@@ -224,7 +224,7 @@ body::after{
 .sign-out-btn{width:100%;padding:12px;background:rgba(255,255,255,.03);border:1px solid var(--bdr-h);border-radius:var(--r);font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--t2);transition:all .15s}
 .sign-out-btn:hover{background:rgba(217,84,84,.1);border-color:rgba(217,84,84,.25);color:var(--loss)}
 
-/* ── ROOM MODAL ──────────────────────────────────────────────── */
+/* ── ROOM MODAL ──────────────────────────────────────────── */
 .room-modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px}
 .room-modal-box{background:var(--bg-c);border:1px solid var(--bdr-h);border-radius:var(--rl);width:100%;max-width:400px;box-shadow:0 32px 80px rgba(0,0,0,.7)}
 .modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--bdr)}
@@ -241,7 +241,7 @@ body::after{
 .modal-cancel:hover{background:var(--bg-ch)}
 .room-code-display{font-size:36px;font-weight:900;letter-spacing:.3em;text-align:center;padding:24px;background:var(--bg);border:1px solid var(--bdr);border-radius:var(--r);margin:12px 0;color:var(--gold-b);font-variant-numeric:tabular-nums;text-shadow:0 0 24px rgba(232,184,75,.3)}
 
-/* ── TOAST ────────────────────────────────────────────────────── */
+/* ── TOAST ──────────────────────────────────────────────── */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);z-index:9000;background:var(--bg-ch);border:1px solid var(--bdr-h);border-radius:30px;padding:10px 20px;font-size:13px;font-weight:700;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 32px rgba(0,0,0,.6);letter-spacing:.02em}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.success{border-color:rgba(201,145,58,.4);color:var(--gold-b)}
@@ -349,15 +349,15 @@ body::after{
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ── CONFIG — fill these in ────────────────────────────────────────────
+// ── CONFIG — fill these in ────────────────────────────────────
 const SUPABASE_URL     = 'https://pdbhpkzwbouvtveckxba.supabase.co';
 const SUPABASE_KEY     = 'sb_publishable_uPhXyeh1_7dX1-KRpi2lgg_Fhqcz--Y';
-const ODDS_API_KEY     = '57464755df100b71fd597fddb5acc74e';
+// ODDS_API_KEY removed — odds now pulled from ESPN (free, no key, no limits)
 const PPL_API_KEY      = 'nkY3SZQkXOCovlQJb5CG67BHbAsURFWFUFweMEnN109c98af';
 const PPL_BASE         = 'https://padelapi.org/api';
 const PPL_TTL          = 30 * 60 * 1000; // 30 min cache
 
-// ── CONSTANTS ─────────────────────────────────────────────────────
+// ── CONSTANTS ───────────────────────────────────────────────────
 const STARTING_BALANCE = 5000;
 const ODDS_TTL = 15 * 60 * 1000; // 15 min cache
 const SPORTS = {
@@ -369,12 +369,12 @@ const SPORTS = {
 };
 const MARKET_LABELS = { h2h:'Moneyline', spreads:'Spread', totals:'Total' };
 
-// ── STATE ──────────────────────────────────────────────────────
+// ── STATE ───────────────────────────────────────────────────
 let sb, user=null, profile=null, currentRoom=null, myRooms=[];
 let currentView='games', currentSport='americanfootball_nfl';
 let oddsCache={}, activeBet=null, pplCache=null, pplCacheTs=0, pplNextTourney=null;
 
-// ── BOOT ─────────────────────────────────────────────────────
+// ── BOOT ──────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   const { data:{ session } } = await sb.auth.getSession();
@@ -389,7 +389,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
 });
 
-// ── UTILS ──────────────────────────────────────────────────────
+// ── UTILS ───────────────────────────────────────────────────
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const fmt = n => '$' + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtOdds = o => (o > 0 ? '+' : '') + o;
@@ -408,7 +408,7 @@ function randomCode() {
   return Array.from({length:6}, () => c[Math.floor(Math.random()*c.length)]).join('');
 }
 
-// ── AUTH ────────────────────────────────────────────────────────
+// ── AUTH ──────────────────────────────────────────────────────
 function switchAuthTab(tab) {
   document.getElementById('tabSignIn').classList.toggle('active', tab==='in');
   document.getElementById('tabSignUp').classList.toggle('active', tab==='up');
@@ -445,7 +445,7 @@ async function doSignUp() {
 }
 async function doSignOut() { await sb.auth.signOut(); }
 
-// ── PROFILE ────────────────────────────────────────────────────────
+// ── PROFILE ──────────────────────────────────────────────────
 async function loadProfile() {
   const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
   if (!data) return;
@@ -455,7 +455,7 @@ async function loadProfile() {
   loadMyRooms();
 }
 
-// ── ROOMS ─────────────────────────────────────────────────────────
+// ── ROOMS ───────────────────────────────────────────────────
 async function loadMyRooms() {
   const { data } = await sb.from('room_members').select('rooms(*)').eq('user_id', user.id);
   myRooms = data?.map(r => r.rooms).filter(Boolean) || [];
@@ -525,21 +525,66 @@ async function doJoinRoom() {
 }
 function closeRoomModal() { document.getElementById('roomModalWrap').style.display = 'none'; }
 
-// ── ODDS API ──────────────────────────────────────────────────────
+// ── ESPN SCOREBOARD (free, no key, no limits) ─────────────────────
 async function fetchOdds(sport) {
   const cached = oddsCache[sport];
   if (cached && Date.now() - cached.ts < ODDS_TTL) return cached.data;
-  if (!ODDS_API_KEY || ODDS_API_KEY === 'YOUR_ODDS_API_KEY') return getMock(sport);
+  const espnPath = SPORTS[sport]?.espn;
+  if (!espnPath) return [];
   try {
-    const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds?apiKey=${ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals&oddsFormat=american&bookmakers=draftkings,fanduel`;
-    const res = await fetch(url);
+    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard`);
     if (!res.ok) throw new Error(res.status);
-    const data = await res.json();
+    const { events = [] } = await res.json();
+    const data = events
+      .filter(ev => ev.status?.type?.state === 'pre') // upcoming only
+      .map(ev => {
+        const comp = ev.competitions?.[0];
+        if (!comp) return null;
+        const home = comp.competitors?.find(c => c.homeAway === 'home');
+        const away = comp.competitors?.find(c => c.homeAway === 'away');
+        if (!home || !away) return null;
+        const homeName = home.team.displayName;
+        const awayName = away.team.displayName;
+        const o = comp.odds?.[0];
+        const markets = [];
+        if (o) {
+          // Moneyline
+          const hML = o.homeTeamOdds?.moneyLine, aML = o.awayTeamOdds?.moneyLine;
+          if (hML && aML && hML !== 0 && aML !== 0) {
+            markets.push({ key:'h2h', outcomes:[
+              { name:awayName, price:aML },
+              { name:homeName, price:hML },
+            ]});
+          }
+          // Spread — ESPN's details field is the home team spread e.g. "-3.5"
+          const homeSpread = parseFloat(o.details);
+          if (!isNaN(homeSpread)) {
+            markets.push({ key:'spreads', outcomes:[
+              { name:awayName, price:o.awayTeamOdds?.spreadOdds ?? -110, point:-homeSpread },
+              { name:homeName, price:o.homeTeamOdds?.spreadOdds ?? -110, point:homeSpread },
+            ]});
+          }
+          // Total
+          if (o.overUnder != null) {
+            markets.push({ key:'totals', outcomes:[
+              { name:'Over',  price:parseInt(o.over?.american  ?? '-110'), point:o.overUnder },
+              { name:'Under', price:parseInt(o.under?.american ?? '-110'), point:o.overUnder },
+            ]});
+          }
+        }
+        return {
+          id: ev.id,
+          home_team: homeName,
+          away_team: awayName,
+          commence_time: ev.date,
+          bookmakers: markets.length ? [{ key:'espn', markets }] : [],
+        };
+      }).filter(Boolean);
     oddsCache[sport] = { data, ts: Date.now() };
     return data;
   } catch(e) {
-    console.error('Odds API:', e);
-    showToast('Could not load live odds — showing demo data', 'warn');
+    console.error('ESPN scoreboard:', e);
+    showToast('Could not load games — showing demo data', 'warn');
     return getMock(sport);
   }
 }
@@ -574,7 +619,7 @@ function getMarket(game, key) {
   return null;
 }
 
-// ── PPL (PREMIER PADEL) ──────────────────────────────────────────────────
+// ── PPL (PREMIER PADEL) ───────────────────────────────────────────────
 function probToAmericanOdds(p) {
   // p is 0-100
   if (p >= 50) return Math.round(-(p / (100 - p)) * 100);
@@ -638,7 +683,7 @@ async function fetchPPL() {
   }
 }
 
-// ── GAMES VIEW ────────────────────────────────────────────────────
+// ── GAMES VIEW ────────────────────────────────────────────────
 async function loadGames(sport) {
   currentSport = sport;
   document.getElementById('gamesInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading games…</span></div>';
@@ -711,7 +756,7 @@ function renderGameCard(g) {
   </div>`;
 }
 
-// ── BET SLIP ────────────────────────────────────────────────────────
+// ── BET SLIP ────────────────────────────────────────────────────
 document.addEventListener('click', e => {
   const btn = e.target.closest('.odds-btn');
   if (!btn) return;
@@ -788,7 +833,7 @@ async function placeBet() {
   showToast(`Bet placed! ${fmtOdds(activeBet.odds)} · To win ${fmt(payout-stake)} 🎯`);
 }
 
-// ── MY BETS ─────────────────────────────────────────────────────────
+// ── MY BETS ───────────────────────────────────────────────────
 async function loadMyBets() {
   document.getElementById('betsInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading…</span></div>';
   await settlePending();
@@ -824,7 +869,7 @@ function renderBets(bets) {
   el.innerHTML = html;
 }
 
-// ── SETTLEMENT ────────────────────────────────────────────────────────
+// ── SETTLEMENT ──────────────────────────────────────────────────
 async function settlePending() {
   const now = new Date().toISOString();
   const { data: pending } = await sb.from('bets').select('*').eq('user_id',user.id).eq('status','pending').lt('commence_time',now);
@@ -890,7 +935,7 @@ function settleBet(bet, homeScore, awayScore) {
   return 'lost';
 }
 
-// ── LEADERBOARD ───────────────────────────────────────────────────────
+// ── LEADERBOARD ─────────────────────────────────────────────────
 async function loadLeaderboard() {
   document.getElementById('lbInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading…</span></div>';
   let ids = null;
@@ -926,7 +971,7 @@ function renderLeaderboard(rows) {
   document.getElementById('lbInner').innerHTML = `<div class="lb-hdr"><h2 class="lb-title">${title}</h2>${roomCode}</div><div>${rowsHtml}</div>`;
 }
 
-// ── PROFILE VIEW ──────────────────────────────────────────────────────
+// ── PROFILE VIEW ────────────────────────────────────────────────
 async function loadProfileView() {
   document.getElementById('profileInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading…</span></div>';
   const { data: bets } = await sb.from('bets').select('*').eq('user_id',user.id).neq('status','pending');
@@ -945,7 +990,7 @@ async function loadProfileView() {
     </div>
     <div class="stats-grid">
       <div class="stat-tile"><div class="st-val gold">${fmt(profile?.balance||0)}</div><div class="st-lbl">Balance</div></div>
-      <div class="stat-tile"><div class="st-val ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)}</div><div class="st-lbl">Total P&L</div></div>
+      <div class="stat-tile"><div class="st-val ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)}</div><div class="st-lbl">Total P&amp;L</div></div>
       <div class="stat-tile"><div class="st-val">${winRate}%</div><div class="st-lbl">Win Rate</div></div>
       <div class="stat-tile"><div class="st-val ${parseFloat(roi)>=0?'pos':'neg'}">${parseFloat(roi)>=0?'+':''}${roi}%</div><div class="st-lbl">ROI</div></div>
       <div class="stat-tile"><div class="st-val">${total}</div><div class="st-lbl">Settled Bets</div></div>
@@ -954,7 +999,7 @@ async function loadProfileView() {
     <button class="sign-out-btn" onclick="doSignOut()">Sign Out</button>`;
 }
 
-// ── NAVIGATION ────────────────────────────────────────────────────────
+// ── NAVIGATION ──────────────────────────────────────────────────
 function showView(view) {
   currentView = view;
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
