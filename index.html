@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CHALK</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font:inherit;color:inherit}
+
+:root{
+  --bg:#060D18;--bg-s:#0A1622;--bg-c:#0E1E2E;--bg-ch:#122438;
+  --bdr:rgba(255,255,255,.06);--bdr-h:rgba(255,255,255,.12);
+  --t1:#E2EEF8;--t2:#4A6580;--t3:#263850;
+  --green:#00D46A;--green-bg:rgba(0,212,106,.12);--green-dim:rgba(0,212,106,.07);
+  --gold:#F5A623;--win:#00C853;--loss:#FF3D57;--push:#8892A4;
+  --r:8px;--rl:12px;
+}
+body{background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:14px;line-height:1.5;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+
+/* ── AUTH ────────────────────────────────────────────────── */
+#authWrap{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 50% 0%,rgba(0,212,106,.08) 0%,transparent 70%)}
+.auth-box{background:var(--bg-c);border:1px solid var(--bdr-h);border-radius:var(--rl);padding:36px 32px;width:100%;max-width:380px}
+.auth-logo{font-size:36px;font-weight:900;letter-spacing:-.04em;text-align:center;margin-bottom:4px}
+.auth-logo span{color:var(--green)}
+.auth-tagline{font-size:12px;color:var(--t2);text-align:center;margin-bottom:28px}
+.auth-tabs{display:flex;border:1px solid var(--bdr);border-radius:var(--r);padding:3px;gap:3px;margin-bottom:22px}
+.auth-tab{flex:1;padding:7px;border-radius:6px;font-size:13px;font-weight:700;color:var(--t2);transition:all .15s;text-align:center}
+.auth-tab.active{background:var(--green);color:#000}
+.auth-input{display:block;width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--bdr-h);border-radius:var(--r);color:var(--t1);font-size:14px;outline:none;margin-bottom:10px;transition:border-color .15s}
+.auth-input:focus{border-color:var(--green)}
+.auth-error{font-size:12px;color:var(--loss);min-height:18px;margin-bottom:6px}
+.auth-btn{width:100%;padding:12px;background:var(--green);color:#000;border-radius:var(--r);font-size:14px;font-weight:800;letter-spacing:.02em;transition:opacity .15s}
+.auth-btn:hover{opacity:.88}
+.auth-btn:disabled{opacity:.5;cursor:default}
+.auth-footer{font-size:11px;color:var(--t3);text-align:center;margin-top:18px}
+
+/* ── APP SHELL ───────────────────────────────────────────── */
+#appWrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* HEADER */
+.header{height:56px;background:var(--bg-s);border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 16px;gap:14px;flex-shrink:0}
+.logo{font-size:20px;font-weight:900;letter-spacing:-.04em;flex-shrink:0}.logo span{color:var(--green)}
+.header-center{flex:1;display:flex;justify-content:center}
+.room-selector{position:relative}
+.room-btn{display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--bg-c);border:1px solid var(--bdr-h);border-radius:20px;font-size:12px;font-weight:700;color:var(--t1);transition:border-color .15s}
+.room-btn:hover{border-color:var(--green)}
+.room-arrow{font-size:10px;color:var(--t2)}
+.room-dropdown{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg-c);border:1px solid var(--bdr-h);border-radius:var(--r);min-width:180px;z-index:100;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.room-opt{padding:10px 14px;font-size:13px;cursor:pointer;transition:background .12s;white-space:nowrap}
+.room-opt:hover{background:var(--bg-ch)}
+.room-opt.active{color:var(--green)}
+.room-code-sm{font-size:10px;color:var(--t3);font-weight:700;letter-spacing:.08em;margin-left:6px}
+.room-hr{border:none;border-top:1px solid var(--bdr);margin:3px 0}
+.header-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+.balance-badge{text-align:right}
+.bal-label{display:block;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
+.bal-val{font-size:15px;font-weight:900;color:var(--gold);font-variant-numeric:tabular-nums}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--green),#00876E);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#000;flex-shrink:0;cursor:pointer}
+
+/* NAV */
+.app-nav{display:flex;background:var(--bg-s);border-bottom:1px solid var(--bdr);padding:0 16px;flex-shrink:0}
+.nav-tab{padding:0 16px;height:40px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t2);position:relative;transition:color .15s}
+.nav-tab:hover{color:var(--t1)}.nav-tab.active{color:var(--t1)}
+.nav-tab.active::after{content:'';position:absolute;bottom:0;left:16px;right:16px;height:2px;background:var(--green);border-radius:2px 2px 0 0}
+
+/* SPORT TABS */
+.sport-tabs{display:flex;gap:6px;padding:10px 16px;background:var(--bg-s);border-bottom:1px solid var(--bdr);flex-shrink:0}
+.sport-tab{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;color:var(--t2);border:1px solid var(--bdr);transition:all .15s}
+.sport-tab:hover{border-color:var(--bdr-h);color:var(--t1)}
+.sport-tab.active{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+
+/* MAIN CONTENT */
+.main-content{flex:1;overflow:hidden;position:relative}
+.view{display:none;position:absolute;inset:0;overflow-y:auto;padding:16px}
+.view.active{display:block}
+
+/* STATES */
+.loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:60px 20px;color:var(--t2)}
+.spinner{width:18px;height:18px;border:2px solid var(--bdr);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:60px 20px;color:var(--t2);line-height:1.8}
+.error-state{text-align:center;padding:40px;color:var(--loss)}
+
+/* ── GAMES ───────────────────────────────────────────────── */
+.games-inner{max-width:820px;margin:0 auto}
+.date-group-hdr{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);padding:6px 0;margin-top:8px}
+.game-card{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);margin-bottom:8px;overflow:hidden;transition:border-color .15s}
+.game-card:hover{border-color:var(--bdr-h)}
+.game-card-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px;border-bottom:1px solid var(--bdr)}
+.game-teams{display:flex;flex-direction:column;gap:3px}
+.team-row{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+.team-row.away{color:var(--t2)}.team-row.home{color:var(--t1)}
+.at-badge{font-size:9px;color:var(--t3);font-weight:700;background:var(--bg);border:1px solid var(--bdr);border-radius:3px;padding:1px 4px}
+.game-meta{text-align:right}
+.game-time{font-size:12px;font-weight:700;color:var(--t2);font-variant-numeric:tabular-nums}
+.game-sport-badge{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-top:2px}
+.game-markets{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bdr)}
+.market-col{background:var(--bg-c);padding:10px 12px}
+.market-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:7px}
+.odds-pair{display:flex;gap:5px}
+.odds-btn{flex:1;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;padding:7px 6px;text-align:center;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:1px;min-width:0}
+.odds-btn:hover{border-color:var(--green);background:var(--green-dim)}
+.odds-btn.active{background:var(--green);border-color:var(--green);color:#000}
+.odds-btn.active .ob-team{color:#000}.odds-btn.active .ob-line{color:rgba(0,0,0,.65)}
+.ob-team{font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--t2)}
+.ob-line{font-size:9px;color:var(--t3)}
+.ob-odds{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums}
+.ob-odds.pos{color:var(--green)}.ob-odds.neg{color:var(--t1)}
+.odds-btn.active .ob-odds{color:#000}
+.no-odds{font-size:11px;color:var(--t3);display:flex;align-items:center;justify-content:center;width:100%}
+
+/* ── BET SLIP ─────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:flex-end}
+.bet-slip-panel{background:var(--bg-s);border-left:1px solid var(--bdr-h);width:100%;max-width:340px;height:100%;display:flex;flex-direction:column;animation:slideIn .2s ease-out}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.bs-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.bs-title{font-size:13px;font-weight:800;letter-spacing:.04em}
+.bs-close{font-size:16px;color:var(--t2);transition:color .15s}.bs-close:hover{color:var(--t1)}
+.bs-body{flex:1;overflow-y:auto;padding:16px}
+.bs-game{padding-bottom:12px;border-bottom:1px solid var(--bdr);margin-bottom:12px}
+.bs-matchup{font-size:12px;font-weight:700;margin-bottom:2px}
+.bs-time{font-size:11px;color:var(--t2)}
+.bs-pick{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--r);padding:12px;margin-bottom:14px}
+.bs-pick-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.bs-market-lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3)}
+.bs-pick-odds{font-size:18px;font-weight:900;font-variant-numeric:tabular-nums}
+.bs-pick-odds.pos{color:var(--green)}.bs-pick-odds.neg{color:var(--t1)}
+.bs-pick-selection{font-size:14px;font-weight:700}
+.bs-stake-lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.bs-amount-row{display:flex;align-items:center;background:var(--bg-c);border:1px solid var(--bdr-h);border-radius:var(--r);overflow:hidden;margin-bottom:8px}
+.bs-dollar{padding:0 10px;font-size:14px;font-weight:700;color:var(--t2);border-right:1px solid var(--bdr)}
+.bs-input{flex:1;padding:10px 12px;background:none;border:none;outline:none;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--t1)}
+.bs-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.bs-quick{display:flex;gap:5px;margin-bottom:16px;flex-wrap:wrap}
+.bs-quick button{flex:1;min-width:42px;padding:5px 6px;background:var(--bg-c);border:1px solid var(--bdr);border-radius:6px;font-size:11px;font-weight:700;color:var(--t2);transition:all .12s}
+.bs-quick button:hover{border-color:var(--green);color:var(--green)}
+.bs-divider{border:none;border-top:1px solid var(--bdr);margin:12px 0}
+.bs-payout-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:13px}
+.bs-payout-lbl{color:var(--t2)}
+.bs-payout-val{font-weight:800;font-variant-numeric:tabular-nums}
+.bs-balance{font-size:11px;color:var(--t3);margin-bottom:16px}
+.bs-balance b{color:var(--t2)}
+.bs-place-btn{width:100%;padding:14px;background:var(--green);color:#000;border-radius:var(--r);font-size:15px;font-weight:900;letter-spacing:.02em;transition:opacity .15s;margin-top:6px}
+.bs-place-btn:hover{opacity:.88}
+.bs-place-btn:disabled{opacity:.45;cursor:default}
+
+/* ── MY BETS ─────────────────────────────────────────────── */
+.bets-inner{max-width:680px;margin:0 auto}
+.bets-section-hdr{display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--bdr)}
+.bets-section-hdr:first-child{margin-top:0}
+.bets-pnl{font-size:12px;font-variant-numeric:tabular-nums;text-transform:none;letter-spacing:0}
+.bets-pnl.pos{color:var(--win)}.bets-pnl.neg{color:var(--loss)}
+.bet-card{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);padding:14px;margin-bottom:8px;border-left-width:3px}
+.bet-card.pending{border-left-color:var(--gold)}.bet-card.won{border-left-color:var(--win)}.bet-card.lost{border-left-color:var(--loss)}.bet-card.push{border-left-color:var(--push)}
+.bet-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
+.bet-matchup{font-size:12px;font-weight:700;flex:1}
+.bet-status-badge{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:20px;flex-shrink:0}
+.bet-status-badge.pending{background:rgba(245,166,35,.15);color:var(--gold)}
+.bet-status-badge.won{background:rgba(0,200,83,.15);color:var(--win)}
+.bet-status-badge.lost{background:rgba(255,61,87,.12);color:var(--loss)}
+.bet-status-badge.push{background:rgba(136,146,164,.12);color:var(--push)}
+.bet-pick{font-size:12px;color:var(--t2);margin-bottom:8px}
+.bet-pick b{color:var(--t1)}.bet-pick .bet-odds{color:var(--t3);font-weight:700}
+.bet-footer{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--t2)}
+.bet-footer .pos{color:var(--win);font-weight:800}.bet-footer .neg{color:var(--loss);font-weight:800}
+.bet-date{margin-left:auto;color:var(--t3)}
+
+/* ── LEADERBOARD ─────────────────────────────────────────── */
+.lb-inner{max-width:600px;margin:0 auto}
+.lb-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px}
+.lb-title{font-size:16px;font-weight:900}
+.lb-room-info{display:flex;align-items:center;gap:8px}
+.lb-code{font-size:12px;color:var(--t2)}.lb-code b{color:var(--t1);letter-spacing:.15em}
+.copy-code-btn{font-size:11px;font-weight:700;color:var(--green);padding:2px 8px;border:1px solid rgba(0,212,106,.25);border-radius:20px;transition:background .12s}
+.copy-code-btn:hover{background:var(--green-bg)}
+.lb-row{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg-c);border:1px solid var(--bdr);transition:background .12s}
+.lb-row:first-child{border-radius:var(--rl) var(--rl) 0 0}.lb-row:last-child{border-radius:0 0 var(--rl) var(--rl)}.lb-row+.lb-row{border-top:none}
+.lb-row:hover{background:var(--bg-ch)}.lb-row.me{background:rgba(0,212,106,.05);border-color:rgba(0,212,106,.2)}
+.lb-rank{width:30px;font-size:18px;text-align:center;flex-shrink:0}
+.lb-rank.num{font-size:14px;font-weight:800;color:var(--t3);text-align:center}
+.lb-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--green),#007a4d);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#000;flex-shrink:0}
+.lb-name{font-size:14px;font-weight:700}
+.lb-you{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);background:var(--green-bg);padding:1px 5px;border-radius:20px;margin-left:5px}
+.lb-right{margin-left:auto;text-align:right}
+.lb-balance{font-size:15px;font-weight:900;font-variant-numeric:tabular-nums}
+.lb-pnl{font-size:11px;font-variant-numeric:tabular-nums;font-weight:700}
+.lb-pnl.pos{color:var(--win)}.lb-pnl.neg{color:var(--loss)}
+
+/* ── PROFILE ─────────────────────────────────────────────── */
+.profile-inner{max-width:520px;margin:0 auto}
+.profile-hero{text-align:center;padding:24px 0 20px}
+.profile-avatar-big{width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,var(--green),#007a4d);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#000;margin:0 auto 12px}
+.profile-username{font-size:22px;font-weight:900}
+.profile-since{font-size:12px;color:var(--t2);margin-top:3px}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+.stat-tile{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--r);padding:14px 12px;text-align:center}
+.st-val{font-size:18px;font-weight:900;font-variant-numeric:tabular-nums;margin-bottom:3px}
+.st-val.pos{color:var(--win)}.st-val.neg{color:var(--loss)}.st-val.gold{color:var(--gold)}
+.st-lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3)}
+.sign-out-btn{width:100%;padding:12px;background:rgba(255,255,255,.04);border:1px solid var(--bdr-h);border-radius:var(--r);font-size:13px;font-weight:700;color:var(--t2);transition:all .15s}
+.sign-out-btn:hover{background:rgba(255,61,87,.1);border-color:rgba(255,61,87,.25);color:var(--loss)}
+
+/* ── ROOM MODAL ──────────────────────────────────────────── */
+.room-modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:20px}
+.room-modal-box{background:var(--bg-c);border:1px solid var(--bdr-h);border-radius:var(--rl);width:100%;max-width:400px}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--bdr)}
+.modal-title{font-size:13px;font-weight:800}.modal-close{font-size:16px;color:var(--t2)}.modal-close:hover{color:var(--t1)}
+.modal-body{padding:18px}
+.modal-input{display:block;width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--bdr-h);border-radius:var(--r);color:var(--t1);font-size:14px;outline:none;transition:border-color .15s;margin-bottom:8px}
+.modal-input:focus{border-color:var(--green)}
+.modal-hint{font-size:12px;color:var(--t2);margin-bottom:16px}
+.modal-actions{display:flex;gap:8px}
+.modal-save{padding:9px 20px;background:var(--green);color:#000;border-radius:var(--r);font-size:13px;font-weight:800;transition:opacity .15s}
+.modal-save:hover{opacity:.88}
+.modal-cancel{padding:9px 16px;background:var(--bg);border:1px solid var(--bdr-h);border-radius:var(--r);font-size:13px;color:var(--t2);transition:background .15s}
+.modal-cancel:hover{background:var(--bg-ch)}
+.room-code-display{font-size:36px;font-weight:900;letter-spacing:.25em;text-align:center;padding:20px;background:var(--bg);border:1px solid var(--bdr);border-radius:var(--r);margin:12px 0;color:var(--green);font-variant-numeric:tabular-nums}
+
+/* ── TOAST ───────────────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);z-index:900;background:var(--bg-ch);border:1px solid var(--bdr-h);border-radius:30px;padding:10px 20px;font-size:13px;font-weight:700;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,.4)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.success{border-color:rgba(0,212,106,.35);color:var(--green)}
+.toast.error{border-color:rgba(255,61,87,.35);color:var(--loss)}
+.toast.warn{border-color:rgba(245,166,35,.35);color:var(--gold)}
+
+@media(max-width:600px){
+  .game-markets{grid-template-columns:1fr}.header-center{display:none}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}.auth-box{padding:28px 20px}
+}
+</style>
+</head>
+<body>
+
+<!-- ── AUTH ── -->
+<div id="authWrap" style="display:none">
+  <div class="auth-box">
+    <div class="auth-logo">CHA<span>L</span>K</div>
+    <div class="auth-tagline">Fake money. Real lines. Zero consequences.</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabSignIn" onclick="switchAuthTab('in')">Sign In</button>
+      <button class="auth-tab" id="tabSignUp" onclick="switchAuthTab('up')">Sign Up</button>
+    </div>
+    <div id="signInForm">
+      <input class="auth-input" id="siEmail" type="email" placeholder="Email" onkeydown="if(event.key==='Enter')doSignIn()">
+      <input class="auth-input" id="siPassword" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')doSignIn()">
+      <div class="auth-error" id="siError"></div>
+      <button class="auth-btn" id="siBtn" onclick="doSignIn()">Sign In</button>
+    </div>
+    <div id="signUpForm" style="display:none">
+      <input class="auth-input" id="suUsername" type="text" placeholder="Username" maxlength="20" onkeydown="if(event.key==='Enter')doSignUp()">
+      <input class="auth-input" id="suEmail" type="email" placeholder="Email" onkeydown="if(event.key==='Enter')doSignUp()">
+      <input class="auth-input" id="suPassword" type="password" placeholder="Password (6+ chars)" onkeydown="if(event.key==='Enter')doSignUp()">
+      <div class="auth-error" id="suError"></div>
+      <button class="auth-btn" id="suBtn" onclick="doSignUp()">Create Account — $5,000 Free</button>
+    </div>
+    <div class="auth-footer">NFL · NCAAF · MLB · All three markets</div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="appWrap" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+  <header class="header">
+    <div class="logo">CHA<span>L</span>K</div>
+    <div class="header-center">
+      <div class="room-selector" id="roomSelector">
+        <button class="room-btn" id="roomBtn" onclick="toggleRoomDrop(event)">🌐 Global <span class="room-arrow">▾</span></button>
+        <div class="room-dropdown" id="roomDropdown" style="display:none">
+          <div class="room-opt" onclick="selectGlobal()">🌐 Global</div>
+          <div id="myRoomsList"></div>
+          <div class="room-hr"></div>
+          <div class="room-opt" onclick="openCreateRoom()">+ Create Room</div>
+          <div class="room-opt" onclick="openJoinRoom()">↗ Join Room</div>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="balance-badge">
+        <span class="bal-label">Balance</span>
+        <span class="bal-val" id="headerBalance">$5,000.00</span>
+      </div>
+      <div class="user-avatar" id="userAvatar" onclick="showView('profile')">?</div>
+    </div>
+  </header>
+  <nav class="app-nav">
+    <button class="nav-tab active" data-view="games" onclick="showView('games')">Games</button>
+    <button class="nav-tab" data-view="bets" onclick="showView('bets')">My Bets</button>
+    <button class="nav-tab" data-view="leaderboard" onclick="showView('leaderboard')">Leaderboard</button>
+    <button class="nav-tab" data-view="profile" onclick="showView('profile')">Profile</button>
+  </nav>
+  <div class="sport-tabs" id="sportTabs">
+    <button class="sport-tab active" data-sport="americanfootball_nfl" onclick="switchSport(this)">🏈 NFL</button>
+    <button class="sport-tab" data-sport="americanfootball_ncaaf" onclick="switchSport(this)">🏈 NCAAF</button>
+    <button class="sport-tab" data-sport="baseball_mlb" onclick="switchSport(this)">⚾ MLB</button>
+  </div>
+  <div class="main-content">
+    <div class="view active" id="view-games"><div class="games-inner" id="gamesInner"></div></div>
+    <div class="view" id="view-bets"><div class="bets-inner" id="betsInner"></div></div>
+    <div class="view" id="view-leaderboard"><div class="lb-inner" id="lbInner"></div></div>
+    <div class="view" id="view-profile"><div class="profile-inner" id="profileInner"></div></div>
+  </div>
+</div>
+
+<!-- ── BET SLIP ── -->
+<div id="betSlipWrap" style="display:none" onclick="if(event.target===this)closeBetSlip()">
+  <style>#betSlipWrap{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.6);backdrop-filter:blur(2px);display:flex;align-items:stretch;justify-content:flex-end}</style>
+  <div class="bet-slip-panel">
+    <div class="bs-header">
+      <span class="bs-title">Bet Slip</span>
+      <button class="bs-close" onclick="closeBetSlip()">✕</button>
+    </div>
+    <div class="bs-body" id="bsBody"></div>
+  </div>
+</div>
+
+<!-- ── ROOM MODAL ── -->
+<div id="roomModalWrap" style="display:none" onclick="if(event.target===this)closeRoomModal()">
+  <style>#roomModalWrap{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.7);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:20px}</style>
+  <div class="room-modal-box" id="roomModalBox"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ── CONFIG — fill these in ────────────────────────────────────────
+const SUPABASE_URL     = 'https://pdbhpkzwbouvtveckxba.supabase.co';
+const SUPABASE_KEY     = 'sb_publishable_uPhXyeh1_7dX1-KRpi2lgg_Fhqcz--Y';
+const ODDS_API_KEY     = '57464755df100b71fd597fddb5acc74e';
+
+// ── CONSTANTS ─────────────────────────────────────────────────────
+const STARTING_BALANCE = 5000;
+const ODDS_TTL = 15 * 60 * 1000; // 15 min cache
+const SPORTS = {
+  americanfootball_nfl:   { label:'NFL',   espn:'football/nfl' },
+  americanfootball_ncaaf: { label:'NCAAF', espn:'football/college-football' },
+  baseball_mlb:           { label:'MLB',   espn:'baseball/mlb' },
+};
+const MARKET_LABELS = { h2h:'Moneyline', spreads:'Spread', totals:'Total' };
+
+// ── STATE ─────────────────────────────────────────────────────────
+let sb, user=null, profile=null, currentRoom=null, myRooms=[];
+let currentView='games', currentSport='americanfootball_nfl';
+let oddsCache={}, activeBet=null;
+
+// ── BOOT ─────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const { data:{ session } } = await sb.auth.getSession();
+  if (session) { user = session.user; await loadProfile(); showApp(); }
+  else showAuth();
+  sb.auth.onAuthStateChange(async (evt, session) => {
+    if (evt === 'SIGNED_IN') { user = session.user; await loadProfile(); showApp(); }
+    else if (evt === 'SIGNED_OUT') { user=null; profile=null; showAuth(); }
+  });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#roomSelector')) closeRoomDrop();
+  });
+});
+
+// ── UTILS ─────────────────────────────────────────────────────────
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmt = n => '$' + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtOdds = o => (o > 0 ? '+' : '') + o;
+const fmtSigned = n => (n >= 0 ? '+' : '-') + fmt(Math.abs(n));
+function calcPayout(stake, odds) {
+  if (odds > 0) return stake + stake * odds / 100;
+  return stake + stake * 100 / Math.abs(odds);
+}
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  clearTimeout(t._t); t._t = setTimeout(() => t.className = 'toast', 2800);
+}
+function randomCode() {
+  const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:6}, () => c[Math.floor(Math.random()*c.length)]).join('');
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────
+function switchAuthTab(tab) {
+  document.getElementById('tabSignIn').classList.toggle('active', tab==='in');
+  document.getElementById('tabSignUp').classList.toggle('active', tab==='up');
+  document.getElementById('signInForm').style.display = tab==='in'?'block':'none';
+  document.getElementById('signUpForm').style.display = tab==='up'?'block':'none';
+}
+async function doSignIn() {
+  const email = document.getElementById('siEmail').value.trim();
+  const pass  = document.getElementById('siPassword').value;
+  const err   = document.getElementById('siError');
+  const btn   = document.getElementById('siBtn');
+  err.textContent = '';
+  if (!email || !pass) { err.textContent = 'Email and password required'; return; }
+  btn.textContent = 'Signing in…'; btn.disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.textContent = 'Sign In'; btn.disabled = false;
+  if (error) err.textContent = error.message;
+}
+async function doSignUp() {
+  const username = document.getElementById('suUsername').value.trim();
+  const email    = document.getElementById('suEmail').value.trim();
+  const pass     = document.getElementById('suPassword').value;
+  const err      = document.getElementById('suError');
+  const btn      = document.getElementById('suBtn');
+  err.textContent = '';
+  if (username.length < 2) { err.textContent = 'Username must be 2+ characters'; return; }
+  if (!email) { err.textContent = 'Email required'; return; }
+  if (pass.length < 6) { err.textContent = 'Password must be 6+ characters'; return; }
+  btn.textContent = 'Creating…'; btn.disabled = true;
+  const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { username } } });
+  btn.textContent = 'Create Account — $5,000 Free'; btn.disabled = false;
+  if (error) { err.textContent = error.message; return; }
+  showToast('Welcome to CHALK! 🎉');
+}
+async function doSignOut() { await sb.auth.signOut(); }
+
+// ── PROFILE ───────────────────────────────────────────────────────
+async function loadProfile() {
+  const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
+  if (!data) return;
+  profile = data;
+  document.getElementById('headerBalance').textContent = fmt(profile.balance);
+  document.getElementById('userAvatar').textContent = profile.username[0].toUpperCase();
+  loadMyRooms();
+}
+
+// ── ROOMS ─────────────────────────────────────────────────────────
+async function loadMyRooms() {
+  const { data } = await sb.from('room_members').select('rooms(*)').eq('user_id', user.id);
+  myRooms = data?.map(r => r.rooms).filter(Boolean) || [];
+  document.getElementById('myRoomsList').innerHTML = myRooms.map(r =>
+    `<div class="room-opt" onclick='selectRoom(${JSON.stringify(r).replace(/'/g,"\\'")})'">
+      🏠 ${esc(r.name)} <span class="room-code-sm">${r.code}</span>
+    </div>`
+  ).join('');
+}
+function selectGlobal() { currentRoom=null; document.getElementById('roomBtn').innerHTML='🌐 Global <span class="room-arrow">▾</span>'; closeRoomDrop(); if(currentView==='leaderboard') loadLeaderboard(); }
+function selectRoom(r) { currentRoom=r; document.getElementById('roomBtn').innerHTML=`🏠 ${esc(r.name)} <span class="room-arrow">▾</span>`; closeRoomDrop(); if(currentView==='leaderboard') loadLeaderboard(); }
+function toggleRoomDrop(e) { e.stopPropagation(); const d=document.getElementById('roomDropdown'); d.style.display=d.style.display==='none'?'block':'none'; }
+function closeRoomDrop() { document.getElementById('roomDropdown').style.display='none'; }
+
+function openCreateRoom() {
+  closeRoomDrop();
+  document.getElementById('roomModalBox').innerHTML = `
+    <div class="modal-hdr"><span class="modal-title">Create a Room</span><button class="modal-close" onclick="closeRoomModal()">✕</button></div>
+    <div class="modal-body">
+      <input class="modal-input" id="rmName" placeholder="Room name (e.g. The Boys…)" maxlength="30">
+      <p class="modal-hint">A 6-character code lets friends join.</p>
+      <div class="modal-actions">
+        <button class="modal-save" onclick="doCreateRoom()">Create</button>
+        <button class="modal-cancel" onclick="closeRoomModal()">Cancel</button>
+      </div>
+    </div>`;
+  document.getElementById('roomModalWrap').style.display = 'flex';
+}
+async function doCreateRoom() {
+  const name = document.getElementById('rmName').value.trim();
+  if (!name) { showToast('Enter a room name','error'); return; }
+  const code = randomCode();
+  const { data: room, error } = await sb.from('rooms').insert({ name, code, created_by: user.id }).select().single();
+  if (error) { showToast('Error creating room','error'); return; }
+  await sb.from('room_members').insert({ room_id: room.id, user_id: user.id });
+  closeRoomModal(); await loadMyRooms(); selectRoom(room);
+  document.getElementById('roomModalBox').innerHTML = `
+    <div class="modal-hdr"><span class="modal-title">Room Created 🎉</span><button class="modal-close" onclick="closeRoomModal()">✕</button></div>
+    <div class="modal-body" style="text-align:center">
+      <p class="modal-hint">Share this code with your friends:</p>
+      <div class="room-code-display">${code}</div>
+      <p class="modal-hint" style="margin:8px 0">${esc(name)}</p>
+      <button class="modal-save" style="width:100%" onclick="navigator.clipboard.writeText('${code}');showToast('Code copied!')">Copy Code</button>
+    </div>`;
+  document.getElementById('roomModalWrap').style.display = 'flex';
+}
+function openJoinRoom() {
+  closeRoomDrop();
+  document.getElementById('roomModalBox').innerHTML = `
+    <div class="modal-hdr"><span class="modal-title">Join a Room</span><button class="modal-close" onclick="closeRoomModal()">✕</button></div>
+    <div class="modal-body">
+      <input class="modal-input" id="rmCode" placeholder="Enter 6-character code" maxlength="6" style="text-transform:uppercase;letter-spacing:.25em;font-size:18px;text-align:center;font-weight:800" oninput="this.value=this.value.toUpperCase()">
+      <div class="modal-actions" style="margin-top:12px">
+        <button class="modal-save" onclick="doJoinRoom()">Join</button>
+        <button class="modal-cancel" onclick="closeRoomModal()">Cancel</button>
+      </div>
+    </div>`;
+  document.getElementById('roomModalWrap').style.display = 'flex';
+}
+async function doJoinRoom() {
+  const code = document.getElementById('rmCode').value.trim().toUpperCase();
+  if (code.length !== 6) { showToast('Enter a 6-character code','error'); return; }
+  const { data: room } = await sb.from('rooms').select('*').eq('code', code).single();
+  if (!room) { showToast('Room not found','error'); return; }
+  const { data: existing } = await sb.from('room_members').select('*').eq('room_id', room.id).eq('user_id', user.id).maybeSingle();
+  if (existing) { closeRoomModal(); selectRoom(room); showToast(`Already in ${room.name}`); return; }
+  await sb.from('room_members').insert({ room_id: room.id, user_id: user.id });
+  closeRoomModal(); await loadMyRooms(); selectRoom(room); showToast(`Joined ${room.name} 🎉`);
+}
+function closeRoomModal() { document.getElementById('roomModalWrap').style.display = 'none'; }
+
+// ── ODDS API ──────────────────────────────────────────────────────
+async function fetchOdds(sport) {
+  const cached = oddsCache[sport];
+  if (cached && Date.now() - cached.ts < ODDS_TTL) return cached.data;
+  if (!ODDS_API_KEY || ODDS_API_KEY === 'YOUR_ODDS_API_KEY') return getMock(sport);
+  try {
+    const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds?apiKey=${ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals&oddsFormat=american&bookmakers=draftkings,fanduel`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    oddsCache[sport] = { data, ts: Date.now() };
+    return data;
+  } catch(e) {
+    console.error('Odds API:', e);
+    showToast('Could not load live odds — showing demo data', 'warn');
+    return getMock(sport);
+  }
+}
+
+function getMock(sport) {
+  const d0 = new Date(), d1 = new Date(d0), d2 = new Date(d0);
+  d1.setDate(d1.getDate()+1); d2.setDate(d2.getDate()+2);
+  const mocks = {
+    americanfootball_nfl: [
+      { id:'nfl1', home_team:'Dallas Cowboys',   away_team:'New York Giants',   commence_time: d1.toISOString(), bookmakers:[{key:'draftkings',markets:[{key:'h2h',outcomes:[{name:'Dallas Cowboys',price:-180},{name:'New York Giants',price:150}]},{key:'spreads',outcomes:[{name:'Dallas Cowboys',price:-110,point:-4.5},{name:'New York Giants',price:-110,point:4.5}]},{key:'totals',outcomes:[{name:'Over',price:-110,point:44.5},{name:'Under',price:-110,point:44.5}]}]}] },
+      { id:'nfl2', home_team:'Kansas City Chiefs', away_team:'Buffalo Bills',   commence_time: d2.toISOString(), bookmakers:[{key:'draftkings',markets:[{key:'h2h',outcomes:[{name:'Kansas City Chiefs',price:-135},{name:'Buffalo Bills',price:115}]},{key:'spreads',outcomes:[{name:'Kansas City Chiefs',price:-110,point:-2.5},{name:'Buffalo Bills',price:-110,point:2.5}]},{key:'totals',outcomes:[{name:'Over',price:-105,point:49.5},{name:'Under',price:-115,point:49.5}]}]}] },
+      { id:'nfl3', home_team:'Philadelphia Eagles', away_team:'San Francisco 49ers', commence_time: d2.toISOString(), bookmakers:[{key:'draftkings',markets:[{key:'h2h',outcomes:[{name:'Philadelphia Eagles',price:120},{name:'San Francisco 49ers',price:-140}]},{key:'spreads',outcomes:[{name:'Philadelphia Eagles',price:-110,point:2.5},{name:'San Francisco 49ers',price:-110,point:-2.5}]},{key:'totals',outcomes:[{name:'Over',price:-115,point:46.5},{name:'Under',price:-105,point:46.5}]}]}] },
+    ],
+    americanfootball_ncaaf: [
+      { id:'ncaaf1', home_team:'Alabama Crimson Tide', away_team:'Georgia Bulldogs', commence_time: d1.toISOString(), bookmakers:[{key:'draftkings',markets:[{key:'h2h',outcomes:[{name:'Alabama Crimson Tide',price:-165},{name:'Georgia Bulldogs',price:140}]},{key:'spreads',outcomes:[{name:'Alabama Crimson Tide',price:-110,point:-3.5},{name:'Georgia Bulldogs',price:-110,point:3.5}]},{key:'totals',outcomes:[{name:'Over',price:-110,point:48.5},{name:'Under',price:-110,point:48.5}]}]}] },
+      { id:'ncaaf2', home_team:'Ohio State Buckeyes', away_team:'Michigan Wolverines', commence_time: d2.toISOString(), bookmakers:[{key:'draftkings',markets:[{key:'h2h',outcomes:[{name:'Ohio State Buckeyes',price:-200},{name:'Michigan Wolverines',price:168}]},{key:'spreads',outcomes:[{name:'Ohio State Buckeyes',price:-110,point:-5.5},{name:'Michigan Wolverines',price:-110,point:5.5}]},{key:'totals',outcomes:[{name:'Over',price:-110,point:45.5},{name:'Under',price:-110,point:45.5}]}]}] },
+    ],
+    baseball_mlb: [
+      { id:'mlb1', home_team:'Los Angeles Dodgers', away_team:'San Francisco Giants', commence_time: d0.toISOString(), bookmakers:[{key:'draftkings',markets:[{key:'h2h',outcomes:[{name:'Los Angeles Dodgers',price:-185},{name:'San Francisco Giants',price:155}]},{key:'spreads',outcomes:[{name:'Los Angeles Dodgers',price:-115,point:-1.5},{name:'San Francisco Giants',price:-105,point:1.5}]},{key:'totals',outcomes:[{name:'Over',price:-110,point:8.5},{name:'Under',price:-110,point:8.5}]}]}] },
+      { id:'mlb2', home_team:'New York Yankees', away_team:'Boston Red Sox', commence_time: d1.toISOString(), bookmakers:[{key:'draftkings',markets:[{key:'h2h',outcomes:[{name:'New York Yankees',price:-130},{name:'Boston Red Sox',price:110}]},{key:'spreads',outcomes:[{name:'New York Yankees',price:-120,point:-1.5},{name:'Boston Red Sox',price:100,point:1.5}]},{key:'totals',outcomes:[{name:'Over',price:-115,point:9.5},{name:'Under',price:-105,point:9.5}]}]}] },
+      { id:'mlb3', home_team:'Atlanta Braves', away_team:'New York Mets', commence_time: d1.toISOString(), bookmakers:[{key:'draftkings',markets:[{key:'h2h',outcomes:[{name:'Atlanta Braves',price:-150},{name:'New York Mets',price:128}]},{key:'spreads',outcomes:[{name:'Atlanta Braves',price:-110,point:-1.5},{name:'New York Mets',price:-110,point:1.5}]},{key:'totals',outcomes:[{name:'Over',price:-110,point:8.0},{name:'Under',price:-110,point:8.0}]}]}] },
+    ],
+  };
+  return mocks[sport] || [];
+}
+
+function getMarket(game, key) {
+  for (const bm of (game.bookmakers||[])) {
+    const m = bm.markets?.find(m => m.key === key);
+    if (m) return m.outcomes;
+  }
+  return null;
+}
+
+// ── GAMES VIEW ────────────────────────────────────────────────────
+async function loadGames(sport) {
+  currentSport = sport;
+  document.getElementById('gamesInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading games…</span></div>';
+  const games = await fetchOdds(sport);
+  renderGames(games);
+}
+
+function renderGames(games) {
+  const el = document.getElementById('gamesInner');
+  if (!games.length) { el.innerHTML = '<div class="empty-state">No upcoming games. Check back soon.</div>'; return; }
+  const sorted = [...games].sort((a,b) => new Date(a.commence_time)-new Date(b.commence_time));
+  const byDate = {};
+  for (const g of sorted) {
+    const key = new Date(g.commence_time).toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+    (byDate[key] = byDate[key]||[]).push(g);
+  }
+  let html = '';
+  for (const [date, gs] of Object.entries(byDate)) {
+    html += `<div class="date-group-hdr">${date}</div>`;
+    for (const g of gs) html += renderGameCard(g);
+  }
+  el.innerHTML = html;
+}
+
+function renderGameCard(g) {
+  const ml = getMarket(g,'h2h'), sp = getMarket(g,'spreads'), tot = getMarket(g,'totals');
+  const time = new Date(g.commence_time).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});
+  const away = g.away_team, home = g.home_team;
+
+  const oddsBtn = (market, outcome) => {
+    const label = market==='totals' ? outcome.name : outcome.name.split(' ').slice(-1)[0];
+    const sub = (market==='spreads' && outcome.point!=null) ? ((outcome.point>0?'+':'')+outcome.point) : market==='totals' ? (outcome.name==='Over'?'O ':'U ')+outcome.point : '';
+    const o = outcome.price; const oStr = fmtOdds(o);
+    return `<button class="odds-btn" data-gid="${esc(g.id)}" data-market="${market}"
+      data-sel="${esc(outcome.name)}" data-odds="${o}" data-line="${outcome.point??''}"
+      data-home="${esc(home)}" data-away="${esc(away)}" data-ct="${esc(g.commence_time)}">
+      <span class="ob-team">${esc(label)}</span>
+      ${sub?`<span class="ob-line">${esc(sub)}</span>`:''}
+      <span class="ob-odds ${o>0?'pos':'neg'}">${oStr}</span>
+    </button>`;
+  };
+
+  const mlH = ml ? `${oddsBtn('h2h', ml.find(o=>o.name===away)||ml[0])}${oddsBtn('h2h', ml.find(o=>o.name===home)||ml[1])}` : '<span class="no-odds">TBD</span>';
+  const spH = sp ? `${oddsBtn('spreads', sp.find(o=>o.name===away)||sp[0])}${oddsBtn('spreads', sp.find(o=>o.name===home)||sp[1])}` : '<span class="no-odds">TBD</span>';
+  const totH = tot ? `${oddsBtn('totals', tot.find(o=>o.name==='Over')||tot[0])}${oddsBtn('totals', tot.find(o=>o.name==='Under')||tot[1])}` : '<span class="no-odds">TBD</span>';
+
+  return `<div class="game-card">
+    <div class="game-card-top">
+      <div class="game-teams">
+        <div class="team-row away">${esc(away)}</div>
+        <div class="team-row home">@ ${esc(home)}</div>
+      </div>
+      <div class="game-meta"><div class="game-time">${time}</div></div>
+    </div>
+    <div class="game-markets">
+      <div class="market-col"><div class="market-lbl">Moneyline</div><div class="odds-pair">${mlH}</div></div>
+      <div class="market-col"><div class="market-lbl">Spread</div><div class="odds-pair">${spH}</div></div>
+      <div class="market-col"><div class="market-lbl">Total</div><div class="odds-pair">${totH}</div></div>
+    </div>
+  </div>`;
+}
+
+// ── BET SLIP ──────────────────────────────────────────────────────
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.odds-btn');
+  if (!btn) return;
+  activeBet = {
+    gameId: btn.dataset.gid, homeTeam: btn.dataset.home, awayTeam: btn.dataset.away,
+    commenceTime: btn.dataset.ct, market: btn.dataset.market,
+    selection: btn.dataset.sel, odds: parseInt(btn.dataset.odds),
+    line: btn.dataset.line ? parseFloat(btn.dataset.line) : null,
+  };
+  openBetSlip();
+});
+
+function openBetSlip() {
+  if (!activeBet || !profile) return;
+  const { homeTeam, awayTeam, commenceTime, market, selection, odds, line } = activeBet;
+  const mktLabel = MARKET_LABELS[market]||market;
+  const selLabel = market==='spreads'&&line!=null ? `${selection} ${line>0?'+':''}${line}` : market==='totals'&&line!=null ? `${selection} ${line}` : selection;
+  const time = new Date(commenceTime).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+
+  document.getElementById('bsBody').innerHTML = `
+    <div class="bs-game"><div class="bs-matchup">${esc(awayTeam)} @ ${esc(homeTeam)}</div><div class="bs-time">${time}</div></div>
+    <div class="bs-pick">
+      <div class="bs-pick-top"><span class="bs-market-lbl">${mktLabel}</span><span class="bs-pick-odds ${odds>0?'pos':'neg'}">${fmtOdds(odds)}</span></div>
+      <div class="bs-pick-selection">${esc(selLabel)}</div>
+    </div>
+    <div class="bs-stake-lbl">Bet Amount</div>
+    <div class="bs-amount-row"><span class="bs-dollar">$</span><input class="bs-input" id="bsStake" type="number" min="1" value="50" oninput="updateBsPayout()"></div>
+    <div class="bs-quick">
+      <button onclick="setBsStake(10)">$10</button><button onclick="setBsStake(25)">$25</button>
+      <button onclick="setBsStake(50)">$50</button><button onclick="setBsStake(100)">$100</button>
+      <button onclick="setBsStake(Math.floor(profile.balance))">All In</button>
+    </div>
+    <hr class="bs-divider">
+    <div class="bs-payout-row"><span class="bs-payout-lbl">To Win</span><span class="bs-payout-val" id="bsToWin">—</span></div>
+    <div class="bs-payout-row"><span class="bs-payout-lbl">Total Payout</span><span class="bs-payout-val" id="bsPayout">—</span></div>
+    <div class="bs-balance">Balance: <b>${fmt(profile.balance)}</b></div>
+    <button class="bs-place-btn" id="bsPlaceBtn" onclick="placeBet()">Place Bet</button>`;
+  document.getElementById('betSlipWrap').style.display = 'flex';
+  updateBsPayout();
+}
+
+function setBsStake(v) { const i=document.getElementById('bsStake'); if(i){i.value=Math.min(v,Math.floor(profile?.balance||0)); updateBsPayout();} }
+function updateBsPayout() {
+  const stake = parseFloat(document.getElementById('bsStake')?.value)||0;
+  if (!activeBet) return;
+  const payout = calcPayout(stake, activeBet.odds);
+  document.getElementById('bsToWin').textContent = fmt(payout - stake);
+  document.getElementById('bsPayout').textContent = fmt(payout);
+}
+function closeBetSlip() { document.getElementById('betSlipWrap').style.display='none'; activeBet=null; }
+
+async function placeBet() {
+  if (!activeBet||!profile) return;
+  const stake = parseFloat(document.getElementById('bsStake')?.value)||0;
+  if (stake <= 0) { showToast('Enter a valid stake','error'); return; }
+  if (stake > profile.balance) { showToast('Insufficient balance','error'); return; }
+  const payout = calcPayout(stake, activeBet.odds);
+  const btn = document.getElementById('bsPlaceBtn');
+  btn.textContent = 'Placing…'; btn.disabled = true;
+  const newBal = profile.balance - stake;
+  const { error: be } = await sb.from('profiles').update({ balance: newBal }).eq('id', user.id);
+  if (be) { btn.textContent='Place Bet'; btn.disabled=false; showToast('Error placing bet','error'); return; }
+  const { error: ie } = await sb.from('bets').insert({
+    user_id: user.id, sport: currentSport,
+    game_id: activeBet.gameId, home_team: activeBet.homeTeam, away_team: activeBet.awayTeam,
+    commence_time: activeBet.commenceTime, market: activeBet.market,
+    selection: activeBet.selection, line: activeBet.line, odds: activeBet.odds,
+    stake, potential_payout: payout,
+  });
+  if (ie) { await sb.from('profiles').update({balance:profile.balance}).eq('id',user.id); btn.textContent='Place Bet'; btn.disabled=false; showToast('Error placing bet','error'); return; }
+  profile.balance = newBal;
+  document.getElementById('headerBalance').textContent = fmt(newBal);
+  closeBetSlip();
+  showToast(`Bet placed! ${fmtOdds(activeBet.odds)} · To win ${fmt(payout-stake)} 🎯`);
+}
+
+// ── MY BETS ───────────────────────────────────────────────────────
+async function loadMyBets() {
+  document.getElementById('betsInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading…</span></div>';
+  await settlePending();
+  const { data: bets } = await sb.from('bets').select('*').eq('user_id', user.id).order('created_at',{ascending:false});
+  renderBets(bets||[]);
+}
+
+function renderBets(bets) {
+  const el = document.getElementById('betsInner');
+  if (!bets.length) { el.innerHTML = '<div class="empty-state">No bets yet.<br>Head to Games to place your first bet!</div>'; return; }
+  const pending = bets.filter(b=>b.status==='pending');
+  const settled = bets.filter(b=>b.status!=='pending');
+  const pnl = settled.reduce((acc,b)=>acc+(b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:0),0);
+  const rb = b => {
+    const mktL = MARKET_LABELS[b.market]||b.market;
+    const selL = b.market==='spreads'&&b.line!=null?`${b.selection} ${b.line>0?'+':''}${b.line}`:b.market==='totals'&&b.line!=null?`${b.selection} ${b.line}`:b.selection;
+    const statusLabels = {won:'✓ WON',lost:'✗ LOST',push:'~ PUSH',pending:'⏳ PENDING'};
+    const pnlVal = b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:b.status==='push'?0:null;
+    const d = new Date(b.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    return `<div class="bet-card ${b.status}">
+      <div class="bet-card-top"><div class="bet-matchup">${esc(b.away_team)} @ ${esc(b.home_team)}</div><span class="bet-status-badge ${b.status}">${statusLabels[b.status]||b.status}</span></div>
+      <div class="bet-pick">${esc(mktL)}: <b>${esc(selL)}</b> <span class="bet-odds">${fmtOdds(b.odds)}</span></div>
+      <div class="bet-footer">
+        <span>Stake: <b>${fmt(b.stake)}</b></span>
+        ${pnlVal!==null?`<span class="${pnlVal>=0?'pos':'neg'}">${pnlVal>=0?'+':''}${fmt(pnlVal)}</span>`:`<span>To win: ${fmt(b.potential_payout-b.stake)}</span>`}
+        <span class="bet-date">${d}</span>
+      </div>
+    </div>`;
+  };
+  let html = '';
+  if (pending.length) html += `<div class="bets-section-hdr">Active (${pending.length})</div>${pending.map(rb).join('')}`;
+  if (settled.length) html += `<div class="bets-section-hdr">History <span class="bets-pnl ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)}</span></div>${settled.map(rb).join('')}`;
+  el.innerHTML = html;
+}
+
+// ── SETTLEMENT ────────────────────────────────────────────────────
+async function settlePending() {
+  const now = new Date().toISOString();
+  const { data: pending } = await sb.from('bets').select('*').eq('user_id',user.id).eq('status','pending').lt('commence_time',now);
+  if (!pending?.length) return;
+  const bySport = pending.reduce((acc,b)=>{(acc[b.sport]=acc[b.sport]||[]).push(b);return acc},{});
+  for (const [sport, bets] of Object.entries(bySport)) {
+    const espn = SPORTS[sport]?.espn; if (!espn) continue;
+    try {
+      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espn}/scoreboard`);
+      const { events=[] } = await res.json();
+      for (const bet of bets) {
+        const ev = matchEvent(events, bet.home_team, bet.away_team); if (!ev) continue;
+        if (!ev.status?.type?.completed) continue;
+        const comps = ev.competitions?.[0]?.competitors||[];
+        const hc = comps.find(c=>c.homeAway==='home'), ac = comps.find(c=>c.homeAway==='away');
+        if (!hc||!ac) continue;
+        const hs = parseInt(hc.score)||0, as_ = parseInt(ac.score)||0;
+        const result = settleBet(bet, hs, as_);
+        let newBal = profile.balance;
+        if (result==='won') newBal += bet.potential_payout;
+        else if (result==='push') newBal += bet.stake;
+        await sb.from('bets').update({status:result,settled_at:new Date().toISOString()}).eq('id',bet.id);
+        await sb.from('profiles').update({balance:newBal}).eq('id',user.id);
+        profile.balance = newBal;
+      }
+    } catch(e) { console.error('settlement error',e); }
+  }
+  document.getElementById('headerBalance').textContent = fmt(profile.balance);
+}
+
+function matchEvent(events, homeTeam, awayTeam) {
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]/g,' ').trim().split(' ').filter(Boolean);
+  const htW = norm(homeTeam), atW = norm(awayTeam);
+  for (const ev of events) {
+    const cs = ev.competitions?.[0]?.competitors||[];
+    const hc = cs.find(c=>c.homeAway==='home'), ac = cs.find(c=>c.homeAway==='away');
+    if (!hc||!ac) continue;
+    const hn = norm(hc.team?.displayName||''), an = norm(ac.team?.displayName||'');
+    const htMatch = htW.some(w=>hn.includes(w))||hn.some(w=>htW.includes(w));
+    const atMatch = atW.some(w=>an.includes(w))||an.some(w=>atW.includes(w));
+    if (htMatch&&atMatch) return ev;
+  }
+  return null;
+}
+
+function settleBet(bet, homeScore, awayScore) {
+  if (bet.market === 'h2h') {
+    if (homeScore === awayScore) return 'push';
+    const winner = homeScore > awayScore ? bet.home_team : bet.away_team;
+    return winner === bet.selection ? 'won' : 'lost';
+  }
+  if (bet.market === 'spreads') {
+    const line = parseFloat(bet.line), isHome = bet.selection === bet.home_team;
+    const margin = homeScore - awayScore; // positive = home winning
+    const covered = isHome ? (margin + line) : ((-margin) + (-line));
+    if (covered > 0) return 'won'; if (covered < 0) return 'lost'; return 'push';
+  }
+  if (bet.market === 'totals') {
+    const total = homeScore + awayScore, line = parseFloat(bet.line);
+    if (bet.selection === 'Over') return total > line ? 'won' : total < line ? 'lost' : 'push';
+    return total < line ? 'won' : total > line ? 'lost' : 'push';
+  }
+  return 'lost';
+}
+
+// ── LEADERBOARD ───────────────────────────────────────────────────
+async function loadLeaderboard() {
+  document.getElementById('lbInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading…</span></div>';
+  let ids = null;
+  if (currentRoom) {
+    const { data: members } = await sb.from('room_members').select('user_id').eq('room_id', currentRoom.id);
+    ids = members?.map(m=>m.user_id)||[];
+    if (!ids.length) { document.getElementById('lbInner').innerHTML = '<div class="empty-state">No members yet — share your room code!</div>'; return; }
+  }
+  let q = sb.from('profiles').select('id,username,balance,created_at').order('balance',{ascending:false}).limit(100);
+  if (ids) q = q.in('id', ids);
+  const { data: rows } = await q;
+  renderLeaderboard(rows||[]);
+}
+
+function renderLeaderboard(rows) {
+  const medals = ['🥇','🥈','🥉'];
+  const title = currentRoom ? `🏠 ${esc(currentRoom.name)}` : '🌐 Global Leaderboard';
+  const roomCode = currentRoom ? `<div class="lb-room-info"><span class="lb-code">Code: <b>${currentRoom.code}</b></span><button class="copy-code-btn" onclick="navigator.clipboard.writeText('${currentRoom.code}');showToast('Code copied!')">Copy</button></div>` : '';
+  const rowsHtml = rows.map((p,i) => {
+    const isMe = p.id === user.id;
+    const pnl = p.balance - STARTING_BALANCE;
+    const rankDisplay = i < 3 ? medals[i] : `<span class="lb-rank num">${i+1}</span>`;
+    return `<div class="lb-row ${isMe?'me':''}">
+      <div class="lb-rank">${rankDisplay}</div>
+      <div class="lb-avatar">${p.username[0].toUpperCase()}</div>
+      <div class="lb-name">${esc(p.username)}${isMe?'<span class="lb-you">you</span>':''}</div>
+      <div class="lb-right">
+        <div class="lb-balance">${fmt(p.balance)}</div>
+        <div class="lb-pnl ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('lbInner').innerHTML = `<div class="lb-hdr"><h2 class="lb-title">${title}</h2>${roomCode}</div><div>${rowsHtml}</div>`;
+}
+
+// ── PROFILE VIEW ──────────────────────────────────────────────────
+async function loadProfileView() {
+  document.getElementById('profileInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading…</span></div>';
+  const { data: bets } = await sb.from('bets').select('*').eq('user_id',user.id).neq('status','pending');
+  const all = bets||[];
+  const wins = all.filter(b=>b.status==='won').length;
+  const total = all.length;
+  const pnl = all.reduce((acc,b)=>acc+(b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:0),0);
+  const wagered = all.reduce((acc,b)=>acc+Number(b.stake),0);
+  const roi = wagered > 0 ? ((pnl/wagered)*100).toFixed(1) : '0.0';
+  const winRate = total > 0 ? Math.round(wins/total*100) : 0;
+  document.getElementById('profileInner').innerHTML = `
+    <div class="profile-hero">
+      <div class="profile-avatar-big">${(profile?.username||'?')[0].toUpperCase()}</div>
+      <div class="profile-username">${esc(profile?.username||'Player')}</div>
+      <div class="profile-since">Since ${new Date(profile?.created_at||Date.now()).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-tile"><div class="st-val gold">${fmt(profile?.balance||0)}</div><div class="st-lbl">Balance</div></div>
+      <div class="stat-tile"><div class="st-val ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)}</div><div class="st-lbl">Total P&L</div></div>
+      <div class="stat-tile"><div class="st-val">${winRate}%</div><div class="st-lbl">Win Rate</div></div>
+      <div class="stat-tile"><div class="st-val ${parseFloat(roi)>=0?'pos':'neg'}">${parseFloat(roi)>=0?'+':''}${roi}%</div><div class="st-lbl">ROI</div></div>
+      <div class="stat-tile"><div class="st-val">${total}</div><div class="st-lbl">Settled Bets</div></div>
+      <div class="stat-tile"><div class="st-val">${wins}</div><div class="st-lbl">Wins</div></div>
+    </div>
+    <button class="sign-out-btn" onclick="doSignOut()">Sign Out</button>`;
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────
+function showView(view) {
+  currentView = view;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('view-'+view)?.classList.add('active');
+  document.querySelector(`.nav-tab[data-view="${view}"]`)?.classList.add('active');
+  document.getElementById('sportTabs').style.display = view==='games'?'flex':'none';
+  if (view==='games') loadGames(currentSport);
+  else if (view==='bets') loadMyBets();
+  else if (view==='leaderboard') loadLeaderboard();
+  else if (view==='profile') loadProfileView();
+}
+
+function switchSport(tab) {
+  document.querySelectorAll('.sport-tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+  loadGames(tab.dataset.sport);
+}
+
+function showAuth() { document.getElementById('authWrap').style.display='flex'; document.getElementById('appWrap').style.display='none'; }
+function showApp()  { document.getElementById('authWrap').style.display='none';  document.getElementById('appWrap').style.display='flex'; loadGames(currentSport); }
+</script>
+</body>
+</html>
