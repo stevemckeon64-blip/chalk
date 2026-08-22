@@ -295,6 +295,7 @@ body{background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,'S
     <button class="sport-tab" data-sport="americanfootball_ncaaf" onclick="switchSport(this)">🏈 NCAAF</button>
     <button class="sport-tab" data-sport="baseball_mlb" onclick="switchSport(this)">⚾ MLB</button>
     <button class="sport-tab" data-sport="mma_mixed_martial_arts" onclick="switchSport(this)">🥊 UFC</button>
+    <button class="sport-tab" data-sport="padel_ppl" onclick="switchSport(this)">🎾 PPL</button>
   </div>
   <div class="main-content">
     <div class="view active" id="view-games"><div class="games-inner" id="gamesInner"></div></div>
@@ -330,6 +331,9 @@ body{background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,'S
 const SUPABASE_URL     = 'https://pdbhpkzwbouvtveckxba.supabase.co';
 const SUPABASE_KEY     = 'sb_publishable_uPhXyeh1_7dX1-KRpi2lgg_Fhqcz--Y';
 const ODDS_API_KEY     = '57464755df100b71fd597fddb5acc74e';
+const PPL_API_KEY      = 'nkY3SZQkXOCovlQJb5CG67BHbAsURFWFUFweMEnN109c98af';
+const PPL_BASE         = 'https://padelapi.org/api';
+const PPL_TTL          = 30 * 60 * 1000; // 30 min cache
 
 // ── CONSTANTS ─────────────────────────────────────────────────────
 const STARTING_BALANCE = 5000;
@@ -339,13 +343,14 @@ const SPORTS = {
   americanfootball_ncaaf: { label:'NCAAF', espn:'football/college-football' },
   baseball_mlb:           { label:'MLB',   espn:'baseball/mlb' },
   mma_mixed_martial_arts: { label:'UFC',   espn:'mma/ufc', versus:true },
+  padel_ppl:              { label:'PPL',   espn:null, versus:true, ppl:true },
 };
 const MARKET_LABELS = { h2h:'Moneyline', spreads:'Spread', totals:'Total' };
 
 // ── STATE ─────────────────────────────────────────────────────────
 let sb, user=null, profile=null, currentRoom=null, myRooms=[];
 let currentView='games', currentSport='americanfootball_nfl';
-let oddsCache={}, activeBet=null;
+let oddsCache={}, activeBet=null, pplCache=null, pplCacheTs=0;
 
 // ── BOOT ─────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
@@ -549,11 +554,63 @@ function getMarket(game, key) {
   return null;
 }
 
+// ── PPL (PREMIER PADEL) ───────────────────────────────────────────
+function probToAmericanOdds(p) {
+  // p is 0-100
+  if (p >= 50) return Math.round(-(p / (100 - p)) * 100);
+  return Math.round(((100 - p) / p) * 100);
+}
+
+async function fetchPPL() {
+  if (pplCache && Date.now() - pplCacheTs < PPL_TTL) return pplCache;
+  const today = new Date().toISOString().split('T')[0];
+  const hdrs = { 'Authorization': `Bearer ${PPL_API_KEY}`, 'Content-Type': 'application/json' };
+  try {
+    const res = await fetch(`${PPL_BASE}/matches?after_date=${today}&sort_by=played_at&order_by=asc&per_page=30`, { headers: hdrs });
+    if (!res.ok) throw new Error(res.status);
+    const { data: matches } = await res.json();
+    const scheduled = matches.filter(m => m.status === 'scheduled' && m.players?.team_1?.length && m.players?.team_2?.length);
+    const withOdds = await Promise.all(scheduled.map(async m => {
+      const [t1label, t2label] = m.name.split(' - ');
+      const t1ids = m.players.team_1.map(p => p.id);
+      const t2ids = m.players.team_2.map(p => p.id);
+      let t1odds = -110, t2odds = -110;
+      try {
+        const sr = await fetch(`${PPL_BASE}/matches/simulate`, { method:'POST', headers:hdrs, body:JSON.stringify({team_1:t1ids,team_2:t2ids}) });
+        const sim = await sr.json();
+        t1odds = probToAmericanOdds(sim.probability.team_1);
+        t2odds = probToAmericanOdds(sim.probability.team_2);
+      } catch(e) {
+        // fallback: use seeds
+        const s1 = parseInt(m.seeds?.team_1)||2, s2 = parseInt(m.seeds?.team_2)||2;
+        if (s1 < s2) { t1odds = -140; t2odds = +120; }
+        else if (s2 < s1) { t1odds = +120; t2odds = -140; }
+      }
+      return {
+        id: `ppl_${m.id}`,
+        home_team: t2label || 'Team 2',
+        away_team: t1label || 'Team 1',
+        commence_time: m.scheduled_at || m.played_at,
+        bookmakers: [{ key:'ppl', markets: [{ key:'h2h', outcomes:[
+          { name: t1label || 'Team 1', price: t1odds },
+          { name: t2label || 'Team 2', price: t2odds },
+        ]}]}]
+      };
+    }));
+    pplCache = withOdds; pplCacheTs = Date.now();
+    return withOdds;
+  } catch(e) {
+    console.error('PPL API:', e);
+    showToast('Could not load PPL matches', 'warn');
+    return [];
+  }
+}
+
 // ── GAMES VIEW ────────────────────────────────────────────────────
 async function loadGames(sport) {
   currentSport = sport;
   document.getElementById('gamesInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading games…</span></div>';
-  const games = await fetchOdds(sport);
+  const games = SPORTS[sport]?.ppl ? await fetchPPL() : await fetchOdds(sport);
   renderGames(games);
 }
 
