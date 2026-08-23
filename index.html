@@ -2668,7 +2668,7 @@ function renderGameCard(g) {
     <div class="game-markets">${marketsHtml}</div>
     ${propsHtml ? `
     <div class="more-markets-toggle" onclick="toggleProps(this)">
-      <span>Player Props &amp; More</span><span class="mm-arrow">›</span>
+      <span>Player Props &amp; More <span style="font-size:9px;background:rgba(245,166,35,.15);color:var(--gold);border-radius:10px;padding:1px 6px;margin-left:4px">${(() => { const cfg=PROP_SPORTS[currentSport]; if(!cfg) return ''; const pp=cfg.pos.reduce((a,p)=>a+p.props.length,0); const gp=cfg.gp.length; return pp+gp+'+';})()} markets</span></span><span class="mm-arrow">›</span>
     </div>
     <div class="game-props" style="display:none;padding:12px 14px">${propsHtml}</div>` : ''}
   </div>`;
