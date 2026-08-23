@@ -1031,55 +1031,83 @@ const PROP_SPORTS = {
   },
   soccer_epl: {
     pos:[
-      {p:'FWD',props:[{k:'sot_f',lb:'Shots on Target',lo:0.5,hi:2.5,st:0.5},{k:'gs',lb:'Anytime Goalscorer',lo:0.5,hi:0.5,st:0,isYN:true}]},
-      {p:'MID',props:[{k:'kp',lb:'Key Passes',lo:0.5,hi:2.5,st:0.5},{k:'sot_m',lb:'Shots on Target',lo:0.5,hi:1.5,st:0.5}]},
+      {p:'GK',props:[{k:'saves_gk',lb:'Saves',lo:1.5,hi:5.5,st:0.5},{k:'cs_gk',lb:'Clean Sheet',lo:0.5,hi:0.5,st:0,isYN:true}]},
+      {p:'DEF',props:[{k:'tkl_d',lb:'Tackles',lo:1.5,hi:5.5,st:0.5},{k:'cs_d',lb:'Clean Sheet',lo:0.5,hi:0.5,st:0,isYN:true},{k:'yc_d',lb:'Yellow Card',lo:0.5,hi:0.5,st:0,isYN:true}]},
+      {p:'MID',props:[{k:'kp',lb:'Key Passes',lo:0.5,hi:2.5,st:0.5},{k:'sot_m',lb:'Shots on Target',lo:0.5,hi:1.5,st:0.5},{k:'crosses',lb:'Crosses',lo:0.5,hi:3.5,st:0.5},{k:'pas',lb:'Passes',lo:30.5,hi:70.5,st:0.5}]},
+      {p:'FWD',props:[{k:'sot_f',lb:'Shots on Target',lo:0.5,hi:2.5,st:0.5},{k:'gs',lb:'Anytime Goalscorer',lo:0.5,hi:0.5,st:0,isYN:true},{k:'ast_f',lb:'Assist',lo:0.5,hi:0.5,st:0,isYN:true},{k:'shots_f',lb:'Total Shots',lo:1.5,hi:4.5,st:0.5}]},
     ],
     gp:[
       {k:'btts',lb:'Both Teams to Score',t:'yesno'},
       {k:'cs_h',lb:'Home Clean Sheet',t:'yesno'},
       {k:'cs_a',lb:'Away Clean Sheet',t:'yesno'},
       {k:'corners',lb:'Total Corners',lo:7.5,hi:12.5,st:0.5,t:'total'},
+      {k:'corners_h',lb:'Home Team Corners',lo:3.5,hi:7.5,st:0.5,t:'teamtot',tm:'home',off:0.5},
+      {k:'corners_a',lb:'Away Team Corners',lo:3.5,hi:6.5,st:0.5,t:'teamtot',tm:'away'},
       {k:'cards',lb:'Total Cards',lo:2.5,hi:5.5,st:0.5,t:'total'},
+      {k:'yc_h',lb:'Home Team Yellow Cards',lo:0.5,hi:3.5,st:0.5,t:'teamtot',tm:'home',off:0},
       {k:'1h_goals',lb:'1st Half Goals',lo:0.5,hi:2.5,st:0.5,t:'total'},
+      {k:'2h_goals',lb:'2nd Half Goals',lo:0.5,hi:2.5,st:0.5,t:'total'},
       {k:'dnb',lb:'Draw No Bet Away',t:'teams'},
       {k:'ht_ft',lb:'HT/FT — Away Win',t:'yesno'},
       {k:'total_goals',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
+      {k:'shots_tot',lb:'Total Shots',lo:18.5,hi:28.5,st:0.5,t:'total'},
     ],
   },
-  soccer_spain_la_liga:    { pos: [], gp: [
+  soccer_spain_la_liga:    { pos:[
+    {p:'FWD',props:[{k:'sot_ll',lb:'Shots on Target',lo:0.5,hi:2.5,st:0.5},{k:'gs_ll',lb:'Anytime Goalscorer',lo:0.5,hi:0.5,st:0,isYN:true}]},
+    {p:'MID',props:[{k:'kp_ll',lb:'Key Passes',lo:0.5,hi:2.5,st:0.5},{k:'crosses_ll',lb:'Crosses',lo:0.5,hi:3.5,st:0.5}]},
+  ], gp: [
     {k:'btts_ll',lb:'Both Teams to Score',t:'yesno'},
     {k:'cs_ll',lb:'Home Clean Sheet',t:'yesno'},
     {k:'corners_ll',lb:'Total Corners',lo:7.5,hi:12.5,st:0.5,t:'total'},
+    {k:'cards_ll',lb:'Total Cards',lo:3.5,hi:6.5,st:0.5,t:'total'},
     {k:'goals_ll',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
     {k:'1h_g_ll',lb:'1st Half Goals',lo:0.5,hi:2.5,st:0.5,t:'total'},
   ]},
-  soccer_germany_bundesliga:{ pos: [], gp: [
+  soccer_germany_bundesliga:{ pos:[
+    {p:'FWD',props:[{k:'sot_bl',lb:'Shots on Target',lo:0.5,hi:2.5,st:0.5},{k:'gs_bl',lb:'Anytime Goalscorer',lo:0.5,hi:0.5,st:0,isYN:true}]},
+    {p:'MID',props:[{k:'kp_bl',lb:'Key Passes',lo:0.5,hi:2.5,st:0.5},{k:'pas_bl',lb:'Passes',lo:30.5,hi:65.5,st:0.5}]},
+  ], gp: [
     {k:'btts_bl',lb:'Both Teams to Score',t:'yesno'},
     {k:'cs_bl',lb:'Away Clean Sheet',t:'yesno'},
     {k:'goals_bl',lb:'Total Goals',lo:1.5,hi:4.5,st:0.5,t:'total'},
     {k:'corners_bl',lb:'Total Corners',lo:8.5,hi:13.5,st:0.5,t:'total'},
+    {k:'cards_bl',lb:'Total Cards',lo:2.5,hi:5.5,st:0.5,t:'total'},
     {k:'1h_tot_bl',lb:'1st Half Total',lo:0.5,hi:2.5,st:0.5,t:'total'},
   ]},
-  soccer_uefa_champs_league:{ pos: [], gp: [
+  soccer_uefa_champs_league:{ pos:[
+    {p:'FWD',props:[{k:'sot_ucl',lb:'Shots on Target',lo:0.5,hi:2.5,st:0.5},{k:'gs_ucl',lb:'Anytime Goalscorer',lo:0.5,hi:0.5,st:0,isYN:true}]},
+    {p:'MID',props:[{k:'kp_ucl',lb:'Key Passes',lo:0.5,hi:2.5,st:0.5},{k:'crosses_ucl',lb:'Crosses',lo:0.5,hi:3.5,st:0.5}]},
+  ], gp: [
     {k:'btts_ucl',lb:'Both Teams to Score',t:'yesno'},
     {k:'goals_ucl',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
     {k:'cs_ucl',lb:'Home Clean Sheet',t:'yesno'},
+    {k:'corners_ucl',lb:'Total Corners',lo:7.5,hi:13.5,st:0.5,t:'total'},
     {k:'et_ucl',lb:'Extra Time',t:'yesno'},
     {k:'pen_ucl',lb:'Penalty Shootout',t:'yesno'},
     {k:'1h_g_ucl',lb:'1st Half Goals',lo:0.5,hi:2.5,st:0.5,t:'total'},
+    {k:'cards_ucl',lb:'Total Cards',lo:2.5,hi:6.5,st:0.5,t:'total'},
   ]},
-  soccer_italy_serie_a: { pos: [], gp: [
+  soccer_italy_serie_a: { pos:[
+    {p:'FWD',props:[{k:'sot_sa',lb:'Shots on Target',lo:0.5,hi:2.5,st:0.5},{k:'gs_sa',lb:'Anytime Goalscorer',lo:0.5,hi:0.5,st:0,isYN:true}]},
+    {p:'MID',props:[{k:'kp_sa',lb:'Key Passes',lo:0.5,hi:2.5,st:0.5},{k:'yc_sa',lb:'Yellow Card',lo:0.5,hi:0.5,st:0,isYN:true}]},
+  ], gp: [
     {k:'btts_sa',lb:'Both Teams to Score',t:'yesno'},
     {k:'goals_sa',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
     {k:'cs_sa',lb:'Away Clean Sheet',t:'yesno'},
     {k:'corners_sa',lb:'Total Corners',lo:7.5,hi:11.5,st:0.5,t:'total'},
+    {k:'cards_sa',lb:'Total Cards',lo:3.5,hi:6.5,st:0.5,t:'total'},
     {k:'1h_sa',lb:'1st Half Total',lo:0.5,hi:1.5,st:0.5,t:'total'},
   ]},
-  soccer_usa_mls: { pos: [], gp: [
+  soccer_usa_mls: { pos:[
+    {p:'FWD',props:[{k:'sot_mls',lb:'Shots on Target',lo:0.5,hi:2.5,st:0.5},{k:'gs_mls',lb:'Anytime Goalscorer',lo:0.5,hi:0.5,st:0,isYN:true}]},
+    {p:'MID',props:[{k:'kp_mls',lb:'Key Passes',lo:0.5,hi:2.5,st:0.5},{k:'crosses_mls',lb:'Crosses',lo:0.5,hi:3.5,st:0.5}]},
+  ], gp: [
     {k:'btts_mls',lb:'Both Teams to Score',t:'yesno'},
     {k:'goals_mls',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
     {k:'cs_mls',lb:'Home Clean Sheet',t:'yesno'},
     {k:'corners_mls',lb:'Total Corners',lo:7.5,hi:12.5,st:0.5,t:'total'},
+    {k:'cards_mls',lb:'Total Cards',lo:2.5,hi:5.5,st:0.5,t:'total'},
     {k:'1h_mls',lb:'1st Half Total',lo:0.5,hi:2.5,st:0.5,t:'total'},
     {k:'ot_mls',lb:'Goes to Extra Time',t:'yesno'},
   ]},
