@@ -3025,15 +3025,56 @@ async function placeBet() {
 
   profile.balance = newBal;
   animateBalance(newBal);
-  const label = isParlay ? `${betSlipLegs.length}-leg parlay` : fmtOdds(odds);
+  const confNum = 'CHK' + Date.now().toString().slice(-8);
+  const label = isParlay ? `${betSlipLegs.length}-Leg Parlay` : betSlipLegs[0].selection;
+  const slipSnapshot = [...betSlipLegs];
   betSlipLegs = [];
   updateFab();
   closeBetSlip();
-  flashBalance('dn'); // balance went down — flash red briefly
-  showToast(`🎯 ${label} · Risking ${fmt(stake)} · To win ${fmt(payout-stake)}`);
-  // Increment pending badge (we don't know count exactly but +1 is right)
+  flashBalance('dn');
+  // Show bet receipt modal
+  showBetReceipt({ label, odds, stake, payout, confNum, isParlay, legs: slipSnapshot });
   const curBadge = parseInt(document.getElementById('betsBadge')?.textContent||'0')||0;
   updateBetsBadge(curBadge + 1);
+}
+function showBetReceipt({ label, odds, stake, payout, confNum, isParlay, legs }) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px';
+  wrap.onclick = e => { if(e.target===wrap) wrap.remove(); };
+  const legsHtml = isParlay ? legs.slice(0,5).map(l=>{ const lc=l.odds>0?'#30D158':'var(--gold)'; return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:11px"><span style="color:var(--t2)">${esc(l.selection)}</span><span style="color:${lc};font-weight:800">${fmtOdds(l.odds)}</span></div>`; }).join('') : '';
+  wrap.innerHTML = `<div style="background:var(--bg-b);border:1px solid rgba(245,166,35,.3);border-radius:16px;width:100%;max-width:360px;overflow:hidden">
+    <div style="background:linear-gradient(135deg,rgba(245,166,35,.15),rgba(245,166,35,.05));padding:20px;text-align:center;border-bottom:1px solid rgba(245,166,35,.2)">
+      <div style="font-size:36px;margin-bottom:8px">🎯</div>
+      <div style="font-size:18px;font-weight:900;color:var(--t1)">Bet Placed!</div>
+      <div style="font-size:11px;color:var(--t3);margin-top:4px">Confirmation #${esc(confNum)}</div>
+    </div>
+    <div style="padding:16px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--t3)">Pick</div>
+        <div style="font-size:13px;font-weight:800;color:var(--t1);text-align:right;max-width:200px">${esc(label)}</div>
+      </div>
+      ${legsHtml}
+      <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
+        <div style="font-size:11px;color:var(--t3)">Odds</div>
+        <div style="font-size:13px;font-weight:800;color:${odds>0?'#30D158':'var(--gold)'}">${fmtOdds(odds)}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px">
+        <div style="font-size:11px;color:var(--t3)">Stake</div>
+        <div style="font-size:13px;font-weight:800;color:var(--t1)">${fmt(stake)}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;padding:10px;background:rgba(48,209,88,.08);border-radius:8px;border:1px solid rgba(48,209,88,.2)">
+        <div style="font-size:12px;font-weight:700;color:var(--t2)">To Win</div>
+        <div style="font-size:16px;font-weight:900;color:#30D158">+${fmt(payout-stake)}</div>
+      </div>
+    </div>
+    <div style="padding:0 16px 16px;display:flex;gap:8px">
+      <button onclick="this.closest('[style]').remove()" style="flex:1;padding:12px;background:var(--bg-c);border:1px solid var(--bdr-h);border-radius:10px;color:var(--t2);font-size:13px;font-weight:700;cursor:pointer">Done</button>
+      <button onclick="showView('bets');this.closest('[style]').remove()" style="flex:1;padding:12px;background:linear-gradient(135deg,var(--gold),var(--gold-b));border:none;border-radius:10px;color:#000;font-size:13px;font-weight:900;cursor:pointer">My Bets</button>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+  // Auto-dismiss after 6s
+  setTimeout(() => { if (wrap.parentElement) wrap.remove(); }, 6000);
 }
 
 // ── MY BETS ───────────────────────────────────────────────────────
