@@ -437,6 +437,20 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('click', e => {
     if (!e.target.closest('#roomSelector')) closeRoomDrop();
   });
+  // Auto-refresh games every 5 min without any user action
+  setInterval(() => {
+    if (currentView === 'games' && user) {
+      delete oddsCache[currentSport];
+      loadGames(currentSport);
+    }
+  }, 5 * 60 * 1000);
+  // Also refresh when the tab regains focus and cache is >2 min stale
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && currentView === 'games' && user) {
+      const c = oddsCache[currentSport];
+      if (!c || Date.now() - c.ts > 2 * 60 * 1000) loadGames(currentSport);
+    }
+  });
 });
 
 // ── UTILS ─────────────────────────────────────────────────────────
@@ -510,7 +524,9 @@ async function loadMyRooms() {
   const { data } = await sb.from('room_members').select('rooms(*)').eq('user_id', user.id);
   myRooms = data?.map(r => r.rooms).filter(Boolean) || [];
   document.getElementById('myRoomsList').innerHTML = myRooms.map(r =>
-    `<div class="room-opt" onclick='selectRoom(${JSON.stringify(r).replace(/'/g,"\\'")})'">\n      🏠 ${esc(r.name)} <span class="room-code-sm">${r.code}</span>\n    </div>`
+    `<div class="room-opt" onclick='selectRoom(${JSON.stringify(r).replace(/'/g,"\\'")})'">
+      🏠 ${esc(r.name)} <span class="room-code-sm">${r.code}</span>
+    </div>`
   ).join('');
 }
 function selectGlobal() { currentRoom=null; document.getElementById('roomBtn').innerHTML='🌐 Global <span class="room-arrow">▾</span>'; closeRoomDrop(); if(currentView==='leaderboard') loadLeaderboard(); }
@@ -584,8 +600,7 @@ async function fetchOdds(sport) {
   const isUFC = sport === 'mma_mixed_martial_arts';
   try {
     const fmtDate = d => d.toISOString().slice(0,10).replace(/-/g,'');
-    const today = new Date(), tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
+    const today = new Date();
 
     const fetchDay = async d => {
       const url = `https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard` +
@@ -594,12 +609,16 @@ async function fetchOdds(sport) {
       return res?.ok ? (await res.json()).events || [] : [];
     };
 
-    // Always fetch today + tomorrow so MLB/etc always has upcoming games
-    let events = [...await fetchDay(null), ...await fetchDay(tomorrow)];
+    // Fetch today + next 6 days in parallel (covers full NFL week + MLB daily slate)
+    const lookAheadDays = Array.from({length: 7}, (_, i) => {
+      if (i === 0) return null;
+      const d = new Date(today); d.setDate(today.getDate() + i); return d;
+    });
+    let events = (await Promise.all(lookAheadDays.map(fetchDay))).flat();
 
-    // UFC events are weekly — scan ahead until we find one (up to 14 days)
+    // UFC events are weekly — if still nothing, scan further (up to 14 days)
     if (isUFC && !events.some(e => e.status?.type?.state === 'pre')) {
-      for (let i = 2; i <= 14; i++) {
+      for (let i = 7; i <= 14; i++) {
         const d = new Date(today); d.setDate(today.getDate() + i);
         const evs = await fetchDay(d);
         events = [...events, ...evs];
