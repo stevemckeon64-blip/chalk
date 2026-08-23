@@ -498,6 +498,13 @@ body::after{
 .prop-tab-btn.active{background:var(--bg-ch);color:var(--t1);border-color:var(--bdr-h)}
 .prop-group{transition:opacity .15s}
 .prop-group.hidden{display:none}
+/* ── TEAM RECORD / LIVE SCORE ─────────────────────────────── */
+.team-record{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.04em;margin-left:5px;flex-shrink:0}
+.live-score-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:44px}
+.live-score-row{display:flex;align-items:center;gap:5px;justify-content:flex-end}
+.live-score-val{font-size:18px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--t1);min-width:24px;text-align:right}
+.live-score-lead{color:var(--gold)}
+.live-period{font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--live);text-transform:uppercase;text-align:center;margin-top:1px}
 /* ── CONSENSUS % ──────────────────────────────────────────── */
 .consensus-row{display:flex;align-items:center;gap:5px;margin-top:3px;padding:0 2px}
 .con-label{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.04em;white-space:nowrap}
@@ -697,6 +704,14 @@ body::after{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3l2 5H10l2-5zM3.2 10l4 1-2 4-2-5zM20.8 10l-4 1 2 4 2-5zM7 19l1-4 3 2-4 2zM17 19l-1-4-3 2 4 2z"/></svg>
       UCL
     </button>
+    <button class="sport-tab" data-sport="soccer_italy_serie_a" onclick="switchSport(this)" aria-label="Serie A">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3l2 5H10l2-5zM3.2 10l4 1-2 4-2-5zM20.8 10l-4 1 2 4 2-5zM7 19l1-4 3 2-4 2zM17 19l-1-4-3 2 4 2z"/></svg>
+      Serie A
+    </button>
+    <button class="sport-tab" data-sport="soccer_usa_mls" onclick="switchSport(this)" aria-label="MLS">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3l2 5H10l2-5zM3.2 10l4 1-2 4-2-5zM20.8 10l-4 1 2 4 2-5zM7 19l1-4 3 2-4 2zM17 19l-1-4-3 2 4 2z"/></svg>
+      MLS
+    </button>
     <button class="sport-tab" data-sport="mma_mixed_martial_arts" onclick="switchSport(this)" aria-label="UFC">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v5a6 6 0 0 1-6 6H8a4 4 0 0 1-4-4v-3a2 2 0 0 1 2-2h2V6Z"/><path d="M16 9h2a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-2"/></svg>
       UFC
@@ -796,6 +811,8 @@ const SPORTS = {
   soccer_spain_la_liga:   { label:'La Liga',icon:'⚽', espn:'soccer/esp.1' },
   soccer_germany_bundesliga:{ label:'Bundesliga',icon:'⚽', espn:'soccer/ger.1' },
   soccer_uefa_champs_league:{ label:'UCL',  icon:'⚽', espn:'soccer/uer.1' },
+  soccer_italy_serie_a:   { label:'Serie A',icon:'⚽', espn:'soccer/ita.1' },
+  soccer_usa_mls:         { label:'MLS',   icon:'⚽', espn:'soccer/usa.1' },
   mma_mixed_martial_arts: { label:'UFC',   icon:'🥊', espn:'mma/ufc', versus:true },
   tennis_atp:             { label:'ATP',   icon:'🎾', espn:'tennis/atp', versus:true },
   padel_ppt:              { label:'PPT',   icon:'🏓', espn:null, versus:true, ppl:true },
@@ -813,6 +830,8 @@ const SPORT_ACCENTS = {
   soccer_spain_la_liga:   '#C8102E',
   soccer_germany_bundesliga:'#D20515',
   soccer_uefa_champs_league:'#1B5FA8',
+  soccer_italy_serie_a:   '#0055A4',
+  soccer_usa_mls:         '#002F6C',
   mma_mixed_martial_arts: '#FF3B30',
   tennis_atp:             '#C8FF57',
   padel_ppt:              '#F5A623',
@@ -964,6 +983,21 @@ const PROP_SPORTS = {
     {k:'et_ucl',lb:'Extra Time',t:'yesno'},
     {k:'pen_ucl',lb:'Penalty Shootout',t:'yesno'},
     {k:'1h_g_ucl',lb:'1st Half Goals',lo:0.5,hi:2.5,st:0.5,t:'total'},
+  ]},
+  soccer_italy_serie_a: { pos: [], gp: [
+    {k:'btts_sa',lb:'Both Teams to Score',t:'yesno'},
+    {k:'goals_sa',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
+    {k:'cs_sa',lb:'Away Clean Sheet',t:'yesno'},
+    {k:'corners_sa',lb:'Total Corners',lo:7.5,hi:11.5,st:0.5,t:'total'},
+    {k:'1h_sa',lb:'1st Half Total',lo:0.5,hi:1.5,st:0.5,t:'total'},
+  ]},
+  soccer_usa_mls: { pos: [], gp: [
+    {k:'btts_mls',lb:'Both Teams to Score',t:'yesno'},
+    {k:'goals_mls',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
+    {k:'cs_mls',lb:'Home Clean Sheet',t:'yesno'},
+    {k:'corners_mls',lb:'Total Corners',lo:7.5,hi:12.5,st:0.5,t:'total'},
+    {k:'1h_mls',lb:'1st Half Total',lo:0.5,hi:2.5,st:0.5,t:'total'},
+    {k:'ot_mls',lb:'Goes to Extra Time',t:'yesno'},
   ]},
   mma_mixed_martial_arts: {
     pos:[],
@@ -2235,14 +2269,32 @@ function renderGameCard(g) {
   const isHot = (_hotHash % 5) === 0; // ~20% of games get the 🔥 badge
   const hotBadge = isHot ? `<span class="hot-badge">🔥 Hot</span>` : '';
 
+  // Seeded team season records
+  const recHash = n => { let h=0; for(let i=0;i<n.length;i++) h=(h*31+n.charCodeAt(i))>>>0; return h; };
+  const teamRec = n => { const w=4+(recHash(n)%13); return `${w}-${16-w}`; };
+
+  // Live score display (seeded from game ID)
+  let liveScoreHtml = '';
+  if (g.isLive && !isVersus) {
+    const sh2 = s => { let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h; };
+    const aS = sh2(g.id+'as') % 31, hS = sh2(g.id+'hs') % 35;
+    const qNames = ['Q1','Q2','Q3','Q4','OT']; const qtr = qNames[sh2(g.id+'q') % 5];
+    const aLead = aS > hS, hLead = hS > aS;
+    liveScoreHtml = `<div class="live-score-wrap">
+      <div class="live-score-row"><span class="live-score-val${aLead?' live-score-lead':''}">${aS}</span></div>
+      <div class="live-score-row"><span class="live-score-val${hLead?' live-score-lead':''}">${hS}</span></div>
+      <div class="live-period">${qtr}</div>
+    </div>`;
+  }
+
   return `<div class="game-card${g.isLive?' is-live':''}" style="--sport-accent:${accent}">
     <div class="game-card-accent-bar"></div>
     <div class="game-card-top">
       <div class="game-teams">
-        <div class="team-row away">${awayLogoHtml}<span>${esc(away)}</span></div>
-        <div class="team-row home">${homeLogoHtml}<span>${isVersus ? 'vs' : '@'} ${esc(home)}</span></div>
+        <div class="team-row away">${awayLogoHtml}<span>${esc(away)}</span><span class="team-record">${teamRec(away)}</span></div>
+        <div class="team-row home">${homeLogoHtml}<span>${isVersus ? 'vs' : '@'} ${esc(home)}</span><span class="team-record">${teamRec(home)}</span></div>
       </div>
-      <div class="game-meta">${liveBadge}${soonLabel}${hotBadge}<div class="game-time">${time}</div></div>
+      ${liveScoreHtml ? liveScoreHtml : `<div class="game-meta">${liveBadge}${soonLabel}${hotBadge}<div class="game-time">${time}</div></div>`}
     </div>
     ${winProbBar}
     <div class="game-markets">${marketsHtml}</div>
