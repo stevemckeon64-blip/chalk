@@ -523,6 +523,9 @@ body::after{
 .rr-combos-count{font-size:9px;color:var(--t2);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
 /* ── TEAM RECORD / LIVE SCORE ─────────────────────────────── */
 .team-record{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.04em;margin-left:5px;flex-shrink:0}
+.team-streak{font-size:8px;font-weight:800;letter-spacing:.04em;margin-left:4px;padding:1px 4px;border-radius:3px;flex-shrink:0}
+.team-streak.streak-w{background:rgba(74,222,128,.18);color:#4ade80}
+.team-streak.streak-l{background:rgba(248,113,113,.18);color:#f87171}
 .live-score-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:44px}
 .live-score-row{display:flex;align-items:center;gap:5px;justify-content:flex-end}
 .live-score-val{font-size:18px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--t1);min-width:24px;text-align:right}
@@ -897,6 +900,12 @@ const PROP_SPORTS = {
       {k:'ot_game',lb:'Game Goes to OT',t:'yesno'},
       {k:'lead_1q',lb:'Lead After 1st Quarter',t:'teams'},
       {k:'lead_1h',lb:'Lead at Halftime',t:'teams'},
+      {k:'1q_tot',lb:'1st Quarter Total',lo:7,hi:14,st:0.5,t:'total'},
+      {k:'2q_tot',lb:'2nd Quarter Total',lo:7,hi:13,st:0.5,t:'total'},
+      {k:'3q_tot',lb:'3rd Quarter Total',lo:6,hi:13,st:0.5,t:'total'},
+      {k:'4q_tot',lb:'4th Quarter Total',lo:6,hi:14,st:0.5,t:'total'},
+      {k:'margin_exact',lb:'Exact Win Margin',t:'teams'},
+      {k:'fg_1st',lb:'1st Score Type (FG/TD)',t:'yesno'},
     ],
   },
   americanfootball_ncaaf: {
@@ -1134,6 +1143,37 @@ const FUTURES_MARKETS = [
     {n:'Islam Makhachev',o:-400},{n:'Dustin Poirier',o:280},{n:'Justin Gaethje',o:450},
     {n:'Charles Oliveira',o:600},{n:'Beneil Dariush',o:900},{n:'Arman Tsarukyan',o:1200},
     {n:'Rafael Fiziev',o:1800},{n:'Michael Chandler',o:2500},
+  ]},
+  { id:'ufc_mw', sport:'mma', title:'🥊 UFC Middleweight Champion', icon:'🏆', teams:[
+    {n:'Dricus Du Plessis',o:-350},{n:'Sean Strickland',o:275},{n:'Israel Adesanya',o:600},
+    {n:'Robert Whittaker',o:800},{n:'Marvin Vettori',o:1400},{n:'Jared Cannonier',o:2000},
+  ]},
+  { id:'wimbledon_m', sport:'tennis', title:'🎾 Wimbledon Men\'s Champion', icon:'🏆', teams:[
+    {n:'Carlos Alcaraz',o:-150},{n:'Novak Djokovic',o:280},{n:'Jannik Sinner',o:400},
+    {n:'Daniil Medvedev',o:800},{n:'Alexander Zverev',o:1000},{n:'Casper Ruud',o:1500},
+    {n:'Stefanos Tsitsipas',o:2000},{n:'Taylor Fritz',o:2500},{n:'Tommy Paul',o:3500},
+  ]},
+  { id:'pga_major', sport:'golf', title:'⛳ PGA Championship Winner', icon:'🏆', teams:[
+    {n:'Scottie Scheffler',o:450},{n:'Rory McIlroy',o:600},{n:'Jon Rahm',o:800},
+    {n:'Viktor Hovland',o:1000},{n:'Xander Schauffele',o:1200},{n:'Collin Morikawa',o:1400},
+    {n:'Brooks Koepka',o:1600},{n:'Jordan Spieth',o:2000},{n:'Justin Thomas',o:2500},
+    {n:'Patrick Cantlay',o:3000},{n:'Tommy Fleetwood',o:3500},{n:'Shane Lowry',o:4000},
+  ]},
+  { id:'heisman', sport:'nfl', title:'🏈 Heisman Trophy', icon:'🥇', teams:[
+    {n:'Quinn Ewers (TEX)',o:250},{n:'Dillon Gabriel (ORE)',o:350},{n:'Will Howard (OSU)',o:500},
+    {n:'Garrett Nussmeier (LSU)',o:700},{n:'Jalen Milroe (ALA)',o:900},{n:'Conner Weigman (TAMU)',o:1400},
+    {n:'DJ Uiagalelei (FSU)',o:1800},{n:'Sam Leavitt (MICH)',o:2500},
+  ]},
+  { id:'mls_cup', sport:'epl', title:'⚽ MLS Cup Winner', icon:'🏆', teams:[
+    {n:'Inter Miami CF',o:250},{n:'Columbus Crew',o:500},{n:'LAFC',o:600},
+    {n:'Philadelphia Union',o:800},{n:'FC Cincinnati',o:1000},{n:'Seattle Sounders',o:1200},
+    {n:'New England Revolution',o:1500},{n:'Atlanta United',o:2000},{n:'Portland Timbers',o:2500},
+    {n:'Sporting Kansas City',o:3000},
+  ]},
+  { id:'nfl_dpoy', sport:'nfl', title:'🏈 NFL Defensive POY', icon:'🥇', teams:[
+    {n:'Micah Parsons (DAL)',o:-130},{n:'Myles Garrett (CLE)',o:350},{n:'Nick Bosa (SF)',o:500},
+    {n:'T.J. Watt (PIT)',o:700},{n:'Maxx Crosby (LV)',o:900},{n:'Trevon Diggs (DAL)',o:1400},
+    {n:'Fred Warner (SF)',o:1800},{n:'Darius Leonard (IND)',o:2500},
   ]},
 ];
 
@@ -2388,9 +2428,16 @@ function renderGameCard(g) {
   const isHot = (_hotHash % 5) === 0; // ~20% of games get the 🔥 badge
   const hotBadge = isHot ? `<span class="hot-badge">🔥 Hot</span>` : '';
 
-  // Seeded team season records
+  // Seeded team season records + streak
   const recHash = n => { let h=0; for(let i=0;i<n.length;i++) h=(h*31+n.charCodeAt(i))>>>0; return h; };
   const teamRec = n => { const w=4+(recHash(n)%13); return `${w}-${16-w}`; };
+  const teamStreak = n => {
+    const h = recHash(n+'streak');
+    const len = 1+(h%5);
+    const isW = (h>>8)%2===0;
+    const cls = isW ? 'streak-w' : 'streak-l';
+    return `<span class="team-streak ${cls}">${isW?'W':'L'}${len}</span>`;
+  };
 
   // Live score display (seeded from game ID)
   let liveScoreHtml = '';
@@ -2410,8 +2457,8 @@ function renderGameCard(g) {
     <div class="game-card-accent-bar"></div>
     <div class="game-card-top">
       <div class="game-teams">
-        <div class="team-row away">${awayLogoHtml}<span>${esc(away)}</span><span class="team-record">${teamRec(away)}</span></div>
-        <div class="team-row home">${homeLogoHtml}<span>${isVersus ? 'vs' : '@'} ${esc(home)}</span><span class="team-record">${teamRec(home)}</span></div>
+        <div class="team-row away">${awayLogoHtml}<span>${esc(away)}</span><span class="team-record">${teamRec(away)}</span>${teamStreak(away)}</div>
+        <div class="team-row home">${homeLogoHtml}<span>${isVersus ? 'vs' : '@'} ${esc(home)}</span><span class="team-record">${teamRec(home)}</span>${teamStreak(home)}</div>
       </div>
       ${liveScoreHtml ? liveScoreHtml : `<div class="game-meta">${liveBadge}${soonLabel}${hotBadge}<div class="game-time">${time}</div></div>`}
     </div>
