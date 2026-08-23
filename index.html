@@ -460,6 +460,25 @@ body::after{
 .futures-odds-btn{background:var(--bg);border:1px solid var(--bdr);border-radius:6px;padding:5px 14px;font-size:12px;font-weight:800;color:var(--gold-b);cursor:pointer;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
 .futures-odds-btn:hover,.futures-odds-btn.in-slip{background:var(--gold);color:#000;border-color:var(--gold)}
 .futures-tab{background:linear-gradient(135deg,rgba(245,166,35,.08),transparent)!important;border-color:rgba(245,166,35,.3)!important}
+/* ── BET BOOSTS ───────────────────────────────────────────── */
+.boosts-section{padding:4px 16px 10px;display:none}
+.boosts-lbl{font-size:9px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#FF6B35;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.boosts-lbl::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(255,107,53,.3),transparent)}
+.boosts-scroll{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+.boosts-scroll::-webkit-scrollbar{display:none}
+.boost-card{flex-shrink:0;background:var(--bg-c);border:1px solid rgba(255,107,53,.25);border-radius:var(--r);padding:10px 12px;min-width:148px;max-width:168px;display:flex;flex-direction:column;gap:5px;position:relative;overflow:hidden;cursor:pointer}
+.boost-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#FF6B35,#F5A623)}
+.boost-badge{display:inline-flex;align-items:center;gap:3px;font-size:8px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#FF6B35;padding:2px 5px;background:rgba(255,107,53,.12);border-radius:4px;width:fit-content}
+.boost-label{font-size:12px;font-weight:700;color:var(--t1);line-height:1.2}
+.boost-game{font-size:10px;color:var(--t3)}
+.boost-odds-row{display:flex;align-items:center;gap:6px;margin-top:3px}
+.boost-orig{font-size:11px;color:var(--t3);text-decoration:line-through;font-variant-numeric:tabular-nums}
+.boost-btn{flex:1;padding:5px 8px;background:linear-gradient(135deg,rgba(245,166,35,.18),rgba(245,166,35,.06));border:1px solid rgba(245,166,35,.4);border-radius:6px;font-size:13px;font-weight:900;color:var(--gold);transition:all .15s;font-variant-numeric:tabular-nums}
+.boost-btn:hover{background:rgba(245,166,35,.28);border-color:rgba(245,166,35,.7);transform:scale(1.03)}
+.boost-btn.in-slip{background:linear-gradient(135deg,var(--gold),var(--gold-b));color:#000;border-color:transparent}
+/* ── ALT LINES ────────────────────────────────────────────── */
+.alt-line-row{background:rgba(255,255,255,.018);border-radius:6px;margin-bottom:2px}
+.alt-line-row .prop-mkt-lbl{font-variant-numeric:tabular-nums;color:var(--t2);min-width:40px;font-size:11px;font-weight:700;letter-spacing:.02em}
 /* ── PLAYER PROPS ─────────────────────────────────────────── */
 .props-sec-hdr{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);padding:8px 0 6px;border-top:1px solid var(--bdr);margin-top:4px}
 .props-sec-hdr:first-child{border-top:none;margin-top:0;padding-top:0}
@@ -661,6 +680,10 @@ body::after{
         <button class="promo-cta">Claim</button>
       </div>
       <div id="dailyPickWrap" style="padding:0 16px;display:none"></div>
+      <div id="boostsSection" class="boosts-section" style="display:none">
+        <div class="boosts-lbl">🚀 Boosted Odds</div>
+        <div class="boosts-scroll" id="boostsScroll"></div>
+      </div>
       <div class="search-bar-wrap">
         <input class="games-search" id="gamesSearch" type="search" placeholder="Search teams…" oninput="filterGames(this.value)" autocomplete="off">
       </div>
@@ -1056,6 +1079,37 @@ function generatePlayerProps(g) {
       html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)} · ${esc(label)}</span><div class="odds-pair">${pBtn(mk,'Over',propOdds(gid+gp.k+'o'),'O '+line)}${pBtn(mk,'Under',propOdds(gid+gp.k+'u'),'U '+line)}</div></div>`;
     } else if (gp.t === 'yesno') {
       html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,'Yes',propOdds(gid+gp.k+'y',-120),null)}${pBtn(mk,'No',propOdds(gid+gp.k+'n',100),null)}</div></div>`;
+    }
+  }
+
+  // ── ALTERNATE SPREADS & TOTALS ────────────────────────────
+  const altSp = getMarket(g, 'spreads');
+  const altTot = getMarket(g, 'totals');
+  if (altSp || altTot) {
+    if (altSp && altSp[0]) {
+      const base = Math.abs(altSp[0].point || 3.5);
+      html += `<div class="props-sec-hdr">📐 Alternate Spreads</div>`;
+      const adjs = [-3, -1.5, 0, 1.5, 3];
+      for (const adj of adjs) {
+        const line = Math.round((base + adj) * 2) / 2;
+        if (line < 0.5) continue;
+        const awayO = Math.round(-110 + adj * 22);
+        const homeO = Math.round(-110 - adj * 22);
+        const mk = `alt_sp_${line}`;
+        html += `<div class="prop-market-row alt-line-row"><span class="prop-mkt-lbl">${line}</span><div class="odds-pair">${pBtn(mk,awayShort,awayO,'+'+line)}${pBtn(mk,homeShort,homeO,'-'+line)}</div></div>`;
+      }
+    }
+    if (altTot && altTot[0]) {
+      const base = altTot[0].point || 44.5;
+      html += `<div class="props-sec-hdr">📐 Alternate Totals</div>`;
+      const adjs = [-7.5, -4, 0, 4, 7.5];
+      for (const adj of adjs) {
+        const line = (Math.round((base + adj) * 2) / 2).toFixed(1);
+        const overO = Math.round(-110 - adj * 13);
+        const underO = Math.round(-110 + adj * 13);
+        const mk = `alt_tot_${line}`;
+        html += `<div class="prop-market-row alt-line-row"><span class="prop-mkt-lbl">${line}</span><div class="odds-pair">${pBtn(mk,'Over',overO,'O '+line)}${pBtn(mk,'Under',underO,'U '+line)}</div></div>`;
+      }
     }
   }
 
@@ -1663,6 +1717,7 @@ async function loadGames(sport) {
     document.getElementById('featuredSection').style.display = 'none';
     document.getElementById('dailyPickWrap').style.display = 'none';
     document.getElementById('liveTickerWrap').style.display = 'none';
+    document.getElementById('boostsSection').style.display = 'none';
     const pb = document.getElementById('promoBanner');
     if (pb) pb.style.display = 'none';
     return;
@@ -1675,6 +1730,7 @@ async function loadGames(sport) {
   _allGames = games;
   renderFeatured(games);
   renderDailyPick(games);
+  renderBoosts(games);
   renderGames(games);
   loadLiveTicker(sport);
 }
@@ -1717,6 +1773,68 @@ function handleFuturesBet(btn) {
     selection: btn.dataset.sel, odds: parseInt(btn.dataset.odds), line: null,
   };
   toggleLeg(leg, btn, null);
+}
+
+function renderBoosts(games) {
+  const wrap = document.getElementById('boostsSection');
+  const scroll = document.getElementById('boostsScroll');
+  if (!wrap || !scroll) return;
+  const sh = s => { let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))&0xFFFFFFFF; return h>>>0; };
+  const mlGames = games.filter(g => getMarket(g,'h2h'));
+  if (!mlGames.length) { wrap.style.display='none'; return; }
+  wrap.style.display = 'block';
+  const items = [];
+  mlGames.slice(0,6).forEach((g, i) => {
+    const ml = getMarket(g,'h2h');
+    const sp = getMarket(g,'spreads');
+    const tot = getMarket(g,'totals');
+    const awayShort = g.away_team.split(' ').pop();
+    const homeShort = g.home_team.split(' ').pop();
+    // ML boost — pick favorite or underdog based on seed
+    const fav = ml[0].price <= ml[1].price ? ml[0] : ml[1];
+    const dog = ml[0].price > ml[1].price ? ml[0] : ml[1];
+    const useFav = sh(g.id+'bfav'+i) % 3 > 0; // favor favorites 2:1
+    const pick = useFav ? fav : dog;
+    const orig = pick.price;
+    const boost = orig > 0 ? Math.min(Math.round((orig * 1.18)/5)*5, 800)
+                           : Math.max(Math.round((orig * 0.85)/5)*5, -130);
+    items.push({ g, market:'h2h', sel:pick.name, orig, boost,
+      label: pick.name.split(' ').slice(-1)[0] + ' Moneyline',
+      sublabel: awayShort + ' @ ' + homeShort });
+    // Spread boost
+    if (sp && sp[0] && i < 4) {
+      const spO = sh(g.id+'bsp'+i) % 2 === 0 ? sp[0] : (sp[1]||sp[0]);
+      const spBoost = spO.price > 0 ? Math.min(Math.round(spO.price*1.2/5)*5, 600)
+                                    : Math.max(Math.round(spO.price*0.83/5)*5, -115);
+      items.push({ g, market:'spreads', sel:spO.name, orig:spO.price, boost:spBoost,
+        label: spO.name.split(' ').pop() + ' ' + (spO.point>0?'+':'') + spO.point,
+        sublabel: 'Spread Boost' });
+    }
+    // Total boost
+    if (tot && tot[0] && i < 2) {
+      const totO = tot[0];
+      const totBoost = totO.price > 0 ? Math.round(totO.price*1.2/5)*5 : Math.max(totO.price+18,-105);
+      items.push({ g, market:'totals', sel:totO.name, orig:totO.price, boost:totBoost,
+        label: totO.name + ' ' + totO.point,
+        sublabel: 'Total Points Boost' });
+    }
+  });
+  scroll.innerHTML = items.slice(0,6).map(b => {
+    const inSlip = betSlipLegs.some(l => l.gameId===b.g.id&&l.market===b.market&&l.selection===b.sel&&l.odds===b.boost);
+    return `<div class="boost-card">
+      <div class="boost-badge">🚀 BOOSTED</div>
+      <div class="boost-label">${esc(b.label)}</div>
+      <div class="boost-game">${esc(b.sublabel)}</div>
+      <div class="boost-odds-row">
+        <span class="boost-orig">${fmtOdds(b.orig)}</span>
+        <button class="boost-btn odds-btn${inSlip?' in-slip':''}"
+          data-gid="${esc(b.g.id)}" data-market="${esc(b.market)}"
+          data-sel="${esc(b.sel)}" data-odds="${b.boost}" data-line=""
+          data-home="${esc(b.g.home_team)}" data-away="${esc(b.g.away_team)}"
+          data-ct="${esc(b.g.commence_time)}">${fmtOdds(b.boost)}</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderFeatured(games) {
