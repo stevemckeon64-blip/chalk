@@ -600,6 +600,21 @@ body::after{
 .responsible-note{font-size:11px;color:var(--t3);text-align:center;padding:10px;margin-bottom:16px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg-c);line-height:1.5}
 /* ── DAILY PICK ──────────────────────────────────────────── */
 .pick-of-day{background:linear-gradient(135deg,rgba(245,166,35,.12) 0%,rgba(245,166,35,.04) 100%);border:1px solid rgba(245,166,35,.4);border-radius:12px;padding:12px 14px;margin:0 0 12px;position:relative;overflow:hidden}
+.potd-card{background:linear-gradient(135deg,rgba(48,209,88,.1) 0%,rgba(48,209,88,.03) 100%);border:1px solid rgba(48,209,88,.35);border-radius:12px;padding:12px 14px;margin-bottom:12px;position:relative;overflow:hidden}
+.potd-card::before{content:'';position:absolute;top:-15px;right:-15px;width:60px;height:60px;background:radial-gradient(circle,rgba(48,209,88,.2) 0%,transparent 70%)}
+.potd-hdr{display:flex;align-items:center;gap:7px;margin-bottom:10px}
+.potd-badge{background:linear-gradient(135deg,#30D158,#25a045);color:#000;font-size:9px;font-weight:900;letter-spacing:.1em;padding:2px 8px;border-radius:20px}
+.potd-title{font-size:11px;font-weight:700;color:var(--t2)}
+.potd-legs{margin-bottom:10px}
+.potd-leg{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:11px;color:var(--t1)}
+.potd-leg:last-child{border-bottom:none}
+.potd-leg-dot{width:5px;height:5px;border-radius:50%;background:#30D158;flex-shrink:0}
+.potd-leg-text{flex:1}
+.potd-leg-odds{font-weight:800;color:#30D158;font-variant-numeric:tabular-nums;font-size:11px}
+.potd-footer{display:flex;align-items:center;justify-content:space-between}
+.potd-combined{font-size:11px;color:var(--t3)}
+.potd-combined b{color:#30D158;font-size:14px;font-weight:900}
+.potd-add-btn{padding:6px 14px;background:linear-gradient(135deg,#30D158,#25a045);color:#000;border-radius:20px;font-size:11px;font-weight:900;box-shadow:0 2px 10px rgba(48,209,88,.3)}
 .pick-of-day::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:radial-gradient(circle,rgba(245,166,35,.18) 0%,transparent 70%)}
 .pick-header{display:flex;align-items:center;gap:7px;margin-bottom:8px}
 .pick-badge{background:var(--gold);color:#000;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:20px}
@@ -780,6 +795,7 @@ body::after{
         <button class="promo-cta">Claim</button>
       </div>
       <div id="dailyPickWrap" style="padding:0 16px;display:none"></div>
+      <div id="potdWrap" style="padding:0 16px 8px;display:none"></div>
       <div id="boostsSection" class="boosts-section" style="display:none">
         <div class="boosts-lbl">🚀 Boosted Odds</div>
         <div class="boosts-scroll" id="boostsScroll"></div>
@@ -969,16 +985,25 @@ const PROP_SPORTS = {
   },
   baseball_mlb: {
     pos:[
-      {p:'SP',props:[{k:'ks',lb:'Strikeouts',lo:3.5,hi:9.5,st:0.5},{k:'ha',lb:'Hits Allowed',lo:3.5,hi:8.5,st:0.5},{k:'ip',lb:'Innings Pitched',lo:4.5,hi:6.5,st:0.5},{k:'er',lb:'Earned Runs',lo:0.5,hi:3.5,st:0.5}]},
-      {p:'1B',props:[{k:'hits',lb:'Hits',lo:0.5,hi:2.5,st:0.5},{k:'tb',lb:'Total Bases',lo:0.5,hi:3.5,st:0.5},{k:'rbi',lb:'RBIs',lo:0.5,hi:2.5,st:0.5}]},
-      {p:'OF',props:[{k:'hits_of',lb:'Hits',lo:0.5,hi:2.5,st:0.5},{k:'tb_of',lb:'Total Bases',lo:0.5,hi:3.5,st:0.5},{k:'hr',lb:'Home Run',lo:0.5,hi:0.5,st:0,isYN:true}]},
+      {p:'SP',props:[{k:'ks',lb:'Strikeouts',lo:3.5,hi:9.5,st:0.5},{k:'ha',lb:'Hits Allowed',lo:3.5,hi:8.5,st:0.5},{k:'ip',lb:'Innings Pitched',lo:4.5,hi:6.5,st:0.5},{k:'er',lb:'Earned Runs',lo:0.5,hi:3.5,st:0.5},{k:'outs',lb:'Outs Recorded',lo:13.5,hi:20.5,st:0.5},{k:'bb_sp',lb:'Walks',lo:0.5,hi:3.5,st:0.5},{k:'k9',lb:'Strikeouts + 1st K',lo:0.5,hi:0.5,st:0,isYN:true}]},
+      {p:'C', props:[{k:'hits_c',lb:'Hits',lo:0.5,hi:2.5,st:0.5},{k:'tb_c',lb:'Total Bases',lo:0.5,hi:2.5,st:0.5},{k:'rbi_c',lb:'RBIs',lo:0.5,hi:1.5,st:0.5},{k:'run_c',lb:'Runs Scored',lo:0.5,hi:1.5,st:0.5}]},
+      {p:'1B',props:[{k:'hits',lb:'Hits',lo:0.5,hi:2.5,st:0.5},{k:'tb',lb:'Total Bases',lo:0.5,hi:3.5,st:0.5},{k:'rbi',lb:'RBIs',lo:0.5,hi:2.5,st:0.5},{k:'run_1b',lb:'Runs Scored',lo:0.5,hi:1.5,st:0.5},{k:'sb_1b',lb:'Stolen Base',lo:0.5,hi:0.5,st:0,isYN:true}]},
+      {p:'SS',props:[{k:'hits_ss',lb:'Hits',lo:0.5,hi:2.5,st:0.5},{k:'tb_ss',lb:'Total Bases',lo:0.5,hi:3.5,st:0.5},{k:'rbi_ss',lb:'RBIs',lo:0.5,hi:2.5,st:0.5},{k:'sb_ss',lb:'Stolen Base',lo:0.5,hi:0.5,st:0,isYN:true}]},
+      {p:'OF',props:[{k:'hits_of',lb:'Hits',lo:0.5,hi:2.5,st:0.5},{k:'tb_of',lb:'Total Bases',lo:0.5,hi:3.5,st:0.5},{k:'hr',lb:'Home Run',lo:0.5,hi:0.5,st:0,isYN:true},{k:'rbi_of',lb:'RBIs',lo:0.5,hi:2.5,st:0.5},{k:'run_of',lb:'Runs Scored',lo:0.5,hi:1.5,st:0.5}]},
+      {p:'DH',props:[{k:'hits_dh',lb:'Hits',lo:0.5,hi:2.5,st:0.5},{k:'tb_dh',lb:'Total Bases',lo:0.5,hi:3.5,st:0.5},{k:'hr_dh',lb:'Home Run',lo:0.5,hi:0.5,st:0,isYN:true},{k:'rbi_dh',lb:'RBIs',lo:0.5,hi:2.5,st:0.5}]},
     ],
     gp:[
       {k:'f5_ml',lb:'First 5 Innings ML',t:'ml'},
       {k:'f5_tot',lb:'First 5 Innings Total',lo:2.5,hi:5.5,st:0.5,t:'total'},
+      {k:'f5_sp',lb:'First 5 Innings Spread',lo:0.5,hi:1.5,st:0.5,t:'spread'},
       {k:'away_runs',lb:'Away Team Runs',lo:2.5,hi:6.5,st:0.5,t:'teamtot',tm:'away'},
       {k:'home_runs',lb:'Home Team Runs',lo:2.5,hi:6.5,st:0.5,t:'teamtot',tm:'home',off:0.5},
       {k:'1st_inn_score',lb:'Score in 1st Inning',t:'teams'},
+      {k:'leadoff_hr',lb:'Leadoff Home Run',t:'yesno'},
+      {k:'grand_slam',lb:'Grand Slam (Y/N)',t:'yesno'},
+      {k:'extra_inn',lb:'Game Goes Extra Innings',t:'yesno'},
+      {k:'most_hits',lb:'Team with Most Hits',t:'teams'},
+      {k:'1st_to_3',lb:'First Team to 3 Runs',t:'teams'},
     ],
   },
   icehockey_nhl: {
@@ -2100,6 +2125,7 @@ async function loadGames(sport) {
     renderFutures();
     document.getElementById('featuredSection').style.display = 'none';
     document.getElementById('dailyPickWrap').style.display = 'none';
+    document.getElementById('potdWrap').style.display = 'none';
     document.getElementById('liveTickerWrap').style.display = 'none';
     document.getElementById('boostsSection').style.display = 'none';
     document.getElementById('trendingSection').style.display = 'none';
@@ -2115,6 +2141,7 @@ async function loadGames(sport) {
   _allGames = games;
   renderFeatured(games);
   renderDailyPick(games);
+  renderParlayOfDay(games);
   renderBoosts(games);
   renderTrending(games);
   renderGames(games);
@@ -2332,6 +2359,50 @@ function renderDailyPick(games) {
         onclick="toggleLeg({gameId:this.dataset.gid,market:'h2h',selection:this.dataset.sel,odds:+this.dataset.odds,line:'',home:this.dataset.home,away:this.dataset.away,commenceTime:this.dataset.ct},this)">${fmtOdds(pick.price)}</button>
     </div>
   </div>`;
+}
+
+function renderParlayOfDay(games) {
+  const wrap = document.getElementById('potdWrap');
+  if (!wrap) return;
+  const eligible = games.filter(g => getMarket(g,'h2h') && getMarket(g,'spreads') && getMarket(g,'totals'));
+  if (eligible.length < 3) { wrap.style.display='none'; return; }
+  const today = new Date(); const seed = today.getFullYear()*10000 + (today.getMonth()+1)*100 + today.getDate();
+  const sh = s => { let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h; };
+  const g1 = eligible[seed % eligible.length];
+  const g2 = eligible[(seed + 3) % eligible.length];
+  const g3 = eligible[(seed + 7) % eligible.length];
+  const legs = [];
+  // Leg 1: Moneyline pick (favorite)
+  const ml1 = getMarket(g1,'h2h'); const fav1 = ml1[0].price <= ml1[1].price ? ml1[0] : ml1[1];
+  legs.push({gameId:g1.id,market:'h2h',selection:fav1.name,odds:fav1.price,line:'',home:g1.home_team,away:g1.away_team,commenceTime:g1.commence_time,
+    desc:`${fav1.name.split(' ').pop()} ML · ${g1.away_team.split(' ').pop()} @ ${g1.home_team.split(' ').pop()}`});
+  // Leg 2: Spread cover
+  const sp2 = getMarket(g2,'spreads'); const spPick2 = sh(g2.id+'potd') % 2 === 0 ? sp2[0] : sp2[1];
+  legs.push({gameId:g2.id,market:'spreads',selection:spPick2.name,odds:spPick2.price,line:spPick2.point||'',home:g2.home_team,away:g2.away_team,commenceTime:g2.commence_time,
+    desc:`${spPick2.name.split(' ').pop()} ${(spPick2.point>0?'+':'')}${spPick2.point} · ${g2.away_team.split(' ').pop()} @ ${g2.home_team.split(' ').pop()}`});
+  // Leg 3: Over on total
+  const tot3 = getMarket(g3,'totals'); const ov3 = tot3.find(o=>o.name==='Over') || tot3[0];
+  legs.push({gameId:g3.id,market:'totals',selection:ov3.name,odds:ov3.price,line:ov3.point||'',home:g3.home_team,away:g3.away_team,commenceTime:g3.commence_time,
+    desc:`Over ${ov3.point} · ${g3.away_team.split(' ').pop()} @ ${g3.home_team.split(' ').pop()}`});
+  const combined = calcParlayOdds(legs);
+  wrap.style.display = 'block';
+  const legsHtml = legs.map(l => `<div class="potd-leg">
+    <div class="potd-leg-dot"></div>
+    <div class="potd-leg-text">${esc(l.desc)}</div>
+    <div class="potd-leg-odds">${fmtOdds(l.odds)}</div>
+  </div>`).join('');
+  wrap.innerHTML = `<div class="potd-card">
+    <div class="potd-hdr"><span class="potd-badge">🏆 Parlay of the Day</span><span class="potd-title">3-Leg Expert Pick</span></div>
+    <div class="potd-legs">${legsHtml}</div>
+    <div class="potd-footer">
+      <div class="potd-combined">Combined odds: <b>${fmtOdds(combined)}</b></div>
+      <button class="potd-add-btn" data-potd="${esc(JSON.stringify(legs))}" onclick="addPotdParlay(JSON.parse(this.dataset.potd))">Add to Slip</button>
+    </div>
+  </div>`;
+}
+function addPotdParlay(legs) {
+  for (const leg of legs) { if (!betSlipLegs.find(l => l.gameId===leg.gameId && l.market===leg.market && l.selection===leg.selection)) betSlipLegs.push(leg); }
+  updateFab(); openBetSlip();
 }
 
 function renderGames(games) {
