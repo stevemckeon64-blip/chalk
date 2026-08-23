@@ -1084,7 +1084,10 @@ const PROP_SPORTS = {
     {k:'ot_mls',lb:'Goes to Extra Time',t:'yesno'},
   ]},
   mma_mixed_martial_arts: {
-    pos:[],
+    pos:[
+      {p:'F1',props:[{k:'sig_str_f1',lb:'Significant Strikes',lo:24.5,hi:68.5,st:0.5},{k:'td_f1',lb:'Takedowns',lo:0.5,hi:3.5,st:0.5},{k:'td_acc_f1',lb:'Takedown Accuracy %',lo:28,hi:72,st:1},{k:'ctrl_f1',lb:'Control Time (sec)',lo:45,hi:180,st:5}]},
+      {p:'F2',props:[{k:'sig_str_f2',lb:'Significant Strikes',lo:24.5,hi:68.5,st:0.5},{k:'td_f2',lb:'Takedowns',lo:0.5,hi:3.5,st:0.5},{k:'td_acc_f2',lb:'Takedown Accuracy %',lo:28,hi:72,st:1},{k:'ctrl_f2',lb:'Control Time (sec)',lo:45,hi:180,st:5}]},
+    ],
     gp:[
       {k:'ko_tko',lb:'Win by KO/TKO',t:'yesno'},
       {k:'sub',lb:'Win by Submission',t:'yesno'},
@@ -1095,29 +1098,47 @@ const PROP_SPORTS = {
       {k:'r1_finish',lb:'Finish in Round 1',t:'yesno'},
       {k:'r2_finish',lb:'Finish in Round 2',t:'yesno'},
       {k:'r3_finish',lb:'Finish in Round 3',t:'yesno'},
+      {k:'sig_str_tot',lb:'Total Sig. Strikes',lo:60,hi:160,st:0.5,t:'total'},
+      {k:'td_tot',lb:'Total Takedowns',lo:1.5,hi:7.5,st:0.5,t:'total'},
     ],
   },
   tennis_atp: {
-    pos:[],
+    pos:[
+      {p:'P1',props:[{k:'aces_p1',lb:'Aces',lo:4.5,hi:14.5,st:0.5},{k:'dbl_p1',lb:'Double Faults',lo:1.5,hi:5.5,st:0.5},{k:'fs_pct_p1',lb:'1st Serve %',lo:52,hi:70,st:1},{k:'bp_saved_p1',lb:'Break Points Saved',lo:1.5,hi:5.5,st:0.5}]},
+      {p:'P2',props:[{k:'aces_p2',lb:'Aces',lo:4.5,hi:14.5,st:0.5},{k:'dbl_p2',lb:'Double Faults',lo:1.5,hi:5.5,st:0.5},{k:'fs_pct_p2',lb:'1st Serve %',lo:52,hi:70,st:1},{k:'bp_saved_p2',lb:'Break Points Saved',lo:1.5,hi:5.5,st:0.5}]},
+    ],
     gp:[
       {k:'tot_sets',lb:'Total Sets',lo:2.5,hi:3.5,st:0.5,t:'total'},
       {k:'set1_ml',lb:'Set 1 Winner',t:'ml'},
+      {k:'set2_ml',lb:'Set 2 Winner',t:'ml'},
       {k:'s1_tot_games',lb:'Set 1 Total Games',lo:8.5,hi:12.5,st:0.5,t:'total'},
       {k:'tot_games',lb:'Total Games',lo:18.5,hi:26.5,st:0.5,t:'total'},
       {k:'break_1st',lb:'Break Serve in 1st Game',t:'yesno'},
       {k:'ace_over',lb:'Aces (Over/Under)',lo:8.5,hi:18.5,st:0.5,t:'total'},
+      {k:'tiebreak',lb:'Tiebreak Played',t:'yesno'},
+      {k:'bagel',lb:'6-0 Set Played',t:'yesno'},
     ],
   },
   golf_pga_tour: {
     pos:[
-      {p:'PRO',props:[{k:'top5',lb:'Top-5 Finish',lo:0.5,hi:0.5,st:0,isYN:true},{k:'top10',lb:'Top-10 Finish',lo:0.5,hi:0.5,st:0,isYN:true},{k:'mkcut',lb:'Make Cut',lo:0.5,hi:0.5,st:0,isYN:true},{k:'r1lead',lb:'Lead After Round 1',lo:0.5,hi:0.5,st:0,isYN:true}]},
+      {p:'PRO',props:[
+        {k:'top5',lb:'Top-5 Finish',lo:0.5,hi:0.5,st:0,isYN:true},
+        {k:'top10',lb:'Top-10 Finish',lo:0.5,hi:0.5,st:0,isYN:true},
+        {k:'top20',lb:'Top-20 Finish',lo:0.5,hi:0.5,st:0,isYN:true},
+        {k:'mkcut',lb:'Make Cut',lo:0.5,hi:0.5,st:0,isYN:true},
+        {k:'r1lead',lb:'Lead After Round 1',lo:0.5,hi:0.5,st:0,isYN:true},
+        {k:'eagle',lb:'Eagle or Better',lo:0.5,hi:0.5,st:0,isYN:true},
+        {k:'r1score',lb:'Round 1 Score',lo:65.5,hi:72.5,st:0.5},
+        {k:'r2score',lb:'Round 2 Score',lo:65.5,hi:72.5,st:0.5},
+      ]},
     ],
     gp:[
       {k:'g_birdie',lb:'Birdie or Better on Hole 1',t:'yesno'},
-      {k:'g_r1tot',lb:'Round 1 Leader Total Score',lo:-9.5,hi:-3.5,st:0.5,t:'total'},
+      {k:'g_r1tot',lb:'Round 1 Leader Score',lo:-9.5,hi:-3.5,st:0.5,t:'total'},
       {k:'g_wire',lb:'Wire-to-Wire Winner',t:'yesno'},
       {k:'g_playoff',lb:'Playoff (Y/N)',t:'yesno'},
       {k:'g_ace',lb:'Hole-in-One (Y/N)',t:'yesno'},
+      {k:'g_albatross',lb:'Albatross (2-Under on Hole)',t:'yesno'},
     ],
   },
 };
@@ -2726,7 +2747,13 @@ function openBetSlip() {
     <div class="parlay-legs-list">${legsHtml}</div>
     ${summaryBar}
     ${rrHtml}
-    <div class="bs-stake-lbl">${slipMode==='rr'?'Stake Per Combo':'Bet Amount'}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div class="bs-stake-lbl" style="margin-bottom:0">${slipMode==='rr'?'Stake Per Combo':'Bet Amount'}</div>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:10px;font-weight:700;color:var(--t3)">
+        <input type="checkbox" id="bsFreeBet" style="accent-color:var(--gold);width:13px;height:13px" onchange="updateBsPayout()">
+        <span>Free Bet</span>
+      </label>
+    </div>
     <div class="bs-amount-row"><span class="bs-dollar">$</span><input class="bs-input" id="bsStake" type="number" inputmode="numeric" min="1" value="50" oninput="updateBsPayout()" onkeydown="if(event.key==='Enter'){event.preventDefault();placeBet()}" autocomplete="off"></div>
     <div class="bs-quick">
       <button onclick="setBsStake(10)">$10</button>
@@ -2736,6 +2763,7 @@ function openBetSlip() {
       <button onclick="setBsStake(Math.floor(profile.balance))">Max</button>
     </div>
     <hr class="bs-divider">
+    <div id="freeBetNote" style="display:none;font-size:10px;color:var(--gold);margin-bottom:6px">✓ Free Bet — stake not returned on win</div>
     <div class="bs-payout-row"><span class="bs-payout-lbl">To Win</span><span class="bs-payout-val" id="bsToWin">—</span></div>
     <div class="bs-payout-row"><span class="bs-payout-lbl">Total Payout</span><span class="bs-payout-val" id="bsPayout">—</span></div>
     <div class="bs-balance">Balance: <b>${fmt(profile.balance)}</b></div>
@@ -2833,6 +2861,10 @@ function setBsStakePct(pct) { setBsStake(Math.max(1, Math.floor((profile?.balanc
 function updateBsPayout() {
   const stake = parseFloat(document.getElementById('bsStake')?.value)||0;
   if (!betSlipLegs.length) return;
+  const freeBetEl = document.getElementById('bsFreeBet');
+  const isFreeBet = freeBetEl && freeBetEl.checked;
+  const fbn = document.getElementById('freeBetNote');
+  if (fbn) fbn.style.display = isFreeBet ? 'block' : 'none';
   const isParlay = slipMode === 'parlay' && betSlipLegs.length > 1;
   const isRR = slipMode === 'rr' && betSlipLegs.length >= 3;
   let totalWin = 0, totalPayout = 0;
@@ -2848,8 +2880,10 @@ function updateBsPayout() {
   }
   const odds = isParlay ? calcParlayOdds(betSlipLegs) : betSlipLegs[0].odds;
   const payout = calcPayout(stake, odds);
-  document.getElementById('bsToWin').textContent = fmt(payout - stake);
-  document.getElementById('bsPayout').textContent = fmt(payout);
+  const toWin = payout - stake;
+  // Free bet: payout = winnings only (stake is token, not returned)
+  document.getElementById('bsToWin').textContent = fmt(toWin);
+  document.getElementById('bsPayout').textContent = isFreeBet ? fmt(toWin) : fmt(payout);
 }
 function closeBetSlip() { document.getElementById('betSlipWrap').style.display='none'; }
 
