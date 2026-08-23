@@ -498,6 +498,21 @@ body::after{
 .prop-tab-btn.active{background:var(--bg-ch);color:var(--t1);border-color:var(--bdr-h)}
 .prop-group{transition:opacity .15s}
 .prop-group.hidden{display:none}
+/* ── TRENDING PICKS ───────────────────────────────────────── */
+.trending-section{padding:4px 16px 10px;display:none}
+.trending-lbl{font-size:9px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:var(--win);margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.trending-lbl::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(48,209,88,.3),transparent)}
+.trending-scroll{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+.trending-scroll::-webkit-scrollbar{display:none}
+.trending-card{flex-shrink:0;background:var(--bg-c);border:1px solid var(--bdr-h);border-radius:var(--r);padding:10px 12px;min-width:148px;max-width:168px;display:flex;flex-direction:column;gap:5px;position:relative;overflow:hidden}
+.trending-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#30D158,rgba(48,209,88,.3))}
+.trend-badge{display:inline-flex;align-items:center;gap:3px;font-size:8px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--win);padding:2px 5px;background:rgba(48,209,88,.1);border-radius:4px;width:fit-content}
+.trend-label{font-size:12px;font-weight:700;color:var(--t1);line-height:1.2}
+.trend-game{font-size:10px;color:var(--t3)}
+.trend-footer{display:flex;align-items:center;justify-content:space-between;margin-top:3px}
+.trend-action{font-size:9px;color:var(--t2);font-weight:700}
+.trend-odds{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums}
+.trend-odds.pos{color:#30D158}.trend-odds:not(.pos){color:var(--gold)}
 /* ── ROUND ROBIN ───────────────────────────────────────────── */
 .rr-combo-list{display:flex;flex-direction:column;gap:5px;margin:4px 0}
 .rr-combo{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--bg-s);border:1px solid var(--bdr);border-radius:7px;font-size:12px}
@@ -759,6 +774,10 @@ body::after{
       <div id="boostsSection" class="boosts-section" style="display:none">
         <div class="boosts-lbl">🚀 Boosted Odds</div>
         <div class="boosts-scroll" id="boostsScroll"></div>
+      </div>
+      <div id="trendingSection" class="trending-section" style="display:none">
+        <div class="trending-lbl">📈 Trending Tonight</div>
+        <div class="trending-scroll" id="trendingScroll"></div>
       </div>
       <div class="search-bar-wrap">
         <input class="games-search" id="gamesSearch" type="search" placeholder="Search teams…" oninput="filterGames(this.value)" autocomplete="off">
@@ -1240,8 +1259,29 @@ function generatePlayerProps(g) {
     return `<div class="consensus-row"><span class="con-label">${pct}% bet ${esc(label)}</span><div class="con-bar"><div class="con-fill" style="width:${pct}%"></div></div></div>`;
   };
 
-  let gPlayers = '', gGame = '', gSGP = '', gAlt = '';
+  let gPlayers = '', gGame = '', gSGP = '', gAlt = '', gLive = '';
   const awayShort = away.split(' ').pop(), homeShort = home.split(' ').pop();
+
+  // ── LIVE MARKETS (only when game is in progress) ──────────
+  if (g.isLive) {
+    gLive += `<div class="props-sec-hdr">🔴 Live Markets</div>`;
+    gLive += `<div class="prop-market-row"><span class="prop-mkt-lbl">Next Team to Score</span><div class="odds-pair">${pBtn('live_nts',awayShort,propOdds(gid+'lnts_a',-120),null)}${pBtn('live_nts',homeShort,propOdds(gid+'lnts_h',100),null)}</div></div>`;
+    const sportKey = currentSport;
+    if (sportKey.includes('football')) {
+      gLive += `<div class="prop-market-row"><span class="prop-mkt-lbl">Next Score Type</span><div class="odds-pair">${pBtn('live_nst','Touchdown',propOdds(gid+'lstd',-165),null)}${pBtn('live_nst','Field Goal',propOdds(gid+'lsfg',140),null)}</div></div>`;
+      gLive += `<div class="prop-market-row"><span class="prop-mkt-lbl">Score on Next Drive</span><div class="odds-pair">${pBtn('live_drv','Yes',propOdds(gid+'ldrvy',-150),null)}${pBtn('live_drv','No',propOdds(gid+'ldrvn',125),null)}</div></div>`;
+    } else if (sportKey.includes('basketball')) {
+      const liveTot = propLine(8,18,0.5,gid+'lqtot');
+      gLive += `<div class="prop-market-row"><span class="prop-mkt-lbl">Current Quarter Total</span><div class="odds-pair">${pBtn('live_qtot','Over',propOdds(gid+'lqo'),'O '+liveTot)}${pBtn('live_qtot','Under',propOdds(gid+'lqu'),'U '+liveTot)}</div></div>`;
+      gLive += `<div class="prop-market-row"><span class="prop-mkt-lbl">Team to Win Quarter</span><div class="odds-pair">${pBtn('live_qtw',awayShort,propOdds(gid+'lqwa',-120),null)}${pBtn('live_qtw',homeShort,propOdds(gid+'lqwh',100),null)}</div></div>`;
+    } else if (sportKey.includes('soccer')) {
+      gLive += `<div class="prop-market-row"><span class="prop-mkt-lbl">Next Goal Scorer</span><div class="odds-pair">${pBtn('live_ngs',awayShort,propOdds(gid+'lngsa',-110),null)}${pBtn('live_ngs',homeShort,propOdds(gid+'lngsh',-105),null)}</div></div>`;
+    } else if (sportKey.includes('hockey')) {
+      gLive += `<div class="prop-market-row"><span class="prop-mkt-lbl">Next Goal Scorer</span><div class="odds-pair">${pBtn('live_ngs_nhl',awayShort,propOdds(gid+'lngs_a',-110),null)}${pBtn('live_ngs_nhl',homeShort,propOdds(gid+'lngs_h',-105),null)}</div></div>`;
+      gLive += `<div class="prop-market-row"><span class="prop-mkt-lbl">Power Play Goal (Y/N)</span><div class="odds-pair">${pBtn('live_ppg','Yes',propOdds(gid+'lppgy',-130),null)}${pBtn('live_ppg','No',propOdds(gid+'lppgn',110),null)}</div></div>`;
+    }
+    gLive += `<div class="prop-market-row"><span class="prop-mkt-lbl">Live Moneyline</span><div class="odds-pair">${pBtn('live_ml',awayShort,propOdds(gid+'lml_a',-110),null)}${pBtn('live_ml',homeShort,propOdds(gid+'lml_h',-110),null)}</div></div>`;
+  }
 
   // ── PLAYER PROPS ─────────────────────────────────────────
   if (cfg.pos.length) {
@@ -1383,6 +1423,7 @@ function generatePlayerProps(g) {
   // ── ASSEMBLE WITH TABS ────────────────────────────────────
   const tabs = [
     {id:'all',label:'All'},
+    gLive ? {id:'live',label:'🔴 Live'} : null,
     gPlayers ? {id:'players',label:'👤 Players'} : null,
     gGame ? {id:'game',label:'🎯 Game'} : null,
     gSGP ? {id:'sgp',label:'⚡ SGP'} : null,
@@ -1394,6 +1435,7 @@ function generatePlayerProps(g) {
   ).join('')}</div>`;
 
   return tabRow
+    + (gLive ? `<div class="prop-group" data-pgroup="live">${gLive}</div>` : '')
     + (gPlayers ? `<div class="prop-group" data-pgroup="players">${gPlayers}</div>` : '')
     + (gGame ? `<div class="prop-group" data-pgroup="game">${gGame}</div>` : '')
     + (gSGP ? `<div class="prop-group" data-pgroup="sgp">${gSGP}</div>` : '')
@@ -2002,6 +2044,7 @@ async function loadGames(sport) {
     document.getElementById('dailyPickWrap').style.display = 'none';
     document.getElementById('liveTickerWrap').style.display = 'none';
     document.getElementById('boostsSection').style.display = 'none';
+    document.getElementById('trendingSection').style.display = 'none';
     const pb = document.getElementById('promoBanner');
     if (pb) pb.style.display = 'none';
     return;
@@ -2015,6 +2058,7 @@ async function loadGames(sport) {
   renderFeatured(games);
   renderDailyPick(games);
   renderBoosts(games);
+  renderTrending(games);
   renderGames(games);
   loadLiveTicker(sport);
 }
@@ -2057,6 +2101,55 @@ function handleFuturesBet(btn) {
     selection: btn.dataset.sel, odds: parseInt(btn.dataset.odds), line: null,
   };
   toggleLeg(leg, btn, null);
+}
+
+function renderTrending(games) {
+  const wrap = document.getElementById('trendingSection');
+  const scroll = document.getElementById('trendingScroll');
+  if (!wrap || !scroll) return;
+  const sh = s => { let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))&0xFFFFFFFF; return h>>>0; };
+  const gms = games.filter(g => getMarket(g,'h2h') || getMarket(g,'spreads') || getMarket(g,'totals'));
+  if (!gms.length) { wrap.style.display='none'; return; }
+  wrap.style.display = 'block';
+  const TREND_LABELS = ['📈 Hot Pick','🌊 Sharp Money','👥 Public Fave','🔥 High Action','💡 Expert Lean','🎯 Value Play'];
+  const ACTION_COUNTS = ['1,247','892','2,031','445','1,618','733','3,204','567'];
+  const items = [];
+  gms.slice(0,8).forEach((g, i) => {
+    const ml = getMarket(g,'h2h'); const sp = getMarket(g,'spreads'); const tot = getMarket(g,'totals');
+    const awayShort = g.away_team.split(' ').pop(), homeShort = g.home_team.split(' ').pop();
+    const seed = sh(g.id+'trend'+i);
+    if (ml && i % 3 !== 1) {
+      const pick = ml[seed%2===0?0:1]; const odds = pick.price;
+      const label = pick.name.split(' ').pop() + ' ML';
+      items.push({ label, sublabel: awayShort+' @ '+homeShort, odds, badge: TREND_LABELS[seed%6], action: ACTION_COUNTS[seed%8]+' bets', g, market:'h2h', sel:pick.name });
+    }
+    if (sp && sp[0] && i % 3 === 1) {
+      const pick = sp[sh(g.id+'tsp'+i)%2===0?0:1]||sp[0];
+      const odds = pick.price; const pts = (pick.point>0?'+':'')+pick.point;
+      items.push({ label: pick.name.split(' ').pop()+' '+pts, sublabel: 'Spread', odds, badge: TREND_LABELS[(seed+2)%6], action: ACTION_COUNTS[(seed+3)%8]+' bets', g, market:'spreads', sel:pick.name });
+    }
+    if (tot && tot[0]) {
+      const pick = tot[sh(g.id+'ttot'+i)%2===0?0:1]||tot[0];
+      const odds = pick.price;
+      items.push({ label: pick.name+' '+pick.point, sublabel: 'Total Points', odds, badge: TREND_LABELS[(seed+4)%6], action: ACTION_COUNTS[(seed+5)%8]+' bets', g, market:'totals', sel:pick.name });
+    }
+  });
+  scroll.innerHTML = items.slice(0,6).map(b => {
+    const inSlip = betSlipLegs.some(l=>l.gameId===b.g.id&&l.market===b.market&&l.selection===b.sel);
+    return `<div class="trending-card">
+      <div class="trend-badge">${esc(b.badge)}</div>
+      <div class="trend-label">${esc(b.label)}</div>
+      <div class="trend-game">${esc(b.sublabel)}</div>
+      <div class="trend-footer">
+        <span class="trend-action">${esc(b.action)}</span>
+        <button class="trend-odds${b.odds>0?' pos':''} odds-btn${inSlip?' in-slip':''}"
+          data-gid="${esc(b.g.id)}" data-market="${esc(b.market)}"
+          data-sel="${esc(b.sel)}" data-odds="${b.odds}" data-line=""
+          data-home="${esc(b.g.home_team)}" data-away="${esc(b.g.away_team)}"
+          data-ct="${esc(b.g.commence_time)}">${fmtOdds(b.odds)}</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderBoosts(games) {
