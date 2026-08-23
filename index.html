@@ -2247,6 +2247,7 @@ function renderTrending(games) {
   wrap.style.display = 'block';
   const TREND_LABELS = ['📈 Hot Pick','🌊 Sharp Money','👥 Public Fave','🔥 High Action','💡 Expert Lean','🎯 Value Play'];
   const ACTION_COUNTS = ['1,247','892','2,031','445','1,618','733','3,204','567'];
+  const HANDLE_PCTS = [63,71,58,82,55,67,74,61]; // seeded handle %
   const items = [];
   gms.slice(0,8).forEach((g, i) => {
     const ml = getMarket(g,'h2h'); const sp = getMarket(g,'spreads'); const tot = getMarket(g,'totals');
@@ -2255,25 +2256,31 @@ function renderTrending(games) {
     if (ml && i % 3 !== 1) {
       const pick = ml[seed%2===0?0:1]; const odds = pick.price;
       const label = pick.name.split(' ').pop() + ' ML';
-      items.push({ label, sublabel: awayShort+' @ '+homeShort, odds, badge: TREND_LABELS[seed%6], action: ACTION_COUNTS[seed%8]+' bets', g, market:'h2h', sel:pick.name });
+      const handle = HANDLE_PCTS[seed%8];
+      const isSharp = handle >= 65;
+      items.push({ label, sublabel: awayShort+' @ '+homeShort, odds, badge: TREND_LABELS[seed%6], action: ACTION_COUNTS[seed%8]+' bets', handle, isSharp, g, market:'h2h', sel:pick.name });
     }
     if (sp && sp[0] && i % 3 === 1) {
       const pick = sp[sh(g.id+'tsp'+i)%2===0?0:1]||sp[0];
       const odds = pick.price; const pts = (pick.point>0?'+':'')+pick.point;
-      items.push({ label: pick.name.split(' ').pop()+' '+pts, sublabel: 'Spread', odds, badge: TREND_LABELS[(seed+2)%6], action: ACTION_COUNTS[(seed+3)%8]+' bets', g, market:'spreads', sel:pick.name });
+      const handle2 = HANDLE_PCTS[(seed+3)%8]; const isSharp2 = handle2 >= 65;
+      items.push({ label: pick.name.split(' ').pop()+' '+pts, sublabel: 'Spread', odds, badge: TREND_LABELS[(seed+2)%6], action: ACTION_COUNTS[(seed+3)%8]+' bets', handle:handle2, isSharp:isSharp2, g, market:'spreads', sel:pick.name });
     }
     if (tot && tot[0]) {
       const pick = tot[sh(g.id+'ttot'+i)%2===0?0:1]||tot[0];
       const odds = pick.price;
-      items.push({ label: pick.name+' '+pick.point, sublabel: 'Total Points', odds, badge: TREND_LABELS[(seed+4)%6], action: ACTION_COUNTS[(seed+5)%8]+' bets', g, market:'totals', sel:pick.name });
+      const handle3 = HANDLE_PCTS[(seed+5)%8]; const isSharp3 = handle3 >= 65;
+      items.push({ label: pick.name+' '+pick.point, sublabel: 'Total Points', odds, badge: TREND_LABELS[(seed+4)%6], action: ACTION_COUNTS[(seed+5)%8]+' bets', handle:handle3, isSharp:isSharp3, g, market:'totals', sel:pick.name });
     }
   });
   scroll.innerHTML = items.slice(0,6).map(b => {
     const inSlip = betSlipLegs.some(l=>l.gameId===b.g.id&&l.market===b.market&&l.selection===b.sel);
     return `<div class="trending-card">
-      <div class="trend-badge">${esc(b.badge)}</div>
+      <div class="trend-badge">${esc(b.badge)}${b.isSharp?'<span style="margin-left:4px;font-size:8px;background:rgba(48,209,88,.2);color:#30D158;padding:1px 4px;border-radius:3px;font-weight:900">⚡ SHARP</span>':''}</div>
       <div class="trend-label">${esc(b.label)}</div>
       <div class="trend-game">${esc(b.sublabel)}</div>
+      <div style="height:3px;border-radius:2px;background:rgba(255,255,255,.1);margin:3px 0;overflow:hidden"><div style="height:100%;width:${b.handle}%;background:${b.isSharp?'#30D158':'var(--gold)'};opacity:.7;border-radius:2px"></div></div>
+      <div style="font-size:8px;color:var(--t3);font-weight:700">${b.handle}% of handle</div>
       <div class="trend-footer">
         <span class="trend-action">${esc(b.action)}</span>
         <button class="trend-odds${b.odds>0?' pos':''} odds-btn${inSlip?' in-slip':''}"
@@ -2998,6 +3005,10 @@ function updateTierChip() {
 }
 
 function renderBets(bets) {
+  // Update "My Bets" nav badge with open bet count
+  const openCount = bets.filter(b=>b.status==='pending').length;
+  const badge = document.getElementById('betsBadge');
+  if (badge) { badge.textContent = openCount; badge.style.display = openCount > 0 ? 'inline-flex' : 'none'; if (openCount > 0) { badge.classList.add('pulse'); setTimeout(()=>badge.classList.remove('pulse'),700); } }
   const el = document.getElementById('betsInner');
   if (!bets.length) {
     el.innerHTML = `<div class="empty-state" style="padding:80px 30px">
