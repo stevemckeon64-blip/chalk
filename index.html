@@ -498,6 +498,13 @@ body::after{
 .prop-tab-btn.active{background:var(--bg-ch);color:var(--t1);border-color:var(--bdr-h)}
 .prop-group{transition:opacity .15s}
 .prop-group.hidden{display:none}
+/* ── ROUND ROBIN ───────────────────────────────────────────── */
+.rr-combo-list{display:flex;flex-direction:column;gap:5px;margin:4px 0}
+.rr-combo{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--bg-s);border:1px solid var(--bdr);border-radius:7px;font-size:12px}
+.rr-combo-legs{color:var(--t2);font-size:11px;flex:1}
+.rr-combo-odds{font-weight:900;font-variant-numeric:tabular-nums;flex-shrink:0;margin-left:10px}
+.rr-summary{padding:8px 10px;background:rgba(245,166,35,.07);border-radius:7px;margin-top:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center}
+.rr-combos-count{font-size:9px;color:var(--t2);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
 /* ── TEAM RECORD / LIVE SCORE ─────────────────────────────── */
 .team-record{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.04em;margin-left:5px;flex-shrink:0}
 .live-score-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:44px}
@@ -720,6 +727,10 @@ body::after{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5 9c2 1.5 2 4.5 0 6"/><path d="M19 9c-2 1.5-2 4.5 0 6"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
       ATP
     </button>
+    <button class="sport-tab" data-sport="golf_pga_tour" onclick="switchSport(this)" aria-label="PGA Golf">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="3"/><path d="M12 10v9"/><path d="M9 19h6"/><path d="M15 5l3-2"/></svg>
+      PGA
+    </button>
     <button class="sport-tab" data-sport="padel_ppt" onclick="switchSport(this)" aria-label="Padel Premier Tour">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="6"/><line x1="14.5" y1="14.5" x2="21" y2="21"/><line x1="7" y1="10" x2="13" y2="10"/><line x1="10" y1="7" x2="10" y2="13"/></svg>
       PPT
@@ -815,6 +826,7 @@ const SPORTS = {
   soccer_usa_mls:         { label:'MLS',   icon:'⚽', espn:'soccer/usa.1' },
   mma_mixed_martial_arts: { label:'UFC',   icon:'🥊', espn:'mma/ufc', versus:true },
   tennis_atp:             { label:'ATP',   icon:'🎾', espn:'tennis/atp', versus:true },
+  golf_pga_tour:          { label:'PGA',   icon:'⛳', espn:'golf/pga', versus:false },
   padel_ppt:              { label:'PPT',   icon:'🏓', espn:null, versus:true, ppl:true },
   futures:                { label:'Futures',icon:'🏆', espn:null },
 };
@@ -834,6 +846,7 @@ const SPORT_ACCENTS = {
   soccer_usa_mls:         '#002F6C',
   mma_mixed_martial_arts: '#FF3B30',
   tennis_atp:             '#C8FF57',
+  golf_pga_tour:          '#4CAF50',
   padel_ppt:              '#F5A623',
   futures:                '#C8FF57',
 };
@@ -1022,6 +1035,18 @@ const PROP_SPORTS = {
       {k:'tot_games',lb:'Total Games',lo:18.5,hi:26.5,st:0.5,t:'total'},
       {k:'break_1st',lb:'Break Serve in 1st Game',t:'yesno'},
       {k:'ace_over',lb:'Aces (Over/Under)',lo:8.5,hi:18.5,st:0.5,t:'total'},
+    ],
+  },
+  golf_pga_tour: {
+    pos:[
+      {p:'PRO',props:[{k:'top5',lb:'Top-5 Finish',lo:0.5,hi:0.5,st:0,isYN:true},{k:'top10',lb:'Top-10 Finish',lo:0.5,hi:0.5,st:0,isYN:true},{k:'mkcut',lb:'Make Cut',lo:0.5,hi:0.5,st:0,isYN:true},{k:'r1lead',lb:'Lead After Round 1',lo:0.5,hi:0.5,st:0,isYN:true}]},
+    ],
+    gp:[
+      {k:'g_birdie',lb:'Birdie or Better on Hole 1',t:'yesno'},
+      {k:'g_r1tot',lb:'Round 1 Leader Total Score',lo:-9.5,hi:-3.5,st:0.5,t:'total'},
+      {k:'g_wire',lb:'Wire-to-Wire Winner',t:'yesno'},
+      {k:'g_playoff',lb:'Playoff (Y/N)',t:'yesno'},
+      {k:'g_ace',lb:'Hole-in-One (Y/N)',t:'yesno'},
     ],
   },
 };
@@ -2388,10 +2413,12 @@ function openBetSlip() {
   };
 
   // Mode toggle (only show when 2+ legs)
+  const canRR = betSlipLegs.length >= 3;
   const modeToggle = isMulti ? `
     <div class="slip-mode-row">
       <button class="slip-mode-btn ${slipMode==='parlay'?'active':''}" onclick="setSlipMode('parlay')">Parlay</button>
       <button class="slip-mode-btn ${slipMode==='single'?'active':''}" onclick="setSlipMode('single')">Singles</button>
+      ${canRR?`<button class="slip-mode-btn ${slipMode==='rr'?'active':''}" onclick="setSlipMode('rr')">Round Robin</button>`:''}
     </div>` : '';
 
   // Leg list
@@ -2423,17 +2450,39 @@ function openBetSlip() {
       <span class="bs-pick-odds ${displayOdds>0?'pos':'neg'}">${fmtOdds(displayOdds)}</span>
     </div>` : '';
 
+  // Round Robin combos (all 2-of-n)
+  let rrHtml = '';
+  if (slipMode === 'rr' && betSlipLegs.length >= 3) {
+    const rrCombos = [];
+    for (let i=0; i<betSlipLegs.length; i++) {
+      for (let j=i+1; j<betSlipLegs.length; j++) {
+        rrCombos.push([betSlipLegs[i], betSlipLegs[j]]);
+      }
+    }
+    rrHtml = `<div class="rr-combos-count">${rrCombos.length} combos (2-of-${betSlipLegs.length})</div>
+    <div class="rr-combo-list">${rrCombos.map(combo => {
+      const odds = calcParlayOdds(combo);
+      const a = selLabel(combo[0]).split(' ').slice(0,2).join(' ');
+      const b = selLabel(combo[1]).split(' ').slice(0,2).join(' ');
+      return `<div class="rr-combo">
+        <span class="rr-combo-legs">${esc(a)} + ${esc(b)}</span>
+        <span class="rr-combo-odds ${odds>0?'pos':'neg'}">${fmtOdds(odds)}</span>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
   document.getElementById('bsBody').innerHTML = `
     ${modeToggle}
     <div class="parlay-legs-list">${legsHtml}</div>
     ${summaryBar}
-    <div class="bs-stake-lbl">Bet Amount</div>
+    ${rrHtml}
+    <div class="bs-stake-lbl">${slipMode==='rr'?'Stake Per Combo':'Bet Amount'}</div>
     <div class="bs-amount-row"><span class="bs-dollar">$</span><input class="bs-input" id="bsStake" type="number" inputmode="numeric" min="1" value="50" oninput="updateBsPayout()" onkeydown="if(event.key==='Enter'){event.preventDefault();placeBet()}" autocomplete="off"></div>
     <div class="bs-quick">
-      <button onclick="setBsStakePct(5)">5%</button>
-      <button onclick="setBsStakePct(10)">10%</button>
-      <button onclick="setBsStakePct(25)">25%</button>
-      <button onclick="setBsStakePct(50)">50%</button>
+      <button onclick="setBsStake(10)">$10</button>
+      <button onclick="setBsStake(25)">$25</button>
+      <button onclick="setBsStake(50)">$50</button>
+      <button onclick="setBsStake(100)">$100</button>
       <button onclick="setBsStake(Math.floor(profile.balance))">Max</button>
     </div>
     <hr class="bs-divider">
@@ -2535,6 +2584,18 @@ function updateBsPayout() {
   const stake = parseFloat(document.getElementById('bsStake')?.value)||0;
   if (!betSlipLegs.length) return;
   const isParlay = slipMode === 'parlay' && betSlipLegs.length > 1;
+  const isRR = slipMode === 'rr' && betSlipLegs.length >= 3;
+  let totalWin = 0, totalPayout = 0;
+  if (isRR) {
+    for (let i=0; i<betSlipLegs.length; i++) for (let j=i+1; j<betSlipLegs.length; j++) {
+      const p = calcPayout(stake, calcParlayOdds([betSlipLegs[i], betSlipLegs[j]]));
+      totalPayout += p; totalWin += (p - stake);
+    }
+    const combosCount = betSlipLegs.length*(betSlipLegs.length-1)/2;
+    document.getElementById('bsToWin').textContent = `Max ${fmt(totalWin)} (${combosCount} combos)`;
+    document.getElementById('bsPayout').textContent = `Total wager: ${fmt(stake*combosCount)}`;
+    return;
+  }
   const odds = isParlay ? calcParlayOdds(betSlipLegs) : betSlipLegs[0].odds;
   const payout = calcPayout(stake, odds);
   document.getElementById('bsToWin').textContent = fmt(payout - stake);
