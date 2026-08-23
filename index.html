@@ -446,6 +446,32 @@ body::after{
 .ticker-period{font-size:9px;color:var(--live);font-weight:800;text-transform:uppercase}
 .ticker-sep{color:var(--t3);padding:0 8px;font-size:10px}
 /* ── MORE MARKETS toggle ────────────────────────────────── */
+/* ── FUTURES ──────────────────────────────────────────────── */
+.futures-grid{display:flex;flex-direction:column;gap:10px;padding:8px 16px 20px}
+.futures-card{background:var(--bg-c);border:1px solid var(--bdr);border-left:3px solid var(--sport-accent,var(--gold));border-radius:var(--rl);overflow:hidden}
+.futures-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(0,0,0,.15);border-bottom:1px solid var(--bdr)}
+.futures-card-title{font-size:12px;font-weight:800;color:var(--txt);letter-spacing:.02em}
+.futures-best-odds{font-size:10px;color:var(--t3);font-weight:600}
+.futures-rows{max-height:280px;overflow-y:auto;scrollbar-width:thin}
+.futures-row{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--bdr);transition:background .1s}
+.futures-row:last-child{border-bottom:none}
+.futures-row:hover,.futures-row-active{background:var(--gold-dim)}
+.futures-team{font-size:12px;color:var(--txt);flex:1}
+.futures-odds-btn{background:var(--bg);border:1px solid var(--bdr);border-radius:6px;padding:5px 14px;font-size:12px;font-weight:800;color:var(--gold-b);cursor:pointer;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.futures-odds-btn:hover,.futures-odds-btn.in-slip{background:var(--gold);color:#000;border-color:var(--gold)}
+.futures-tab{background:linear-gradient(135deg,rgba(245,166,35,.08),transparent)!important;border-color:rgba(245,166,35,.3)!important}
+/* ── PLAYER PROPS ─────────────────────────────────────────── */
+.props-sec-hdr{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);padding:8px 0 6px;border-top:1px solid var(--bdr);margin-top:4px}
+.props-sec-hdr:first-child{border-top:none;margin-top:0;padding-top:0}
+.player-prop-card{background:var(--bg-s);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.player-prop-hdr{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.pos-badge{background:rgba(245,166,35,.15);color:var(--gold);font-size:8px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:4px;flex-shrink:0}
+.player-name{font-size:12px;font-weight:700;color:var(--txt);flex:1}
+.player-team-tag{font-size:10px;color:var(--t3);font-weight:600}
+.prop-market-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.prop-market-row:last-child{margin-bottom:0}
+.prop-mkt-lbl{font-size:10px;color:var(--t2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prop-odds-btn{min-width:68px;font-size:10px}
 .more-markets-toggle{display:flex;align-items:center;justify-content:space-between;padding:7px 14px;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--t3);cursor:pointer;border-top:1px solid var(--bdr);transition:color .15s,background .15s;text-transform:uppercase}
 .more-markets-toggle:hover,.more-markets-toggle.open{color:var(--gold);background:var(--gold-dim)}
 .mm-arrow{font-size:14px;transition:transform .15s}
@@ -614,6 +640,10 @@ body::after{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="6"/><line x1="14.5" y1="14.5" x2="21" y2="21"/><line x1="7" y1="10" x2="13" y2="10"/><line x1="10" y1="7" x2="10" y2="13"/></svg>
       PPT
     </button>
+    <button class="sport-tab futures-tab" data-sport="futures" onclick="switchSport(this)" aria-label="Futures">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M12 11v10"/><path d="M8 19l4-8 4 8"/></svg>
+      Futures
+    </button>
   </div>
   <div class="main-content">
     <div class="view active" id="view-games">
@@ -692,6 +722,7 @@ const SPORTS = {
   mma_mixed_martial_arts: { label:'UFC',   icon:'🥊', espn:'mma/ufc', versus:true },
   tennis_atp:             { label:'ATP',   icon:'🎾', espn:'tennis/atp', versus:true },
   padel_ppt:              { label:'PPT',   icon:'🏓', espn:null, versus:true, ppl:true },
+  futures:                { label:'Futures',icon:'🏆', espn:null },
 };
 const MARKET_LABELS = { h2h:'Moneyline', spreads:'Spread', totals:'Total' };
 const SPORT_ACCENTS = {
@@ -704,8 +735,176 @@ const SPORT_ACCENTS = {
   mma_mixed_martial_arts: '#FF3B30',
   tennis_atp:             '#C8FF57',
   padel_ppt:              '#F5A623',
+  futures:                '#C8FF57',
 };
 let oddsFormat = (()=>{ try { return localStorage.getItem('chalk_odds_fmt')||'american'; } catch(e){return 'american';} })();
+
+// ── PLAYER PROP CONFIG ────────────────────────────────────────────
+const PLAYER_FIRSTS = ['J.','M.','D.','T.','K.','C.','A.','R.','B.','L.','S.','N.','P.','E.','Z.','Ty.','Tre.','De\'','Dak.','Cam.'];
+const PLAYER_LASTS  = ['Williams','Johnson','Davis','Brown','Jones','Miller','Wilson','Moore','Taylor','Anderson','Thomas','Jackson','White','Harris','Martin','Thompson','Garcia','Robinson','Clark','Lewis','Walker','Hall','Allen','Young','Hernandez','King','Wright','Baker','Nelson','Carter','Mitchell','Roberts','Turner','Evans','Edwards','Collins','Stewart','Morris','Rogers','Cook','Morgan','Bell','Rivera','Cooper','Diggs','Adams','Hill','Jefferson','Chase','Andrews','Henry','Kelce','Mahomes','Burrow'];
+
+const PROP_SPORTS = {
+  americanfootball_nfl: {
+    pos:[
+      {p:'QB',props:[{k:'pyd',lb:'Pass Yards',lo:195,hi:330,st:0.5},{k:'ptd',lb:'Pass TDs',lo:0.5,hi:3.5,st:0.5},{k:'ryd_qb',lb:'Rush Yards',lo:5,hi:40,st:0.5},{k:'int',lb:'Interceptions',lo:0.5,hi:1.5,st:0.5}]},
+      {p:'RB',props:[{k:'ryd',lb:'Rush Yards',lo:42,hi:108,st:0.5},{k:'att',lb:'Rush Attempts',lo:9.5,hi:19.5,st:1},{k:'rcyd',lb:'Rec Yards',lo:8,hi:45,st:0.5},{k:'rtd',lb:'Rushing TD',lo:0.5,hi:0.5,st:0,isYN:true}]},
+      {p:'WR',props:[{k:'wyd',lb:'Rec Yards',lo:35,hi:92,st:0.5},{k:'rec',lb:'Receptions',lo:2.5,hi:7.5,st:0.5},{k:'wtd',lb:'Rec TD',lo:0.5,hi:1.5,st:0.5}]},
+      {p:'TE',props:[{k:'tyd',lb:'Rec Yards',lo:18,hi:62,st:0.5},{k:'trec',lb:'Receptions',lo:1.5,hi:5.5,st:0.5},{k:'ttd',lb:'Rec TD',lo:0.5,hi:0.5,st:0,isYN:true}]},
+    ],
+    gp:[
+      {k:'1h_tot',lb:'1st Half Total',lo:18,hi:27,st:0.5,t:'total'},
+      {k:'1h_ml',lb:'1st Half Moneyline',t:'ml'},
+      {k:'1h_sp',lb:'1st Half Spread',lo:0.5,hi:6.5,st:0.5,t:'spread'},
+      {k:'score1st',lb:'Team to Score 1st',t:'teams'},
+      {k:'att_td',lb:'Anytime TD Scorer',t:'teams'},
+      {k:'away_tot',lb:'Away Team Total',lo:14,hi:25,st:0.5,t:'teamtot',tm:'away'},
+      {k:'home_tot',lb:'Home Team Total',lo:14,hi:25,st:0.5,t:'teamtot',tm:'home',off:2},
+    ],
+  },
+  americanfootball_ncaaf: {
+    pos:[
+      {p:'QB',props:[{k:'pyd_c',lb:'Pass Yards',lo:180,hi:320,st:0.5},{k:'ptd_c',lb:'Pass TDs',lo:0.5,hi:4.5,st:0.5},{k:'ryd_c',lb:'Rush Yards',lo:10,hi:55,st:0.5}]},
+      {p:'RB',props:[{k:'ryd_rb_c',lb:'Rush Yards',lo:35,hi:120,st:0.5},{k:'att_c',lb:'Rush Attempts',lo:8.5,hi:20.5,st:1}]},
+      {p:'WR',props:[{k:'wyd_c',lb:'Rec Yards',lo:30,hi:88,st:0.5},{k:'rec_c',lb:'Receptions',lo:2.5,hi:7.5,st:0.5}]},
+    ],
+    gp:[
+      {k:'1h_tot_c',lb:'1st Half Total',lo:20,hi:32,st:0.5,t:'total'},
+      {k:'1h_ml_c',lb:'1st Half ML',t:'ml'},
+      {k:'score1st_c',lb:'Team to Score 1st',t:'teams'},
+      {k:'away_tot_c',lb:'Away Team Total',lo:14,hi:28,st:0.5,t:'teamtot',tm:'away'},
+      {k:'home_tot_c',lb:'Home Team Total',lo:14,hi:28,st:0.5,t:'teamtot',tm:'home',off:3},
+    ],
+  },
+  basketball_nba: {
+    pos:[
+      {p:'PG',props:[{k:'pts_pg',lb:'Points',lo:14,hi:34,st:0.5},{k:'ast',lb:'Assists',lo:4.5,hi:11.5,st:0.5},{k:'3pm',lb:'3-Pointers Made',lo:1.5,hi:4.5,st:0.5},{k:'pra',lb:'Pts+Reb+Ast',lo:24,hi:48,st:0.5}]},
+      {p:'SG',props:[{k:'pts_sg',lb:'Points',lo:10,hi:28,st:0.5},{k:'3pm_sg',lb:'3-Pointers Made',lo:1.5,hi:4.5,st:0.5},{k:'reb_sg',lb:'Rebounds',lo:2.5,hi:6.5,st:0.5}]},
+      {p:'SF',props:[{k:'pts_sf',lb:'Points',lo:12,hi:30,st:0.5},{k:'reb_sf',lb:'Rebounds',lo:4.5,hi:9.5,st:0.5},{k:'ast_sf',lb:'Assists',lo:1.5,hi:5.5,st:0.5}]},
+      {p:'C', props:[{k:'pts_c',lb:'Points',lo:10,hi:26,st:0.5},{k:'reb_c',lb:'Rebounds',lo:8.5,hi:15.5,st:0.5},{k:'blk',lb:'Blocks',lo:0.5,hi:2.5,st:0.5},{k:'pra_c',lb:'Pts+Reb+Ast',lo:20,hi:42,st:0.5}]},
+    ],
+    gp:[
+      {k:'1q_tot',lb:'1st Quarter Total',lo:50,hi:66,st:0.5,t:'total'},
+      {k:'1h_tot_nba',lb:'1st Half Total',lo:98,hi:116,st:0.5,t:'total'},
+      {k:'lead_10',lb:'First to Score 10',t:'teams'},
+      {k:'race_20',lb:'Race to 20 Points',t:'teams'},
+      {k:'away_tot_nba',lb:'Away Team Total',lo:100,hi:120,st:0.5,t:'teamtot',tm:'away'},
+      {k:'home_tot_nba',lb:'Home Team Total',lo:100,hi:120,st:0.5,t:'teamtot',tm:'home',off:3},
+    ],
+  },
+  baseball_mlb: {
+    pos:[
+      {p:'SP',props:[{k:'ks',lb:'Strikeouts',lo:3.5,hi:9.5,st:0.5},{k:'ha',lb:'Hits Allowed',lo:3.5,hi:8.5,st:0.5},{k:'ip',lb:'Innings Pitched',lo:4.5,hi:6.5,st:0.5},{k:'er',lb:'Earned Runs',lo:0.5,hi:3.5,st:0.5}]},
+      {p:'1B',props:[{k:'hits',lb:'Hits',lo:0.5,hi:2.5,st:0.5},{k:'tb',lb:'Total Bases',lo:0.5,hi:3.5,st:0.5},{k:'rbi',lb:'RBIs',lo:0.5,hi:2.5,st:0.5}]},
+      {p:'OF',props:[{k:'hits_of',lb:'Hits',lo:0.5,hi:2.5,st:0.5},{k:'tb_of',lb:'Total Bases',lo:0.5,hi:3.5,st:0.5},{k:'hr',lb:'Home Run',lo:0.5,hi:0.5,st:0,isYN:true}]},
+    ],
+    gp:[
+      {k:'f5_ml',lb:'First 5 Innings ML',t:'ml'},
+      {k:'f5_tot',lb:'First 5 Innings Total',lo:2.5,hi:5.5,st:0.5,t:'total'},
+      {k:'away_runs',lb:'Away Team Runs',lo:2.5,hi:6.5,st:0.5,t:'teamtot',tm:'away'},
+      {k:'home_runs',lb:'Home Team Runs',lo:2.5,hi:6.5,st:0.5,t:'teamtot',tm:'home',off:0.5},
+      {k:'1st_inn_score',lb:'Score in 1st Inning',t:'teams'},
+    ],
+  },
+  icehockey_nhl: {
+    pos:[
+      {p:'G', props:[{k:'svs',lb:'Saves',lo:22.5,hi:34.5,st:0.5},{k:'ga',lb:'Goals Against',lo:1.5,hi:4.5,st:0.5}]},
+      {p:'C', props:[{k:'pts_nhl',lb:'Points (G+A)',lo:0.5,hi:2.5,st:0.5},{k:'sog_c',lb:'Shots on Goal',lo:1.5,hi:4.5,st:0.5}]},
+      {p:'LW',props:[{k:'g_lw',lb:'Anytime Goal Scorer',lo:0.5,hi:0.5,st:0,isYN:true},{k:'sog_lw',lb:'Shots on Goal',lo:1.5,hi:3.5,st:0.5},{k:'pts_lw',lb:'Points',lo:0.5,hi:1.5,st:0.5}]},
+    ],
+    gp:[
+      {k:'1p_tot',lb:'1st Period Total',lo:0.5,hi:2.5,st:0.5,t:'total'},
+      {k:'1p_ml',lb:'1st Period Moneyline',t:'ml'},
+      {k:'score_1p',lb:'Team to Score in 1st',t:'teams'},
+      {k:'away_tot_nhl',lb:'Away Team Total',lo:1.5,hi:3.5,st:0.5,t:'teamtot',tm:'away'},
+      {k:'home_tot_nhl',lb:'Home Team Total',lo:1.5,hi:3.5,st:0.5,t:'teamtot',tm:'home',off:0.5},
+    ],
+  },
+  soccer_epl: {
+    pos:[
+      {p:'FWD',props:[{k:'sot_f',lb:'Shots on Target',lo:0.5,hi:2.5,st:0.5},{k:'gs',lb:'Anytime Goalscorer',lo:0.5,hi:0.5,st:0,isYN:true}]},
+      {p:'MID',props:[{k:'kp',lb:'Key Passes',lo:0.5,hi:2.5,st:0.5},{k:'sot_m',lb:'Shots on Target',lo:0.5,hi:1.5,st:0.5}]},
+    ],
+    gp:[
+      {k:'btts',lb:'Both Teams to Score',t:'yesno'},
+      {k:'cs_h',lb:'Home Clean Sheet',t:'yesno'},
+      {k:'cs_a',lb:'Away Clean Sheet',t:'yesno'},
+      {k:'corners',lb:'Total Corners',lo:7.5,hi:12.5,st:0.5,t:'total'},
+      {k:'cards',lb:'Total Cards',lo:2.5,hi:5.5,st:0.5,t:'total'},
+      {k:'1h_goals',lb:'1st Half Goals',lo:0.5,hi:2.5,st:0.5,t:'total'},
+    ],
+  },
+  mma_mixed_martial_arts: {
+    pos:[],
+    gp:[
+      {k:'ko_tko',lb:'Win by KO/TKO',t:'yesno'},
+      {k:'sub',lb:'Win by Submission',t:'yesno'},
+      {k:'dec',lb:'Win by Decision',t:'yesno'},
+      {k:'tot_rds',lb:'Total Rounds',lo:1.5,hi:4.5,st:0.5,t:'total'},
+      {k:'distance',lb:'Fight Goes Distance',t:'yesno'},
+      {k:'kd',lb:'Fighter Knockdown (Y/N)',t:'yesno'},
+    ],
+  },
+  tennis_atp: {
+    pos:[],
+    gp:[
+      {k:'tot_sets',lb:'Total Sets',lo:2.5,hi:3.5,st:0.5,t:'total'},
+      {k:'set1_ml',lb:'Set 1 Winner',t:'ml'},
+      {k:'s1_tot_games',lb:'Set 1 Total Games',lo:8.5,hi:12.5,st:0.5,t:'total'},
+      {k:'tot_games',lb:'Total Games',lo:18.5,hi:26.5,st:0.5,t:'total'},
+      {k:'break_1st',lb:'Break Serve in 1st Game',t:'yesno'},
+      {k:'ace_over',lb:'Aces (Over/Under)',lo:8.5,hi:18.5,st:0.5,t:'total'},
+    ],
+  },
+};
+
+// ── FUTURES DATA ──────────────────────────────────────────────────
+const FUTURES_MARKETS = [
+  { id:'sb', sport:'nfl', title:'🏈 Super Bowl Winner', icon:'🏆', teams:[
+    {n:'Kansas City Chiefs',o:-200},{n:'San Francisco 49ers',o:450},{n:'Philadelphia Eagles',o:600},
+    {n:'Baltimore Ravens',o:700},{n:'Dallas Cowboys',o:900},{n:'Miami Dolphins',o:1200},
+    {n:'Detroit Lions',o:1400},{n:'Cincinnati Bengals',o:1600},{n:'Buffalo Bills',o:1800},
+    {n:'Green Bay Packers',o:2200},{n:'Los Angeles Rams',o:2500},{n:'Seattle Seahawks',o:3000},
+    {n:'Jacksonville Jaguars',o:4000},{n:'Las Vegas Raiders',o:5000},{n:'New England Patriots',o:6000},
+  ]},
+  { id:'nfl_mvp', sport:'nfl', title:'🏈 NFL MVP', icon:'🥇', teams:[
+    {n:'P. Mahomes (KC)',o:-180},{n:'J. Burrow (CIN)',o:350},{n:'L. Jackson (BAL)',o:400},
+    {n:'J. Herbert (LAC)',o:800},{n:'J. Allen (BUF)',o:900},{n:'D. Prescott (DAL)',o:1200},
+    {n:'J. Hurts (PHI)',o:1400},{n:'C. Stroud (HOU)',o:2000},{n:'B. Young (CAR)',o:3000},
+  ]},
+  { id:'nba', sport:'nba', title:'🏀 NBA Champion', icon:'🏆', teams:[
+    {n:'Boston Celtics',o:-150},{n:'Oklahoma City Thunder',o:350},{n:'Denver Nuggets',o:500},
+    {n:'Cleveland Cavaliers',o:600},{n:'New York Knicks',o:800},{n:'Minnesota Timberwolves',o:900},
+    {n:'Dallas Mavericks',o:1200},{n:'Golden State Warriors',o:1500},{n:'Miami Heat',o:1800},
+    {n:'Los Angeles Lakers',o:2000},{n:'Phoenix Suns',o:2500},{n:'Milwaukee Bucks',o:3000},
+  ]},
+  { id:'nba_mvp', sport:'nba', title:'🏀 NBA MVP', icon:'🥇', teams:[
+    {n:'N. Jokić (DEN)',o:-130},{n:'S. Gilgeous-Alexander (OKC)',o:300},{n:'J. Tatum (BOS)',o:500},
+    {n:'G. Antetokounmpo (MIL)',o:700},{n:'L. Dončić (DAL)',o:900},{n:'A. Edwards (MIN)',o:1200},
+    {n:'D. Mitchell (CLE)',o:1500},{n:'K. Durant (PHX)',o:2000},{n:'L. James (LAL)',o:2500},
+  ]},
+  { id:'ws', sport:'mlb', title:'⚾ World Series Winner', icon:'🏆', teams:[
+    {n:'Los Angeles Dodgers',o:-130},{n:'New York Yankees',o:400},{n:'Atlanta Braves',o:600},
+    {n:'Houston Astros',o:700},{n:'Philadelphia Phillies',o:900},{n:'Baltimore Orioles',o:1000},
+    {n:'Cleveland Guardians',o:1200},{n:'Texas Rangers',o:1400},{n:'San Diego Padres',o:1600},
+    {n:'Seattle Mariners',o:2000},{n:'Chicago Cubs',o:2500},{n:'Toronto Blue Jays',o:3000},
+  ]},
+  { id:'sc', sport:'nhl', title:'🏒 Stanley Cup Winner', icon:'🏆', teams:[
+    {n:'Florida Panthers',o:-110},{n:'Colorado Avalanche',o:500},{n:'Vancouver Canucks',o:600},
+    {n:'New York Rangers',o:700},{n:'Dallas Stars',o:800},{n:'Boston Bruins',o:900},
+    {n:'Edmonton Oilers',o:1200},{n:'Carolina Hurricanes',o:1400},{n:'Vegas Golden Knights',o:1600},
+    {n:'Toronto Maple Leafs',o:2000},{n:'Tampa Bay Lightning',o:2500},
+  ]},
+  { id:'epl', sport:'epl', title:'⚽ EPL Title', icon:'🏆', teams:[
+    {n:'Manchester City',o:-200},{n:'Arsenal',o:350},{n:'Liverpool',o:450},
+    {n:'Chelsea',o:900},{n:'Manchester United',o:1200},{n:'Tottenham Hotspur',o:1500},
+    {n:'Newcastle United',o:2000},{n:'Aston Villa',o:2500},{n:'Brighton',o:4000},
+  ]},
+  { id:'epl_scorer', sport:'epl', title:'⚽ EPL Top Scorer', icon:'🥇', teams:[
+    {n:'E. Haaland (MCI)',o:-180},{n:'H. Kane (BAY)',o:350},{n:'M. Salah (LIV)',o:500},
+    {n:'O. Watkins (AVL)',o:800},{n:'C. Palmer (CHE)',o:900},{n:'D. Núñez (LIV)',o:1200},
+    {n:'A. Isak (NEW)',o:1500},{n:'A. Saka (ARS)',o:2000},
+  ]},
+];
 
 // ── PARLAY MATH ───────────────────────────────────────────────────
 function toDecimal(american) {
@@ -765,48 +964,102 @@ function toggleProps(el) {
   el.classList.toggle('open', open);
 }
 
-function generateGameProps(g) {
-  // Seed random values from game id for consistency
-  const seed = s => { let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))&0xFFFFFFFF; return h; };
-  const rng = (s,n) => ((seed(s) % n) + n) % n;
-  const home = g.home_team, away = g.away_team, gid = g.id;
+function generatePlayerProps(g) {
+  const gid = g.id, away = g.away_team, home = g.home_team, ct = g.commence_time;
+  const cfg = PROP_SPORTS[currentSport];
+  if (!cfg) return '';
 
-  const propDefs = [
-    { label:'1st Half Total', outcomes: [
-        { name:'Over', price: -110 + rng(gid+'1ho',20) - 10, point: 22 + rng(gid+'1hp',15) * 0.5 },
-        { name:'Under', price: -110 + rng(gid+'1hu',20) - 10, point: 22 + rng(gid+'1hp',15) * 0.5 },
-    ]},
-    { label:`${away} 1H ML`, outcomes: [
-        { name: away, price: -115 + rng(gid+'a1ml',80) - 40 },
-        { name: home, price: -115 + rng(gid+'h1ml',80) - 40 },
-    ]},
-    { label:'Team to Score 1st', outcomes: [
-        { name: away, price: -120 + rng(gid+'tts1',60) - 30 },
-        { name: home, price: -120 + rng(gid+'tts2',60) - 30 },
-    ]},
-  ];
+  const sh = s => { let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))&0xFFFFFFFF; return h>>>0; };
+  const playerName = (team, posSlot) => {
+    const hf = sh(team+posSlot+'fn'), hl = sh(team+posSlot+'ln');
+    return `${PLAYER_FIRSTS[hf % PLAYER_FIRSTS.length]} ${PLAYER_LASTS[hl % PLAYER_LASTS.length]}`;
+  };
+  const propLine = (lo,hi,st,seed) => {
+    const steps = Math.max(1, Math.round((hi-lo)/st));
+    return Math.round((lo + (sh(seed) % steps) * st) * 10) / 10;
+  };
+  const propOdds = (seed, base=-110) => base + ((sh(seed)%40)-20);
 
-  return propDefs.map(prop => {
-    const btns = prop.outcomes.map((o,i) => {
-      const mv = oddsMovement(gid, prop.label, i);
-      const inSlip = betSlipLegs.some(l => l.gameId===g.id && l.market===prop.label && l.selection===o.name);
-      return `<button class="odds-btn${inSlip?' in-slip':''} prop-btn"
-        data-gid="${esc(gid)}" data-market="${esc(prop.label)}" data-sel="${esc(o.name)}"
-        data-odds="${o.price}" data-line="${o.point??''}"
-        data-home="${esc(home)}" data-away="${esc(away)}" data-ct="${esc(g.commence_time)}">
-        <span class="ob-team">${esc(o.name.split(' ').slice(-1)[0])}</span>
-        ${o.point!=null?`<span class="ob-line">${o.point}</span>`:''}
-        <span class="ob-odds-row">
-          <span class="ob-odds ${o.price>0?'pos':'neg'}">${fmtOdds(o.price)}</span>
-          ${mv.label?`<span class="ob-move ${mv.cls}">${mv.label}</span>`:''}
-        </span>
-      </button>`;
-    }).join('');
-    return `<div class="prop-row">
-      <div class="market-lbl" style="font-size:9px;margin-bottom:6px">${esc(prop.label)}</div>
-      <div class="odds-pair">${btns}</div>
-    </div>`;
-  }).join('');
+  const pBtn = (mkt, sel, price, point) => {
+    const inSlip = betSlipLegs.some(l=>l.gameId===gid&&l.market===mkt&&l.selection===sel);
+    const mv = oddsMovement(gid, mkt+sel, 0);
+    return `<button class="odds-btn prop-odds-btn${inSlip?' in-slip':''}"
+      data-gid="${esc(gid)}" data-market="${esc(mkt)}" data-sel="${esc(sel)}"
+      data-odds="${price}" data-line="${point??''}"
+      data-home="${esc(home)}" data-away="${esc(away)}" data-ct="${esc(ct)}">
+      <span class="ob-team">${esc(sel)}</span>
+      ${point!=null?`<span class="ob-line">${esc(String(point))}</span>`:''}
+      <span class="ob-odds-row">
+        <span class="ob-odds ${price>0?'pos':'neg'}">${fmtOdds(price)}</span>
+        ${mv.label?`<span class="ob-move ${mv.cls}">${mv.label}</span>`:''}
+      </span>
+    </button>`;
+  };
+
+  let html = '';
+
+  // ── PLAYER PROPS ─────────────────────────────────────────
+  if (cfg.pos.length) {
+    html += `<div class="props-sec-hdr">👤 Player Props</div>`;
+    const teams = [away, home];
+    for (const posDef of cfg.pos) {
+      for (let ti = 0; ti < 2; ti++) {
+        const team = teams[ti];
+        const pName = playerName(team, posDef.p+ti);
+        const teamShort = team.split(' ').pop();
+        let rows = '';
+        for (const prop of posDef.props) {
+          const mk = `pp_${prop.k}_${pName.replace(/\W/g,'')}`;
+          if (prop.isYN) {
+            const yo = propOdds(gid+prop.k+pName+'y', -165);
+            const no = propOdds(gid+prop.k+pName+'n', 135);
+            rows += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(prop.lb)}</span><div class="odds-pair">${pBtn(mk,'Yes',yo,null)}${pBtn(mk,'No',no,null)}</div></div>`;
+          } else {
+            const line = propLine(prop.lo,prop.hi,prop.st,gid+prop.k+pName);
+            const oo = propOdds(gid+prop.k+pName+'o');
+            const uo = propOdds(gid+prop.k+pName+'u');
+            rows += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(prop.lb)}</span><div class="odds-pair">${pBtn(mk,'Over',oo,'O '+line)}${pBtn(mk,'Under',uo,'U '+line)}</div></div>`;
+          }
+        }
+        html += `<div class="player-prop-card">
+          <div class="player-prop-hdr">
+            <span class="pos-badge">${esc(posDef.p)}</span>
+            <span class="player-name">${esc(pName)}</span>
+            <span class="player-team-tag">${esc(teamShort)}</span>
+          </div>${rows}</div>`;
+      }
+    }
+  }
+
+  // ── GAME PROPS ────────────────────────────────────────────
+  html += `<div class="props-sec-hdr">🎯 Game Props</div>`;
+  const awayShort = away.split(' ').pop(), homeShort = home.split(' ').pop();
+
+  for (const gp of cfg.gp) {
+    const mk = `gp_${gp.k}`;
+    if (gp.t === 'total') {
+      const line = propLine(gp.lo,gp.hi,gp.st,gid+gp.k);
+      html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,'Over',propOdds(gid+gp.k+'o'),'O '+line)}${pBtn(mk,'Under',propOdds(gid+gp.k+'u'),'U '+line)}</div></div>`;
+    } else if (gp.t === 'ml') {
+      html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,awayShort,propOdds(gid+gp.k+'a',-130),null)}${pBtn(mk,homeShort,propOdds(gid+gp.k+'h',110),null)}</div></div>`;
+    } else if (gp.t === 'spread') {
+      const sp = getMarket(g,'spreads');
+      const base = sp ? Math.abs(sp[0]?.point||3.5) : propLine(gp.lo,gp.hi,gp.st,gid+gp.k);
+      const half = Math.round(base/2*2)/2;
+      html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,awayShort,propOdds(gid+gp.k+'a'),'+'+half)}${pBtn(mk,homeShort,propOdds(gid+gp.k+'h'),'-'+half)}</div></div>`;
+    } else if (gp.t === 'teams') {
+      html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,awayShort,propOdds(gid+gp.k+'a',-115),null)}${pBtn(mk,homeShort,propOdds(gid+gp.k+'h',-105),null)}</div></div>`;
+    } else if (gp.t === 'teamtot') {
+      const off = gp.off||0;
+      const line = (propLine(gp.lo,gp.hi,gp.st,gid+gp.k) + off).toFixed(1);
+      const label = gp.tm==='away'?awayShort:homeShort;
+      html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)} · ${esc(label)}</span><div class="odds-pair">${pBtn(mk,'Over',propOdds(gid+gp.k+'o'),'O '+line)}${pBtn(mk,'Under',propOdds(gid+gp.k+'u'),'U '+line)}</div></div>`;
+    } else if (gp.t === 'yesno') {
+      html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,'Yes',propOdds(gid+gp.k+'y',-120),null)}${pBtn(mk,'No',propOdds(gid+gp.k+'n',100),null)}</div></div>`;
+    }
+  }
+
+  return html;
 }
 
 // Fake but consistent odds movement seeded by game id + market + outcome
@@ -1404,6 +1657,16 @@ function skeletonCard() {
 }
 async function loadGames(sport) {
   currentSport = sport;
+  // Futures view
+  if (sport === 'futures') {
+    renderFutures();
+    document.getElementById('featuredSection').style.display = 'none';
+    document.getElementById('dailyPickWrap').style.display = 'none';
+    document.getElementById('liveTickerWrap').style.display = 'none';
+    const pb = document.getElementById('promoBanner');
+    if (pb) pb.style.display = 'none';
+    return;
+  }
   document.getElementById('gamesInner').innerHTML = `<div class="skeleton-wrap">${skeletonCard()}${skeletonCard()}${skeletonCard()}</div>`;
   // Show/hide promo based on balance (hide once user funds above starter amount)
   const pb = document.getElementById('promoBanner');
@@ -1414,6 +1677,46 @@ async function loadGames(sport) {
   renderDailyPick(games);
   renderGames(games);
   loadLiveTicker(sport);
+}
+
+function renderFutures() {
+  const el = document.getElementById('gamesInner');
+  // Filter by active sport tab group (show all if no filter)
+  const sportMap = {nfl:'americanfootball_nfl',nba:'basketball_nba',mlb:'baseball_mlb',nhl:'icehockey_nhl',epl:'soccer_epl'};
+  let html = '<div class="futures-grid">';
+  for (const mkt of FUTURES_MARKETS) {
+    const accentSport = sportMap[mkt.sport] || 'americanfootball_nfl';
+    const accent = SPORT_ACCENTS[accentSport] || 'var(--gold)';
+    const rows = mkt.teams.map(t => {
+      const inSlip = betSlipLegs.some(l=>l.gameId==='futures_'+mkt.id&&l.selection===t.n);
+      return `<div class="futures-row${inSlip?' futures-row-active':''}">
+        <span class="futures-team">${esc(t.n)}</span>
+        <button class="futures-odds-btn${inSlip?' in-slip':''}"
+          data-gid="futures_${esc(mkt.id)}" data-market="${esc(mkt.title)}"
+          data-sel="${esc(t.n)}" data-odds="${t.o}" data-line=""
+          data-home="Futures" data-away="${esc(mkt.title)}" data-ct="${new Date(Date.now()+30*24*3600*1000).toISOString()}"
+          onclick="handleFuturesBet(this)">${fmtOdds(t.o)}</button>
+      </div>`;
+    }).join('');
+    html += `<div class="futures-card" style="--sport-accent:${accent}">
+      <div class="futures-card-hdr">
+        <span class="futures-card-title">${esc(mkt.title)}</span>
+        <span class="futures-best-odds">${fmtOdds(Math.max(...mkt.teams.map(t=>t.o)))}</span>
+      </div>
+      <div class="futures-rows">${rows}</div>
+    </div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function handleFuturesBet(btn) {
+  const leg = {
+    gameId: btn.dataset.gid, homeTeam: 'Futures', awayTeam: btn.dataset.away,
+    commenceTime: btn.dataset.ct, market: btn.dataset.market,
+    selection: btn.dataset.sel, odds: parseInt(btn.dataset.odds), line: null,
+  };
+  toggleLeg(leg, btn, null);
 }
 
 function renderFeatured(games) {
@@ -1566,7 +1869,7 @@ function renderGameCard(g) {
   const homeLogoHtml = g.home_logo ? `<img class="team-logo" src="${esc(g.home_logo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
 
   // Generate seeded game-level props
-  const propsHtml = isVersus ? '' : generateGameProps(g);
+  const propsHtml = PROP_SPORTS[currentSport] ? generatePlayerProps(g) : '';
 
   // Hot badge — seeded "activity score" above threshold
   let _hotHash = 0; for (let i=0;i<g.id.length;i++) _hotHash = (_hotHash*31 + g.id.charCodeAt(i)) >>> 0;
@@ -1585,9 +1888,9 @@ function renderGameCard(g) {
     <div class="game-markets">${marketsHtml}</div>
     ${propsHtml ? `
     <div class="more-markets-toggle" onclick="toggleProps(this)">
-      <span>More Markets</span><span class="mm-arrow">›</span>
+      <span>Player Props &amp; More</span><span class="mm-arrow">›</span>
     </div>
-    <div class="game-props" style="display:none">${propsHtml}</div>` : ''}
+    <div class="game-props" style="display:none;padding:12px 14px">${propsHtml}</div>` : ''}
   </div>`;
 }
 
