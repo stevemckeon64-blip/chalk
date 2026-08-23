@@ -358,6 +358,27 @@ body::after{
 .game-card.is-live .game-card-top{background:linear-gradient(135deg,rgba(255,59,48,.05),transparent)}
 /* ── PARLAY SUMMARY flex ────────────────────────────────── */
 .parlay-summary{display:flex;align-items:center;justify-content:space-between}
+/* ── SPORT ACCENT BAR on game card ─────────────────────── */
+.game-card{position:relative;overflow:hidden}
+.game-card-accent-bar{position:absolute;top:0;left:0;right:0;height:2px;background:var(--sport-accent,var(--gold));opacity:.7}
+/* ── DATE GROUP header enhancements ────────────────────── */
+.date-group-hdr{display:flex;align-items:center;gap:6px}
+.dg-dot{display:inline-block;width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dg-count{margin-left:auto;font-size:10px;color:var(--t3);font-weight:600;background:var(--bg-ch);padding:1px 7px;border-radius:10px}
+/* ── SOON badge ─────────────────────────────────────────── */
+.soon-badge{font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#FF9F0A;background:rgba(255,159,10,.12);border:1px solid rgba(255,159,10,.3);border-radius:4px;padding:2px 5px}
+/* ── ODDS FORMAT btn in slip header ────────────────────── */
+.odds-fmt-btn{font-size:9px;font-weight:800;letter-spacing:.1em;padding:3px 8px;border-radius:5px;border:1px solid var(--bdr-h);background:var(--bg);color:var(--t2);cursor:pointer;transition:all .15s;margin-right:6px}
+.odds-fmt-btn:hover{border-color:var(--gold);color:var(--gold)}
+/* ── PROFILE section header ─────────────────────────────── */
+.profile-section-hdr{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin:18px 0 10px}
+/* ── SPORT BREAKDOWN bars ───────────────────────────────── */
+.sport-breakdown{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.sb-row{display:flex;align-items:center;gap:10px}
+.sb-sport{font-size:11px;font-weight:700;color:var(--t2);width:40px;flex-shrink:0}
+.sb-bar-wrap{flex:1;height:6px;background:var(--bg-ch);border-radius:3px;overflow:hidden}
+.sb-bar{height:100%;border-radius:3px;transition:width .4s ease}
+.sb-count{font-size:11px;color:var(--t3);width:24px;text-align:right;flex-shrink:0}
 /* ── COPY-CODE BTN color fix ─────────────────────────────── */
 .copy-code-btn:hover{background:var(--gold-bg)}
 
@@ -488,6 +509,7 @@ body::after{
   <div class="bet-slip-panel">
     <div class="bs-header">
       <span class="bs-title">Bet Slip</span>
+      <button class="odds-fmt-btn" id="oddsFmtBtn" onclick="toggleOddsFormat()" title="Toggle odds format">AMR</button>
       <button class="bs-close" onclick="closeBetSlip()">✕</button>
     </div>
     <div class="bs-body" id="bsBody"></div>
@@ -532,6 +554,18 @@ const SPORTS = {
   padel_ppt:              { label:'PPT',   espn:null, versus:true, ppl:true },
 };
 const MARKET_LABELS = { h2h:'Moneyline', spreads:'Spread', totals:'Total' };
+const SPORT_ACCENTS = {
+  americanfootball_nfl:   '#00D4AA',
+  americanfootball_ncaaf: '#FF6B35',
+  basketball_nba:         '#FF8C00',
+  baseball_mlb:           '#E8294B',
+  icehockey_nhl:          '#4A9EFF',
+  soccer_epl:             '#38D47A',
+  mma_mixed_martial_arts: '#FF3B30',
+  tennis_atp:             '#C8FF57',
+  padel_ppt:              '#F5A623',
+};
+let oddsFormat = 'american'; // 'american' | 'decimal'
 
 // ── PARLAY MATH ───────────────────────────────────────────────────
 function toDecimal(american) {
@@ -581,7 +615,10 @@ window.addEventListener('DOMContentLoaded', async () => {
 // ── UTILS ─────────────────────────────────────────────────────────
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const fmt = n => '$' + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-const fmtOdds = o => (o > 0 ? '+' : '') + o;
+const fmtOdds = o => {
+  if (oddsFormat === 'decimal') return toDecimal(o).toFixed(2);
+  return (o > 0 ? '+' : '') + o;
+};
 const fmtSigned = n => (n >= 0 ? '+' : '-') + fmt(Math.abs(n));
 function calcPayout(stake, odds) {
   if (odds > 0) return stake + stake * odds / 100;
@@ -994,14 +1031,28 @@ function renderGames(games) {
     el.innerHTML = `<div class="empty-state">${msg}</div>`; return;
   }
   const sorted = [...games].sort((a,b) => new Date(a.commence_time)-new Date(b.commence_time));
+  const nowLocal = new Date();
+  const todayStr = nowLocal.toLocaleDateString('en-US');
+  const tmrDate = new Date(nowLocal); tmrDate.setDate(tmrDate.getDate()+1);
+  const tmrStr = tmrDate.toLocaleDateString('en-US');
+  const smartLabel = (ct) => {
+    const d = new Date(ct);
+    const dStr = d.toLocaleDateString('en-US');
+    const diffDays = Math.floor((d - nowLocal) / 86400000);
+    if (dStr === todayStr) return 'Tonight';
+    if (dStr === tmrStr) return 'Tomorrow';
+    if (diffDays < 7) return d.toLocaleDateString('en-US',{weekday:'long'});
+    return d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+  };
   const byDate = {};
   for (const g of sorted) {
-    const key = new Date(g.commence_time).toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+    const key = smartLabel(g.commence_time);
     (byDate[key] = byDate[key]||[]).push(g);
   }
   let html = '';
+  const accentColor = SPORT_ACCENTS[currentSport] || 'var(--gold)';
   for (const [date, gs] of Object.entries(byDate)) {
-    html += `<div class="date-group-hdr">${date}</div>`;
+    html += `<div class="date-group-hdr"><span class="dg-dot" style="background:${accentColor}"></span>${date} <span class="dg-count">${gs.length}</span></div>`;
     for (const g of gs) html += renderGameCard(g);
   }
   el.innerHTML = html;
@@ -1038,14 +1089,19 @@ function renderGameCard(g) {
        <div class="market-col"><div class="market-lbl">Total</div><div class="odds-pair">${totH}</div></div>`;
 
   const liveBadge = g.isLive ? `<span class="live-badge"><span class="live-dot"></span>LIVE</span>` : '';
+  const accent = SPORT_ACCENTS[currentSport] || 'var(--gold)';
+  const soonMs = new Date(g.commence_time) - Date.now();
+  const soonLabel = !g.isLive && soonMs > 0 && soonMs < 2*3600*1000
+    ? `<span class="soon-badge">~${Math.round(soonMs/60000)}m</span>` : '';
 
-  return `<div class="game-card${g.isLive?' is-live':''}">
+  return `<div class="game-card${g.isLive?' is-live':''}" style="--sport-accent:${accent}">
+    <div class="game-card-accent-bar"></div>
     <div class="game-card-top">
       <div class="game-teams">
         <div class="team-row away">${esc(away)}</div>
         <div class="team-row home">${isVersus ? 'vs' : '@'} ${esc(home)}</div>
       </div>
-      <div class="game-meta">${liveBadge}<div class="game-time">${time}</div></div>
+      <div class="game-meta">${liveBadge}${soonLabel}<div class="game-time">${time}</div></div>
     </div>
     <div class="game-markets">${marketsHtml}</div>
   </div>`;
@@ -1141,9 +1197,11 @@ function openBetSlip() {
     <div class="bs-stake-lbl">Bet Amount</div>
     <div class="bs-amount-row"><span class="bs-dollar">$</span><input class="bs-input" id="bsStake" type="number" inputmode="numeric" min="1" value="50" oninput="updateBsPayout()" autocomplete="off"></div>
     <div class="bs-quick">
-      <button onclick="setBsStake(10)">$10</button><button onclick="setBsStake(25)">$25</button>
-      <button onclick="setBsStake(50)">$50</button><button onclick="setBsStake(100)">$100</button>
-      <button onclick="setBsStake(Math.floor(profile.balance))">All In</button>
+      <button onclick="setBsStakePct(5)">5%</button>
+      <button onclick="setBsStakePct(10)">10%</button>
+      <button onclick="setBsStakePct(25)">25%</button>
+      <button onclick="setBsStakePct(50)">50%</button>
+      <button onclick="setBsStake(Math.floor(profile.balance))">Max</button>
     </div>
     <hr class="bs-divider">
     <div class="bs-payout-row"><span class="bs-payout-lbl">To Win</span><span class="bs-payout-val" id="bsToWin">—</span></div>
@@ -1155,6 +1213,15 @@ function openBetSlip() {
 }
 
 function setSlipMode(mode) { slipMode = mode; openBetSlip(); }
+function toggleOddsFormat() {
+  oddsFormat = oddsFormat === 'american' ? 'decimal' : 'american';
+  const btn = document.getElementById('oddsFmtBtn');
+  if (btn) btn.textContent = oddsFormat === 'american' ? 'AMR' : 'DEC';
+  // Re-render all visible odds buttons
+  if (currentView === 'games') loadGames(currentSport);
+  updateBsPayout();
+  openBetSlip(); // refresh slip display
+}
 function removeLeg(idx) {
   betSlipLegs.splice(idx, 1);
   updateFab();
@@ -1163,6 +1230,7 @@ function removeLeg(idx) {
 }
 
 function setBsStake(v) { const i=document.getElementById('bsStake'); if(i){i.value=Math.min(v,Math.floor(profile?.balance||0)); updateBsPayout();} }
+function setBsStakePct(pct) { setBsStake(Math.max(1, Math.floor((profile?.balance||0) * pct / 100))); }
 function updateBsPayout() {
   const stake = parseFloat(document.getElementById('bsStake')?.value)||0;
   if (!betSlipLegs.length) return;
@@ -1396,28 +1464,66 @@ function renderLeaderboard(rows) {
 // ── PROFILE VIEW ──────────────────────────────────────────────────
 async function loadProfileView() {
   document.getElementById('profileInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading…</span></div>';
-  const { data: bets } = await sb.from('bets').select('*').eq('user_id',user.id).neq('status','pending');
+  const { data: bets } = await sb.from('bets').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
   const all = bets||[];
-  const wins = all.filter(b=>b.status==='won').length;
-  const total = all.length;
-  const pnl = all.reduce((acc,b)=>acc+(b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:0),0);
-  const wagered = all.reduce((acc,b)=>acc+Number(b.stake),0);
+  const settled = all.filter(b=>b.status!=='pending');
+  const wins = settled.filter(b=>b.status==='won').length;
+  const losses = settled.filter(b=>b.status==='lost').length;
+  const total = settled.length;
+  const pnl = settled.reduce((acc,b)=>acc+(b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:0),0);
+  const wagered = settled.reduce((acc,b)=>acc+Number(b.stake),0);
   const roi = wagered > 0 ? ((pnl/wagered)*100).toFixed(1) : '0.0';
   const winRate = total > 0 ? Math.round(wins/total*100) : 0;
+  const bestWin = settled.filter(b=>b.status==='won').reduce((best,b)=>{
+    const profit = b.potential_payout - b.stake;
+    return profit > best ? profit : best;
+  }, 0);
+  const biggestLoss = settled.filter(b=>b.status==='lost').reduce((worst,b)=>{
+    return b.stake > worst ? b.stake : worst;
+  }, 0);
+
+  // Current streak
+  let streak = 0, streakType = '';
+  for (const b of settled) {
+    if (b.status === 'push') continue;
+    if (!streakType) { streakType = b.status; streak = 1; continue; }
+    if (b.status === streakType) streak++; else break;
+  }
+  const streakLabel = streak > 0 ? `${streak} ${streakType === 'won' ? 'W' : 'L'}` : '—';
+  const streakClass = streakType === 'won' ? 'pos' : streakType === 'lost' ? 'neg' : '';
+
+  // Sport breakdown
+  const sportCounts = {};
+  for (const b of all) { sportCounts[b.sport] = (sportCounts[b.sport]||0)+1; }
+  const topSports = Object.entries(sportCounts).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  const sportBreakdown = topSports.length ? `
+    <div class="profile-section-hdr">By Sport</div>
+    <div class="sport-breakdown">${topSports.map(([s,n])=>`
+      <div class="sb-row">
+        <span class="sb-sport">${SPORTS[s]?.label||s}</span>
+        <div class="sb-bar-wrap"><div class="sb-bar" style="width:${Math.round((n/all.length)*100)}%;background:${SPORT_ACCENTS[s]||'var(--gold)'}"></div></div>
+        <span class="sb-count">${n}</span>
+      </div>`).join('')}
+    </div>` : '';
+
   document.getElementById('profileInner').innerHTML = `
     <div class="profile-hero">
       <div class="profile-avatar-big">${(profile?.username||'?')[0].toUpperCase()}</div>
       <div class="profile-username">${esc(profile?.username||'Player')}</div>
-      <div class="profile-since">Since ${new Date(profile?.created_at||Date.now()).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
+      <div class="profile-since">Member since ${new Date(profile?.created_at||Date.now()).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
     </div>
+    <div class="profile-section-hdr">Performance</div>
     <div class="stats-grid">
       <div class="stat-tile"><div class="st-val gold">${fmt(profile?.balance||0)}</div><div class="st-lbl">Balance</div></div>
-      <div class="stat-tile"><div class="st-val ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)}</div><div class="st-lbl">Total P&L</div></div>
+      <div class="stat-tile"><div class="st-val ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)}</div><div class="st-lbl">P&amp;L</div></div>
       <div class="stat-tile"><div class="st-val">${winRate}%</div><div class="st-lbl">Win Rate</div></div>
       <div class="stat-tile"><div class="st-val ${parseFloat(roi)>=0?'pos':'neg'}">${parseFloat(roi)>=0?'+':''}${roi}%</div><div class="st-lbl">ROI</div></div>
-      <div class="stat-tile"><div class="st-val">${total}</div><div class="st-lbl">Settled Bets</div></div>
-      <div class="stat-tile"><div class="st-val">${wins}</div><div class="st-lbl">Wins</div></div>
+      <div class="stat-tile"><div class="st-val ${streakClass}">${streakLabel}</div><div class="st-lbl">Streak</div></div>
+      <div class="stat-tile"><div class="st-val">${total}</div><div class="st-lbl">Settled</div></div>
+      <div class="stat-tile"><div class="st-val pos">${bestWin>0?'+'+fmt(bestWin):'—'}</div><div class="st-lbl">Best Win</div></div>
+      <div class="stat-tile"><div class="st-val neg">${biggestLoss>0?'-'+fmt(biggestLoss):'—'}</div><div class="st-lbl">Worst Loss</div></div>
     </div>
+    ${sportBreakdown}
     <button class="sign-out-btn" onclick="doSignOut()">Sign Out</button>`;
 }
 
