@@ -745,6 +745,10 @@ body::after{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6A9 9 0 0 1 18.4 18.4M18.4 5.6A9 9 0 0 1 5.6 18.4"/></svg>
       NCAAB
     </button>
+    <button class="sport-tab" data-sport="basketball_ncaaw" onclick="switchSport(this)" aria-label="NCAAW">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6A9 9 0 0 1 18.4 18.4M18.4 5.6A9 9 0 0 1 5.6 18.4"/></svg>
+      NCAAW
+    </button>
     <button class="sport-tab" data-sport="baseball_mlb" onclick="switchSport(this)" aria-label="MLB">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.5 7.5 Q9 12 5.5 16.5"/><path d="M18.5 7.5 Q15 12 18.5 16.5"/></svg>
       MLB
@@ -879,6 +883,7 @@ const SPORTS = {
   americanfootball_ncaaf: { label:'NCAAF', icon:'🏈', espn:'football/college-football' },
   basketball_nba:         { label:'NBA',   icon:'🏀', espn:'basketball/nba' },
   basketball_ncaab:       { label:'NCAAB', icon:'🏀', espn:'basketball/mens-college-basketball' },
+  basketball_ncaaw:       { label:'NCAAW', icon:'🏀', espn:'basketball/womens-college-basketball' },
   baseball_mlb:           { label:'MLB',   icon:'⚾', espn:'baseball/mlb' },
   icehockey_nhl:          { label:'NHL',   icon:'🏒', espn:'hockey/nhl' },
   soccer_epl:             { label:'EPL',   icon:'⚽', espn:'soccer/eng.1' },
@@ -899,6 +904,7 @@ const SPORT_ACCENTS = {
   americanfootball_ncaaf: '#FF6B35',
   basketball_nba:         '#FF8C00',
   basketball_ncaab:       '#FF7700',
+  basketball_ncaaw:       '#FF69B4',
   baseball_mlb:           '#E8294B',
   icehockey_nhl:          '#4A9EFF',
   soccer_epl:             '#38D47A',
@@ -1006,6 +1012,22 @@ const PROP_SPORTS = {
       {k:'ot_nca',lb:'Game Goes to OT',t:'yesno'},
       {k:'away_tot_nca',lb:'Away Team Total',lo:55,hi:78,st:0.5,t:'teamtot',tm:'away'},
       {k:'home_tot_nca',lb:'Home Team Total',lo:55,hi:78,st:0.5,t:'teamtot',tm:'home',off:4},
+    ],
+  },
+  basketball_ncaaw: {
+    pos:[
+      {p:'PG',props:[{k:'pts_wpg',lb:'Points',lo:10,hi:24,st:0.5},{k:'ast_wpg',lb:'Assists',lo:2.5,hi:6.5,st:0.5},{k:'stl_wpg',lb:'Steals',lo:0.5,hi:2.5,st:0.5}]},
+      {p:'G', props:[{k:'pts_wg',lb:'Points',lo:8,hi:22,st:0.5},{k:'3pm_wg',lb:'3-Pointers',lo:0.5,hi:3.5,st:0.5}]},
+      {p:'F', props:[{k:'pts_wf',lb:'Points',lo:10,hi:22,st:0.5},{k:'reb_wf',lb:'Rebounds',lo:4.5,hi:10.5,st:0.5},{k:'ast_wf',lb:'Assists',lo:1.5,hi:4.5,st:0.5}]},
+      {p:'C', props:[{k:'pts_wc',lb:'Points',lo:8,hi:20,st:0.5},{k:'reb_wc',lb:'Rebounds',lo:6.5,hi:13.5,st:0.5},{k:'blk_wc',lb:'Blocks',lo:0.5,hi:2.5,st:0.5}]},
+    ],
+    gp:[
+      {k:'1h_wca',lb:'1st Half Total',lo:50,hi:66,st:0.5,t:'total'},
+      {k:'1h_ml_wca',lb:'1st Half Winner',t:'ml'},
+      {k:'lead_10_wca',lb:'First to 10 Points',t:'teams'},
+      {k:'ot_wca',lb:'Game Goes to OT',t:'yesno'},
+      {k:'away_tot_wca',lb:'Away Team Total',lo:45,hi:68,st:0.5,t:'teamtot',tm:'away'},
+      {k:'home_tot_wca',lb:'Home Team Total',lo:45,hi:68,st:0.5,t:'teamtot',tm:'home',off:4},
     ],
   },
   baseball_mlb: {
@@ -2802,9 +2824,17 @@ function openBetSlip() {
     }).join('')}</div>`;
   }
 
+  // Parlay Insurance promo (3+ legs parlay)
+  const parlayInsurance = (slipMode === 'parlay' && betSlipLegs.length >= 3)
+    ? `<div style="background:rgba(48,209,88,.06);border:1px solid rgba(48,209,88,.2);border-radius:8px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <span style="font-size:14px">🛡️</span>
+        <div style="font-size:10px;color:var(--t2);line-height:1.4"><b style="color:#30D158">Parlay Insurance Active</b> — If 1 leg loses, get your stake back as bonus chips.</div>
+       </div>` : '';
+
   document.getElementById('bsBody').innerHTML = `
     ${modeToggle}
     <div class="parlay-legs-list">${legsHtml}</div>
+    ${parlayInsurance}
     ${summaryBar}
     ${rrHtml}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
