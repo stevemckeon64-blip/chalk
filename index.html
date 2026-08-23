@@ -143,8 +143,9 @@ body::after{
 .market-col{background:var(--bg-c);padding:10px 12px}
 .market-lbl{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:7px}
 .odds-pair{display:flex;gap:5px}
-.odds-btn{flex:1;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;padding:8px 6px;text-align:center;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:2px;min-width:0}
+.odds-btn{flex:1;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;padding:8px 6px;text-align:center;cursor:pointer;transition:all .15s,transform .08s;display:flex;flex-direction:column;gap:2px;min-width:0;-webkit-tap-highlight-color:transparent}
 .odds-btn:hover{border-color:var(--gold);background:var(--gold-dim);box-shadow:0 0 14px rgba(245,166,35,.12)}
+.odds-btn:active{transform:scale(.93)}
 .odds-btn.in-slip{background:var(--gold-bg);border-color:var(--gold);position:relative}
 .odds-btn.in-slip::after{content:'✓';position:absolute;top:3px;right:5px;font-size:8px;color:var(--gold);font-weight:900}
 .odds-btn.active{background:var(--gold);border-color:var(--gold-b);box-shadow:0 2px 20px rgba(245,166,35,.4)}
@@ -411,6 +412,7 @@ body::after{
 .dg-count{margin-left:auto;font-size:10px;color:var(--t3);font-weight:600;background:var(--bg-ch);padding:1px 7px;border-radius:10px}
 /* ── SOON badge ─────────────────────────────────────────── */
 .soon-badge{font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#FF9F0A;background:rgba(255,159,10,.12);border:1px solid rgba(255,159,10,.3);border-radius:4px;padding:2px 5px}
+.hot-badge{font-size:9px;font-weight:800;letter-spacing:.04em;color:#FF6B00;background:rgba(255,107,0,.1);border:1px solid rgba(255,107,0,.25);border-radius:4px;padding:2px 5px}
 /* ── ODDS FORMAT btn in slip header ────────────────────── */
 .odds-fmt-btn{font-size:9px;font-weight:800;letter-spacing:.1em;padding:3px 8px;border-radius:5px;border:1px solid var(--bdr-h);background:var(--bg);color:var(--t2);cursor:pointer;transition:all .15s;margin-right:6px}
 .odds-fmt-btn:hover{border-color:var(--gold);color:var(--gold)}
@@ -829,9 +831,17 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (!e.target.closest('#roomSelector')) closeRoomDrop();
   });
   document.addEventListener('keydown', e => {
+    const tag = e.target.tagName;
+    const isInput = tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT';
     if (e.key === 'Escape') {
       if (document.getElementById('betSlipWrap')?.style.display !== 'none') closeBetSlip();
       else if (document.getElementById('roomModalWrap')?.style.display !== 'none') closeRoomModal();
+    }
+    // P key → toggle bet slip (when not typing)
+    if (!isInput && !e.metaKey && !e.ctrlKey && (e.key === 'p' || e.key === 'P')) {
+      e.preventDefault();
+      if (betSlipLegs.length) openBetSlip();
+      else showView('games');
     }
   });
   // Auto-refresh games every 5 min without any user action
@@ -1536,6 +1546,11 @@ function renderGameCard(g) {
   // Generate seeded game-level props
   const propsHtml = isVersus ? '' : generateGameProps(g);
 
+  // Hot badge — seeded "activity score" above threshold
+  let _hotHash = 0; for (let i=0;i<g.id.length;i++) _hotHash = (_hotHash*31 + g.id.charCodeAt(i)) >>> 0;
+  const isHot = (_hotHash % 5) === 0; // ~20% of games get the 🔥 badge
+  const hotBadge = isHot ? `<span class="hot-badge">🔥 Hot</span>` : '';
+
   return `<div class="game-card${g.isLive?' is-live':''}" style="--sport-accent:${accent}">
     <div class="game-card-accent-bar"></div>
     <div class="game-card-top">
@@ -1543,7 +1558,7 @@ function renderGameCard(g) {
         <div class="team-row away">${awayLogoHtml}<span>${esc(away)}</span></div>
         <div class="team-row home">${homeLogoHtml}<span>${isVersus ? 'vs' : '@'} ${esc(home)}</span></div>
       </div>
-      <div class="game-meta">${liveBadge}${soonLabel}<div class="game-time">${time}</div></div>
+      <div class="game-meta">${liveBadge}${soonLabel}${hotBadge}<div class="game-time">${time}</div></div>
     </div>
     <div class="game-markets">${marketsHtml}</div>
     ${propsHtml ? `
