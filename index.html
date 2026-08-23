@@ -99,8 +99,18 @@ body::after{
 .sport-tab svg{width:13px;height:13px;flex-shrink:0;opacity:.7;transition:opacity .15s}
 .sport-tab:hover{border-color:var(--bdr-h);color:var(--t1)}
 .sport-tab:hover svg{opacity:1}
-.sport-tab.active{background:var(--gold-bg);border-color:var(--gold);color:var(--gold-b)}
+.sport-tab.active{background:var(--accent-dim,var(--gold-bg));border-color:var(--accent,var(--gold));color:var(--accent,var(--gold-b))}
 .sport-tab.active svg{opacity:1}
+/* Nav badge */
+.nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;background:var(--gold);color:#000;font-size:9px;font-weight:900;border-radius:8px;padding:0 4px;margin-left:5px;vertical-align:middle}
+/* Team logos */
+.team-row{display:flex;align-items:center;gap:6px}
+.team-logo{width:18px;height:18px;object-fit:contain;flex-shrink:0;opacity:.9}
+/* Search bar */
+.search-bar-wrap{padding:10px 16px 4px}
+.games-search{width:100%;background:var(--bg-c);border:1px solid var(--bdr);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--t1);outline:none;transition:border-color .15s}
+.games-search:focus{border-color:var(--gold)}
+.games-search::placeholder{color:var(--t3)}
 
 /* MAIN CONTENT */
 .main-content{flex:1;overflow:hidden;position:relative}
@@ -467,7 +477,7 @@ body::after{
   </header>
   <nav class="app-nav">
     <button class="nav-tab active" data-view="games" onclick="showView('games')">Games</button>
-    <button class="nav-tab" data-view="bets" onclick="showView('bets')">My Bets</button>
+    <button class="nav-tab" data-view="bets" onclick="showView('bets')">My Bets<span class="nav-badge" id="betsBadge" style="display:none"></span></button>
     <button class="nav-tab" data-view="leaderboard" onclick="showView('leaderboard')">Leaderboard</button>
     <button class="nav-tab" data-view="profile" onclick="showView('profile')">Profile</button>
   </nav>
@@ -514,6 +524,9 @@ body::after{
       <div id="featuredSection" class="featured-section" style="display:none">
         <div class="featured-lbl">🔥 Featured</div>
         <div class="featured-scroll" id="featuredScroll"></div>
+      </div>
+      <div class="search-bar-wrap">
+        <input class="games-search" id="gamesSearch" type="search" placeholder="Search teams…" oninput="filterGames(this.value)" autocomplete="off">
       </div>
       <div class="games-inner" id="gamesInner"></div>
     </div>
@@ -895,6 +908,9 @@ async function fetchOdds(sport) {
       const getName = c => c.team?.displayName || c.athlete?.displayName || c.displayName || '?';
       const homeName = getName(home);
       const awayName = getName(away);
+      const getLogo = c => c.team?.logo || c.athlete?.headshot?.href || null;
+      const homeLogo = getLogo(home);
+      const awayLogo = getLogo(away);
 
       const o = comp.odds?.[0];
       const markets = [];
@@ -931,6 +947,7 @@ async function fetchOdds(sport) {
       }
       return {
         id: ev.id, home_team: homeName, away_team: awayName,
+        home_logo: homeLogo, away_logo: awayLogo,
         commence_time: ev.date,
         isLive: ev.status?.type?.state === 'in',
         bookmakers: markets.length ? [{ key:'espn', markets }] : [],
@@ -1055,6 +1072,7 @@ async function loadGames(sport) {
   currentSport = sport;
   document.getElementById('gamesInner').innerHTML = `<div class="skeleton-wrap">${skeletonCard()}${skeletonCard()}${skeletonCard()}</div>`;
   const games = SPORTS[sport]?.ppl ? await fetchPPL() : await fetchOdds(sport);
+  _allGames = games;
   renderFeatured(games);
   renderGames(games);
 }
@@ -1165,12 +1183,15 @@ function renderGameCard(g) {
   const soonLabel = !g.isLive && soonMs > 0 && soonMs < 2*3600*1000
     ? `<span class="soon-badge">~${Math.round(soonMs/60000)}m</span>` : '';
 
+  const awayLogoHtml = g.away_logo ? `<img class="team-logo" src="${esc(g.away_logo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
+  const homeLogoHtml = g.home_logo ? `<img class="team-logo" src="${esc(g.home_logo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
+
   return `<div class="game-card${g.isLive?' is-live':''}" style="--sport-accent:${accent}">
     <div class="game-card-accent-bar"></div>
     <div class="game-card-top">
       <div class="game-teams">
-        <div class="team-row away">${esc(away)}</div>
-        <div class="team-row home">${isVersus ? 'vs' : '@'} ${esc(home)}</div>
+        <div class="team-row away">${awayLogoHtml}<span>${esc(away)}</span></div>
+        <div class="team-row home">${homeLogoHtml}<span>${isVersus ? 'vs' : '@'} ${esc(home)}</span></div>
       </div>
       <div class="game-meta">${liveBadge}${soonLabel}<div class="game-time">${time}</div></div>
     </div>
@@ -1366,6 +1387,9 @@ async function placeBet() {
   closeBetSlip();
   flashBalance('dn'); // balance went down — flash red briefly
   showToast(`Bet placed! ${label} · To win ${fmt(payout-stake)} 🎯`);
+  // Increment pending badge (we don't know count exactly but +1 is right)
+  const curBadge = parseInt(document.getElementById('betsBadge')?.textContent||'0')||0;
+  updateBetsBadge(curBadge + 1);
 }
 
 // ── MY BETS ───────────────────────────────────────────────────────
@@ -1373,6 +1397,8 @@ async function loadMyBets() {
   document.getElementById('betsInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading…</span></div>';
   await settlePending();
   const { data: bets } = await sb.from('bets').select('*').eq('user_id', user.id).order('created_at',{ascending:false});
+  const pending = (bets||[]).filter(b=>b.status==='pending');
+  updateBetsBadge(pending.length);
   renderBets(bets||[]);
 }
 
@@ -1643,7 +1669,30 @@ function showView(view) {
 function switchSport(tab) {
   document.querySelectorAll('.sport-tab').forEach(t=>t.classList.remove('active'));
   tab.classList.add('active');
-  loadGames(tab.dataset.sport);
+  // Apply sport accent color to the tab pill
+  const sport = tab.dataset.sport;
+  const accent = SPORT_ACCENTS[sport] || '#F5A623';
+  tab.style.setProperty('--accent', accent);
+  tab.style.setProperty('--accent-dim', accent + '18');
+  // Clear search
+  const s = document.getElementById('gamesSearch'); if (s) s.value = '';
+  loadGames(sport);
+}
+
+let _allGames = [];
+function filterGames(q) {
+  if (!q.trim()) { renderGames(_allGames); return; }
+  const t = q.toLowerCase();
+  renderGames(_allGames.filter(g =>
+    g.home_team.toLowerCase().includes(t) || g.away_team.toLowerCase().includes(t)
+  ));
+}
+
+function updateBetsBadge(count) {
+  const badge = document.getElementById('betsBadge');
+  if (!badge) return;
+  if (count > 0) { badge.textContent = count; badge.style.display = 'inline-flex'; }
+  else badge.style.display = 'none';
 }
 
 function showAuth() { document.getElementById('authWrap').style.display='flex'; document.getElementById('appWrap').style.display='none'; }
