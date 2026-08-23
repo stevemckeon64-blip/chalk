@@ -603,6 +603,7 @@ async function fetchOdds(sport) {
   const espnPath = SPORTS[sport]?.espn;
   if (!espnPath) return [];
   const isUFC = sport === 'mma_mixed_martial_arts';
+  const isTennis = sport.startsWith('tennis_');
   try {
     const fmtDate = d => d.toISOString().slice(0,10).replace(/-/g,'');
     const today = new Date();
@@ -614,12 +615,18 @@ async function fetchOdds(sport) {
       return res?.ok ? (await res.json()).events || [] : [];
     };
 
-    // Fetch today + next 6 days in parallel (covers full NFL week + MLB daily slate)
-    const lookAheadDays = Array.from({length: 7}, (_, i) => {
-      if (i === 0) return null;
-      const d = new Date(today); d.setDate(today.getDate() + i); return d;
-    });
-    let events = (await Promise.all(lookAheadDays.map(fetchDay))).flat();
+    let events;
+    if (isTennis) {
+      // Tennis scoreboard doesn't support ?dates= filtering — fetch base URL only
+      events = await fetchDay(null);
+    } else {
+      // Fetch today + next 6 days in parallel (covers full NFL week + MLB daily slate)
+      const lookAheadDays = Array.from({length: 7}, (_, i) => {
+        if (i === 0) return null;
+        const d = new Date(today); d.setDate(today.getDate() + i); return d;
+      });
+      events = (await Promise.all(lookAheadDays.map(fetchDay))).flat();
+    }
 
     // UFC events are weekly — if still nothing, scan further (up to 14 days)
     if (isUFC && !events.some(e => e.status?.type?.state === 'pre')) {
@@ -635,7 +642,11 @@ async function fetchOdds(sport) {
     const seen = new Set();
     events = events.filter(ev => { if (seen.has(ev.id)) return false; seen.add(ev.id); return true; });
 
-    let upcoming = events.filter(ev => ev.status?.type?.state === 'pre');
+    // Tennis: include 'in' (live) matches too — tournaments run round-by-round
+    let upcoming = events.filter(ev => {
+      const state = ev.status?.type?.state;
+      return state === 'pre' || (isTennis && state === 'in');
+    });
 
     // UFC main card: limit to first 5 fights of the soonest event day
     if (isUFC && upcoming.length) {
