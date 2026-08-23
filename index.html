@@ -313,6 +313,15 @@ body::after{
 @keyframes balFlashRed{0%{color:var(--loss)}30%{color:var(--loss);text-shadow:0 0 12px rgba(255,59,48,.5)}100%{color:inherit;text-shadow:none}}
 .bal-flash-up{animation:balFlashGreen .9s ease-out forwards}
 .bal-flash-dn{animation:balFlashRed .9s ease-out forwards}
+/* ── CARD ENTRANCE ANIMATION ─────────────────────────────── */
+@keyframes cardEntrance{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.card-enter{animation:cardEntrance .35s ease-out both}
+/* ── PROMO BANNER ────────────────────────────────────────── */
+.promo-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#1a1230 0%,#1d1a2e 100%);border:1px solid rgba(245,166,35,.35);border-radius:10px;padding:10px 14px;margin:0 0 14px;font-size:.8rem;color:var(--txt-s);cursor:pointer;transition:border-color .2s}
+.promo-banner:hover{border-color:var(--gold)}
+.promo-icon{font-size:1.3rem;flex-shrink:0}
+.promo-text b{color:var(--gold);font-size:.85rem}
+.promo-cta{margin-left:auto;background:var(--gold);color:#000;font-size:.72rem;font-weight:700;border:none;border-radius:5px;padding:4px 10px;cursor:pointer;white-space:nowrap}
 /* ── CONFETTI BURST ──────────────────────────────────────── */
 #confettiCanvas{position:fixed;inset:0;pointer-events:none;z-index:9999;display:none}
 /* ── MOBILE BET SLIP (bottom sheet) ─────────────────────── */
@@ -478,7 +487,8 @@ body::after{
 
 <!-- ── AUTH ── -->
 <div id="authWrap" style="display:none">
-  <div class="auth-box">
+  <canvas id="authCanvas" style="position:absolute;inset:0;pointer-events:none;z-index:0"></canvas>
+  <div class="auth-box" style="position:relative;z-index:1">
     <div class="auth-logo">CHA<span>L</span>K</div>
     <div class="auth-tagline">Fake money. Real lines. Zero consequences.</div>
     <div class="auth-tabs">
@@ -499,8 +509,8 @@ body::after{
       <button class="auth-btn" id="suBtn" onclick="doSignUp()">Create Account — $5,000 Free</button>
     </div>
     <div class="auth-footer">NFL · NBA · MLB · NHL · UFC · ATP · All markets</div>
-  </div>
-</div>
+  </div><!-- /.auth-box -->
+</div><!-- /#authWrap -->
 
 <!-- ── APP ── -->
 <div id="appWrap" style="display:none;flex-direction:column;flex:1;overflow:hidden">
@@ -580,6 +590,11 @@ body::after{
       <div id="featuredSection" class="featured-section" style="display:none">
         <div class="featured-lbl">🔥 Featured</div>
         <div class="featured-scroll" id="featuredScroll"></div>
+      </div>
+      <div id="promoBanner" class="promo-banner" onclick="openAddFunds()">
+        <span class="promo-icon">🎁</span>
+        <div class="promo-text"><b>First Deposit Bonus</b><br>Add funds and get 100% matched chips up to $500</div>
+        <button class="promo-cta">Claim</button>
       </div>
       <div class="search-bar-wrap">
         <input class="games-search" id="gamesSearch" type="search" placeholder="Search teams…" oninput="filterGames(this.value)" autocomplete="off">
@@ -905,6 +920,25 @@ function usernameGradient(name) {
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
   const h2 = (h + 40) % 360;
   return `linear-gradient(135deg, hsl(${h},70%,45%), hsl(${h2},60%,35%))`;
+}
+
+let _balTween = null;
+function animateBalance(targetVal) {
+  const el = document.getElementById('headerBalance');
+  if (!el) return;
+  const fromStr = el.textContent.replace(/[^0-9.]/g,'');
+  let from = parseFloat(fromStr) || 0;
+  const to = targetVal;
+  const dur = 500, start = performance.now();
+  if (_balTween) cancelAnimationFrame(_balTween);
+  const step = (now) => {
+    const p = Math.min((now - start) / dur, 1);
+    const ease = 1 - Math.pow(1-p, 3); // ease-out cubic
+    el.textContent = fmt(from + (to - from) * ease);
+    if (p < 1) _balTween = requestAnimationFrame(step);
+    else { el.textContent = fmt(to); _balTween = null; }
+  };
+  _balTween = requestAnimationFrame(step);
 }
 
 function flashBalance(direction) {
@@ -1316,6 +1350,9 @@ function skeletonCard() {
 async function loadGames(sport) {
   currentSport = sport;
   document.getElementById('gamesInner').innerHTML = `<div class="skeleton-wrap">${skeletonCard()}${skeletonCard()}${skeletonCard()}</div>`;
+  // Show/hide promo based on balance (hide once user funds above starter amount)
+  const pb = document.getElementById('promoBanner');
+  if (pb && profile) pb.style.display = profile.balance > 5500 ? 'none' : 'flex';
   const games = SPORTS[sport]?.ppl ? await fetchPPL() : await fetchOdds(sport);
   _allGames = games;
   renderFeatured(games);
@@ -1391,6 +1428,11 @@ function renderGames(games) {
     for (const g of gs) html += renderGameCard(g);
   }
   el.innerHTML = html;
+  // staggered entrance — each card fades+slides up with 40ms delay per card
+  el.querySelectorAll('.game-card').forEach((c,i) => {
+    c.style.animationDelay = `${i*40}ms`;
+    c.classList.add('card-enter');
+  });
 }
 
 function renderGameCard(g) {
@@ -1552,7 +1594,7 @@ function openBetSlip() {
     <div class="parlay-legs-list">${legsHtml}</div>
     ${summaryBar}
     <div class="bs-stake-lbl">Bet Amount</div>
-    <div class="bs-amount-row"><span class="bs-dollar">$</span><input class="bs-input" id="bsStake" type="number" inputmode="numeric" min="1" value="50" oninput="updateBsPayout()" autocomplete="off"></div>
+    <div class="bs-amount-row"><span class="bs-dollar">$</span><input class="bs-input" id="bsStake" type="number" inputmode="numeric" min="1" value="50" oninput="updateBsPayout()" onkeydown="if(event.key==='Enter'){event.preventDefault();placeBet()}" autocomplete="off"></div>
     <div class="bs-quick">
       <button onclick="setBsStakePct(5)">5%</button>
       <button onclick="setBsStakePct(10)">10%</button>
@@ -1584,7 +1626,7 @@ async function cashOut(betId, coValue, origStake) {
     .eq('id', betId);
   if (ue) { await sb.from('profiles').update({ balance: profile.balance }).eq('id', user.id); showToast('Cash out failed', 'error'); return; }
   profile.balance = newBal;
-  document.getElementById('headerBalance').textContent = fmt(newBal);
+  animateBalance(newBal);
   flashBalance('up');
   showToast(`Cashed out for ${fmt(coValue)} 💰`);
   loadMyBets();
@@ -1608,7 +1650,7 @@ async function doAddFunds(amt) {
   const { error } = await sb.from('profiles').update({ balance: newBal }).eq('id', user.id);
   if (error) { showToast('Error adding funds', 'error'); return; }
   profile.balance = newBal;
-  document.getElementById('headerBalance').textContent = fmt(newBal);
+  animateBalance(newBal);
   closeRoomModal();
   flashBalance('up');
   showToast(`${fmt(amt)} added to your account! 🎰`);
@@ -1689,7 +1731,7 @@ async function placeBet() {
   }
 
   profile.balance = newBal;
-  document.getElementById('headerBalance').textContent = fmt(newBal);
+  animateBalance(newBal);
   const label = isParlay ? `${betSlipLegs.length}-leg parlay` : fmtOdds(odds);
   betSlipLegs = [];
   updateFab();
@@ -2044,8 +2086,46 @@ function updateBetsBadge(count) {
   else badge.style.display = 'none';
 }
 
-function showAuth() { document.getElementById('authWrap').style.display='flex'; document.getElementById('appWrap').style.display='none'; }
-function showApp()  { document.getElementById('authWrap').style.display='none';  document.getElementById('appWrap').style.display='flex'; loadGames(currentSport); }
+function showAuth() {
+  document.getElementById('authWrap').style.display='flex';
+  document.getElementById('appWrap').style.display='none';
+  startAuthParticles();
+}
+function showApp() {
+  document.getElementById('authWrap').style.display='none';
+  document.getElementById('appWrap').style.display='flex';
+  loadGames(currentSport);
+}
+
+// ── AUTH PARTICLE BACKGROUND ─────────────────────────────
+let _authAnimId = null;
+function startAuthParticles() {
+  const canvas = document.getElementById('authCanvas');
+  if (!canvas) return;
+  if (_authAnimId) cancelAnimationFrame(_authAnimId);
+  const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+  resize();
+  window.addEventListener('resize', resize, {once:true});
+  const ctx = canvas.getContext('2d');
+  const N = 40;
+  const pts = Array.from({length:N}, () => ({
+    x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+    vx:(Math.random()-.5)*0.3, vy:(Math.random()-.5)*0.3,
+    r:1+Math.random()*2, a:Math.random()
+  }));
+  const tick = () => {
+    if (document.getElementById('authWrap').style.display==='none') return;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for (const p of pts) {
+      p.x=(p.x+p.vx+canvas.width)%canvas.width;
+      p.y=(p.y+p.vy+canvas.height)%canvas.height;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(245,166,35,${p.a*0.35})`; ctx.fill();
+    }
+    _authAnimId = requestAnimationFrame(tick);
+  };
+  tick();
+}
 </script>
 </body>
 </html>
