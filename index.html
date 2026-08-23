@@ -395,8 +395,11 @@ body::after{
 .slip-single-label{font-size:10px;color:var(--t2);margin-bottom:4px}
 
 /* ── BET FILTER TABS ─────────────────────────────────────── */
-.bet-filter-tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;scrollbar-width:none}
+.bet-filter-tabs{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none}
 .bet-filter-tabs::-webkit-scrollbar{display:none}
+.bet-status-tabs{display:flex;gap:6px;margin:0 0 14px;overflow-x:auto;scrollbar-width:none}
+.bst-btn{background:var(--bg-c);border:1px solid var(--bdr);border-radius:20px;color:var(--t2);font-size:11px;font-weight:700;padding:5px 12px;white-space:nowrap;transition:all .15s}
+.bst-btn.active{background:var(--gold);border-color:var(--gold);color:#000}
 .bft-btn{padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.06em;border:1px solid var(--bdr);color:var(--t2);background:none;cursor:pointer;white-space:nowrap;transition:all .15s}
 .bft-btn.active{background:var(--gold-bg);border-color:var(--gold);color:var(--gold)}
 .parlay-legs-list{margin-bottom:12px}
@@ -598,6 +601,22 @@ body::after{
 .pnl-sparkline{width:100%;border-radius:var(--r);background:var(--bg-c);display:block;margin-bottom:20px}
 /* ── RESPONSIBLE NOTE ───────────────────────────────────── */
 .responsible-note{font-size:11px;color:var(--t3);text-align:center;padding:10px;margin-bottom:16px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg-c);line-height:1.5}
+.wallet-card{background:var(--bg-c);border:1px solid var(--bdr-h);border-radius:12px;padding:14px;margin-bottom:10px}
+.wallet-balance-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.wallet-bal-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
+.wallet-bal-val{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
+.wallet-action-btn{padding:7px 14px;background:var(--bg-b);border:1px solid var(--bdr-h);border-radius:8px;font-size:11px;font-weight:800;color:var(--t1);cursor:pointer;transition:all .15s}
+.deposit-btn{background:rgba(245,166,35,.1);border-color:rgba(245,166,35,.3);color:var(--gold)}
+.wallet-quick-row{display:flex;gap:6px}
+.wallet-quick-chip{flex:1;padding:6px 4px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:8px;font-size:11px;font-weight:800;color:var(--gold);cursor:pointer;transition:all .15s}
+.wallet-quick-chip:hover{background:rgba(245,166,35,.15);transform:scale(1.03)}
+.referral-card{background:linear-gradient(135deg,rgba(48,209,88,.08),rgba(48,209,88,.02));border:1px solid rgba(48,209,88,.25);border-radius:12px;padding:14px;margin-bottom:10px}
+.referral-top{margin-bottom:10px}
+.referral-title{font-size:14px;font-weight:800;color:var(--t1);margin-bottom:4px}
+.referral-sub{font-size:11px;color:var(--t3);line-height:1.4}
+.referral-code-row{display:flex;align-items:center;gap:8px;background:var(--bg-b);border-radius:8px;padding:8px 12px}
+.referral-code{font-size:13px;font-weight:900;font-family:monospace;letter-spacing:.12em;color:#30D158;flex:1}
+.referral-copy-btn{padding:5px 12px;background:rgba(48,209,88,.15);border:1px solid rgba(48,209,88,.3);border-radius:6px;font-size:11px;font-weight:800;color:#30D158;cursor:pointer}
 /* ── DAILY PICK ──────────────────────────────────────────── */
 .pick-of-day{background:linear-gradient(135deg,rgba(245,166,35,.12) 0%,rgba(245,166,35,.04) 100%);border:1px solid rgba(245,166,35,.4);border-radius:12px;padding:12px 14px;margin:0 0 12px;position:relative;overflow:hidden}
 .potd-card{background:linear-gradient(135deg,rgba(48,209,88,.1) 0%,rgba(48,209,88,.03) 100%);border:1px solid rgba(48,209,88,.35);border-radius:12px;padding:12px 14px;margin-bottom:12px;position:relative;overflow:hidden}
@@ -2862,6 +2881,7 @@ function openAddFunds() {
     </div>`;
   document.getElementById('roomModalWrap').style.display = 'flex';
 }
+async function addVirtualFunds(amt) { doAddFunds(amt); }
 async function doAddFunds(amt) {
   if (!profile) return;
   const newBal = profile.balance + amt;
@@ -3070,16 +3090,33 @@ function renderBets(bets) {
   const won = settled.filter(b=>b.status==='won').length;
   const total = settled.length;
   const winPct = total ? Math.round((won/total)*100) : 0;
+  const wonBets = bets.filter(b=>b.status==='won');
+  const lostBets = bets.filter(b=>b.status==='lost');
   const statsBar = `<div class="bet-filter-tabs">
     <span style="color:var(--t2);font-size:13px">${pending.length} Active</span>
     <span style="color:var(--t2);font-size:13px">${won}/${total} Won (${winPct}%)</span>
-    <span class="${pnl>=0?'pos':'neg'};font-size:13px">${pnl>=0?'+':''}${fmt(pnl)} P&amp;L</span>
+    <span class="${pnl>=0?'pos':'neg'}" style="font-size:13px">${pnl>=0?'+':''}${fmt(pnl)} P&amp;L</span>
   </div>`;
-
-  let html = statsBar;
-  if (pending.length) html += `<div class="bets-section-hdr">Active (${pending.length})</div>${pending.map(rb).join('')}`;
-  if (settled.length) html += `<div class="bets-section-hdr">History <span class="bets-pnl ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)}</span></div>${settled.map(rb).join('')}`;
+  // Filter tabs
+  const filterTabs = `<div class="bet-status-tabs" id="betStatusTabs">
+    <button class="bst-btn active" onclick="filterBetView('all',this)">All (${bets.length})</button>
+    <button class="bst-btn" onclick="filterBetView('open',this)">Open (${pending.length})</button>
+    <button class="bst-btn" onclick="filterBetView('won',this)">Won (${wonBets.length})</button>
+    <button class="bst-btn" onclick="filterBetView('lost',this)">Lost (${lostBets.length})</button>
+  </div>`;
+  let html = statsBar + filterTabs;
+  if (pending.length) html += `<div class="bets-section-hdr bets-grp" data-grp="open,all">Active (${pending.length})</div>${pending.map(b=>`<div class="bets-grp" data-grp="open,all">${rb(b)}</div>`).join('')}`;
+  if (wonBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="won,all">Won <span class="bets-pnl pos">+${fmt(wonBets.reduce((a,b)=>a+(b.potential_payout-b.stake),0))}</span></div>${wonBets.map(b=>`<div class="bets-grp" data-grp="won,all">${rb(b)}</div>`).join('')}`;
+  if (lostBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="lost,all">Lost <span class="bets-pnl neg">-${fmt(lostBets.reduce((a,b)=>a+b.stake,0))}</span></div>${lostBets.map(b=>`<div class="bets-grp" data-grp="lost,all">${rb(b)}</div>`).join('')}`;
   el.innerHTML = html;
+}
+function filterBetView(filter, btn) {
+  document.querySelectorAll('.bst-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.bets-grp').forEach(g => {
+    const grps = g.dataset.grp ? g.dataset.grp.split(',') : ['all'];
+    g.style.display = grps.includes(filter) ? '' : 'none';
+  });
 }
 
 // ── SETTLEMENT ────────────────────────────────────────────────────
@@ -3324,8 +3361,39 @@ async function loadProfileView() {
         <div class="txn-amt ${amtClass}">${amtStr}</div>
       </div>`;
     }).join('') || '<div class="txn-empty">No bets placed yet</div>'}</div>
+    <div class="profile-section-hdr">Wallet</div>
+    <div class="wallet-card">
+      <div class="wallet-balance-row">
+        <div>
+          <div class="wallet-bal-lbl">Available Balance</div>
+          <div class="wallet-bal-val gold">${fmt(profile?.balance||0)}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="wallet-action-btn deposit-btn" onclick="openAddFunds()">+ Deposit</button>
+          <button class="wallet-action-btn" onclick="showToast('Withdrawals coming soon!')">Withdraw</button>
+        </div>
+      </div>
+      <div class="wallet-quick-row">
+        <button class="wallet-quick-chip" onclick="addVirtualFunds(50)">+$50</button>
+        <button class="wallet-quick-chip" onclick="addVirtualFunds(100)">+$100</button>
+        <button class="wallet-quick-chip" onclick="addVirtualFunds(250)">+$250</button>
+        <button class="wallet-quick-chip" onclick="addVirtualFunds(500)">+$500</button>
+      </div>
+    </div>
+    <div class="profile-section-hdr">Refer a Friend</div>
+    <div class="referral-card">
+      <div class="referral-top">
+        <div>
+          <div class="referral-title">🎁 Invite friends, earn chips</div>
+          <div class="referral-sub">You both get $250 in bonus chips when they sign up and place a bet.</div>
+        </div>
+      </div>
+      <div class="referral-code-row">
+        <div class="referral-code">${(profile?.username||'chalk').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8)}-CHALK</div>
+        <button class="referral-copy-btn" onclick="navigator.clipboard?.writeText(this.previousElementSibling.textContent);showToast('Referral code copied!')">Copy</button>
+      </div>
+    </div>
     <div class="responsible-note">🎮 This is a game. No real money involved. Play responsibly.</div>
-    <button class="add-funds-btn-main" onclick="openAddFunds()">+ Add Virtual Funds</button>
     <button class="sign-out-btn" onclick="doSignOut()">Sign Out</button>`;
   // Draw sparkline after DOM render
   requestAnimationFrame(() => drawPnlSparkline(settled));
