@@ -414,6 +414,29 @@ body::after{
 .sb-bar-wrap{flex:1;height:6px;background:var(--bg-ch);border-radius:3px;overflow:hidden}
 .sb-bar{height:100%;border-radius:3px;transition:width .4s ease}
 .sb-count{font-size:11px;color:var(--t3);width:24px;text-align:right;flex-shrink:0}
+/* ── TIER CHIP in header ────────────────────────────────── */
+.tier-chip{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border:1px solid;border-radius:20px;padding:2px 8px;display:inline-flex;align-items:center;gap:3px;flex-shrink:0}
+/* ── TIER CARD in profile ───────────────────────────────── */
+.tier-card{border:1px solid;border-radius:var(--rl);padding:14px 16px;margin-bottom:16px}
+.tier-card-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.tier-icon{font-size:28px;line-height:1}
+.tier-name{font-size:16px;font-weight:900;letter-spacing:.04em}
+.tier-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.tier-bar-wrap{height:4px;background:var(--bg-ch);border-radius:2px;overflow:hidden}
+.tier-bar{height:100%;border-radius:2px;transition:width .5s ease}
+/* ── CASH OUT button ────────────────────────────────────── */
+.cashout-btn{width:100%;margin-top:10px;padding:8px;background:rgba(48,209,88,.08);border:1px solid rgba(48,209,88,.25);border-radius:var(--r);font-size:11px;font-weight:800;color:var(--win);letter-spacing:.04em;cursor:pointer;transition:all .15s;text-transform:uppercase}
+.cashout-btn:hover{background:rgba(48,209,88,.15);border-color:rgba(48,209,88,.4)}
+/* ── ADD FUNDS buttons ──────────────────────────────────── */
+.add-funds-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.add-funds-btn{padding:12px;background:var(--gold-bg);border:1px solid var(--gold);border-radius:var(--r);font-size:14px;font-weight:800;color:var(--gold);cursor:pointer;transition:all .15s}
+.add-funds-btn:hover{background:rgba(245,166,35,.25)}
+.add-funds-btn-main{width:100%;padding:11px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);border-radius:var(--r);font-size:12px;font-weight:800;color:var(--gold);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .15s;margin-bottom:10px}
+.add-funds-btn-main:hover{background:var(--gold-bg);border-color:var(--gold)}
+/* ── ODDS MOVEMENT arrows ───────────────────────────────── */
+.ob-odds-row{display:flex;align-items:center;justify-content:center;gap:3px}
+.ob-move{font-size:8px;font-weight:900;line-height:1}
+.ob-move.move-up{color:#30D158}.ob-move.move-dn{color:#FF3B30}
 /* ── P&L SPARKLINE ──────────────────────────────────────── */
 .pnl-sparkline{width:100%;border-radius:var(--r);background:var(--bg-c);display:block;margin-bottom:20px}
 /* ── RESPONSIBLE NOTE ───────────────────────────────────── */
@@ -481,6 +504,7 @@ body::after{
         <span class="bal-label">Balance</span>
         <span class="bal-val" id="headerBalance">$5,000.00</span>
       </div>
+      <span class="tier-chip" id="tierChip" style="display:none"></span>
       <div class="user-avatar" id="userAvatar" onclick="showView('profile')">?</div>
     </div>
   </header>
@@ -621,10 +645,32 @@ function calcParlayOdds(legs) {
 }
 function legKey(leg) { return `${leg.gameId}_${leg.market}_${leg.selection}`; }
 
+// Fake but consistent odds movement seeded by game id + market + outcome
+function oddsMovement(gameId, market, selIdx) {
+  let h = 0;
+  const key = `${gameId}${market}${selIdx}`;
+  for (let i=0;i<key.length;i++) h=(h*31+key.charCodeAt(i))&0xFFFFFF;
+  const r = (h % 100) / 100; // 0..1
+  if (r < 0.35) return { dir:'up',   label:'▲', cls:'move-up'   };
+  if (r < 0.65) return { dir:'flat', label:'',  cls:''          };
+  return                { dir:'dn',  label:'▼', cls:'move-dn'   };
+}
+
 // ── STATE ─────────────────────────────────────────────────────────
 let sb, user=null, profile=null, currentRoom=null, myRooms=[];
 let currentView='games', currentSport='americanfootball_nfl';
 let oddsCache={}, betSlipLegs=[], slipMode='parlay', pplCache=null, pplCacheTs=0, pplNextTourney=null;
+let totalWagered=0; // updated after bets load — drives loyalty tier
+
+// ── LOYALTY TIERS ─────────────────────────────────────────
+const TIERS = [
+  { name:'Elite',  min:50000, icon:'💎', color:'#C8FF57' },
+  { name:'Pro',    min:10000, icon:'🥇', color:'#F5A623' },
+  { name:'Sharp',  min:1000,  icon:'🥈', color:'#8AB4FF' },
+  { name:'Chalk',  min:0,     icon:'🥉', color:'#9CA3AF' },
+];
+function getTier(wagered) { return TIERS.find(t => wagered >= t.min) || TIERS[TIERS.length-1]; }
+function nextTier(wagered) { return [...TIERS].reverse().find(t => t.min > wagered) || null; }
 
 // ── BOOT ─────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
@@ -1247,17 +1293,22 @@ function renderGameCard(g) {
   const away = g.away_team, home = g.home_team;
   const isVersus = SPORTS[currentSport]?.versus;
 
+  let _btnIdx = 0;
   const oddsBtn = (market, outcome) => {
     const label = market==='totals' ? outcome.name : outcome.name.split(' ').slice(-1)[0];
     const sub = (market==='spreads' && outcome.point!=null) ? ((outcome.point>0?'+':'')+outcome.point) : market==='totals' ? (outcome.name==='Over'?'O ':'U ')+outcome.point : '';
     const o = outcome.price; const oStr = fmtOdds(o);
     const inSlip = betSlipLegs.some(l => l.gameId===g.id && l.market===market && l.selection===outcome.name);
+    const mv = oddsMovement(g.id, market, _btnIdx++);
     return `<button class="odds-btn${inSlip?' in-slip':''}" data-gid="${esc(g.id)}" data-market="${market}"
       data-sel="${esc(outcome.name)}" data-odds="${o}" data-line="${outcome.point??''}"
       data-home="${esc(home)}" data-away="${esc(away)}" data-ct="${esc(g.commence_time)}">
       <span class="ob-team">${esc(label)}</span>
       ${sub?`<span class="ob-line">${esc(sub)}</span>`:''}
-      <span class="ob-odds ${o>0?'pos':'neg'}">${oStr}</span>
+      <span class="ob-odds-row">
+        <span class="ob-odds ${o>0?'pos':'neg'}">${oStr}</span>
+        ${mv.label?`<span class="ob-move ${mv.cls}">${mv.label}</span>`:''}
+      </span>
     </button>`;
   };
 
@@ -1399,6 +1450,50 @@ function openBetSlip() {
 }
 
 function setSlipMode(mode) { slipMode = mode; openBetSlip(); }
+
+// ── CASH OUT ─────────────────────────────────────────────────────
+async function cashOut(betId, coValue, origStake) {
+  if (!profile) return;
+  const profit = coValue - origStake;
+  if (!confirm(`Cash out for ${fmt(coValue)}? (${profit >= 0 ? '+' : ''}${fmt(profit)} vs stake)`)) return;
+  const newBal = profile.balance + coValue;
+  const { error: be } = await sb.from('profiles').update({ balance: newBal }).eq('id', user.id);
+  if (be) { showToast('Cash out failed', 'error'); return; }
+  const { error: ue } = await sb.from('bets')
+    .update({ status: 'won', potential_payout: coValue, settled_at: new Date().toISOString() })
+    .eq('id', betId);
+  if (ue) { await sb.from('profiles').update({ balance: profile.balance }).eq('id', user.id); showToast('Cash out failed', 'error'); return; }
+  profile.balance = newBal;
+  document.getElementById('headerBalance').textContent = fmt(newBal);
+  flashBalance('up');
+  showToast(`Cashed out for ${fmt(coValue)} 💰`);
+  loadMyBets();
+}
+
+// ── ADD FUNDS ────────────────────────────────────────────────────
+function openAddFunds() {
+  document.getElementById('roomModalBox').innerHTML = `
+    <div class="modal-hdr"><span class="modal-title">Add Virtual Funds</span><button class="modal-close" onclick="closeRoomModal()">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--t2);margin-bottom:16px;line-height:1.6">Add fake money to your account. This is a game — no real money involved.</p>
+      <div class="add-funds-grid">
+        ${[1000,2500,5000,10000].map(amt=>`<button class="add-funds-btn" onclick="doAddFunds(${amt})">+${fmt(amt)}</button>`).join('')}
+      </div>
+    </div>`;
+  document.getElementById('roomModalWrap').style.display = 'flex';
+}
+async function doAddFunds(amt) {
+  if (!profile) return;
+  const newBal = profile.balance + amt;
+  const { error } = await sb.from('profiles').update({ balance: newBal }).eq('id', user.id);
+  if (error) { showToast('Error adding funds', 'error'); return; }
+  profile.balance = newBal;
+  document.getElementById('headerBalance').textContent = fmt(newBal);
+  closeRoomModal();
+  flashBalance('up');
+  showToast(`${fmt(amt)} added to your account! 🎰`);
+  loadProfileView();
+}
 function toggleOddsFormat() {
   oddsFormat = oddsFormat === 'american' ? 'decimal' : 'american';
   const btn = document.getElementById('oddsFmtBtn');
@@ -1491,9 +1586,23 @@ async function loadMyBets() {
   document.getElementById('betsInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading…</span></div>';
   await settlePending();
   const { data: bets } = await sb.from('bets').select('*').eq('user_id', user.id).order('created_at',{ascending:false});
-  const pending = (bets||[]).filter(b=>b.status==='pending');
+  const all = bets||[];
+  const pending = all.filter(b=>b.status==='pending');
   updateBetsBadge(pending.length);
-  renderBets(bets||[]);
+  // Recompute wagered total and refresh tier
+  totalWagered = all.reduce((acc,b)=>acc+Number(b.stake),0);
+  updateTierChip();
+  renderBets(all);
+}
+
+function updateTierChip() {
+  const chip = document.getElementById('tierChip');
+  if (!chip) return;
+  const tier = getTier(totalWagered);
+  chip.textContent = `${tier.icon} ${tier.name}`;
+  chip.style.display = 'inline-flex';
+  chip.style.color = tier.color;
+  chip.style.borderColor = tier.color + '40';
 }
 
 function renderBets(bets) {
@@ -1523,14 +1632,19 @@ function renderBets(bets) {
       ? `<div class="bet-matchup">Parlay · ${fmtOdds(b.odds)}</div>`
       : `<div class="bet-matchup">${esc(b.away_team)} @ ${esc(b.home_team)}</div>`;
 
+    // Cash-out value = stake + 45% of potential profit (like real apps, slightly unfair)
+    const coValue = b.status==='pending' ? Math.round((b.stake + (b.potential_payout - b.stake)*0.45)*100)/100 : null;
+    const cashOutBtn = coValue ? `<button class="cashout-btn" onclick="cashOut('${b.id}',${coValue},${b.stake})">Cash Out ${fmt(coValue)}</button>` : '';
+
     return `<div class="bet-card ${b.status}">
       <div class="bet-card-top">${matchupLine}<span class="bet-status-badge ${b.status}">${statusLabels[b.status]||b.status}</span></div>
       ${isParlay ? legsList : `<div class="bet-pick">${esc(mktL)}: <b>${esc(selL)}</b> <span class="bet-odds">${fmtOdds(b.odds)}</span></div>`}
       <div class="bet-footer">
         <span>Stake: <b>${fmt(b.stake)}</b></span>
-        ${pnlVal!==null?`<span class="${pnlVal>=0?'pos':'neg'}">${pnlVal>=0?'+':''}${fmt(pnlVal)}</span>`:`<span>To win: ${fmt(b.potential_payout-b.stake)}</span>`}
+        ${pnlVal!==null?`<span class="${pnlVal>=0?'pos':'neg'}">${pnlVal>=0?'+':''}${fmt(pnlVal)}</span>`:`<span>To win: <b>${fmt(b.potential_payout-b.stake)}</b></span>`}
         <span class="bet-date">${d}</span>
       </div>
+      ${cashOutBtn}
     </div>`;
   };
 
@@ -1690,7 +1804,7 @@ async function loadProfileView() {
   const losses = settled.filter(b=>b.status==='lost').length;
   const total = settled.length;
   const pnl = settled.reduce((acc,b)=>acc+(b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:0),0);
-  const wagered = settled.reduce((acc,b)=>acc+Number(b.stake),0);
+  const wagered = all.reduce((acc,b)=>acc+Number(b.stake),0);
   const roi = wagered > 0 ? ((pnl/wagered)*100).toFixed(1) : '0.0';
   const winRate = total > 0 ? Math.round(wins/total*100) : 0;
   const bestWin = settled.filter(b=>b.status==='won').reduce((best,b)=>{
@@ -1731,6 +1845,21 @@ async function loadProfileView() {
       <div class="profile-username">${esc(profile?.username||'Player')}</div>
       <div class="profile-since">Member since ${new Date(profile?.created_at||Date.now()).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
     </div>
+    ${(() => {
+      const tier = getTier(wagered);
+      const next = nextTier(wagered);
+      const pct = next ? Math.min(100, Math.round(((wagered - tier.min) / (next.min - tier.min)) * 100)) : 100;
+      return `<div class="tier-card" style="border-color:${tier.color}22;background:${tier.color}08">
+        <div class="tier-card-top">
+          <span class="tier-icon">${tier.icon}</span>
+          <div>
+            <div class="tier-name" style="color:${tier.color}">${tier.name}</div>
+            <div class="tier-sub">${next ? `${fmt(wagered)} wagered · ${fmt(next.min - wagered)} to ${next.name}` : `${fmt(wagered)} wagered · Max tier reached`}</div>
+          </div>
+        </div>
+        ${next ? `<div class="tier-bar-wrap"><div class="tier-bar" style="width:${pct}%;background:${tier.color}"></div></div>` : ''}
+      </div>`;
+    })()}
     <div class="profile-section-hdr">Performance</div>
     <div class="stats-grid">
       <div class="stat-tile"><div class="st-val gold">${fmt(profile?.balance||0)}</div><div class="st-lbl">Balance</div></div>
@@ -1746,6 +1875,7 @@ async function loadProfileView() {
     <div class="profile-section-hdr">P&amp;L History</div>
     <canvas id="pnlSparkline" class="pnl-sparkline"></canvas>
     <div class="responsible-note">🎮 This is a game. No real money involved. Play responsibly.</div>
+    <button class="add-funds-btn-main" onclick="openAddFunds()">+ Add Virtual Funds</button>
     <button class="sign-out-btn" onclick="doSignOut()">Sign Out</button>`;
   // Draw sparkline after DOM render
   requestAnimationFrame(() => drawPnlSparkline(settled));
