@@ -145,6 +145,11 @@ body::after{
 .game-markets{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bdr)}
 .market-col{background:var(--bg-c);padding:10px 12px}
 .market-lbl{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:7px}
+.pick-pct-wrap{margin-top:6px}
+.pick-pct-bar{height:3px;border-radius:2px;display:flex;overflow:hidden;margin-bottom:2px}
+.ppb-a{background:var(--sport-accent,var(--gold));opacity:.7;transition:width .4s ease}
+.ppb-b{background:rgba(255,255,255,.18);transition:width .4s ease}
+.pick-pct-labels{display:flex;justify-content:space-between;font-size:8px;font-weight:700;color:var(--t3);letter-spacing:.04em}
 .odds-pair{display:flex;gap:5px}
 .odds-btn{flex:1;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;padding:8px 6px;text-align:center;cursor:pointer;transition:all .15s,transform .08s;display:flex;flex-direction:column;gap:2px;min-width:0;-webkit-tap-highlight-color:transparent}
 .odds-btn:hover{border-color:var(--gold);background:var(--gold-dim);box-shadow:0 0 14px rgba(245,166,35,.12)}
@@ -927,18 +932,24 @@ const PROP_SPORTS = {
       {p:'PG',props:[{k:'pts_pg',lb:'Points',lo:14,hi:34,st:0.5},{k:'ast',lb:'Assists',lo:4.5,hi:11.5,st:0.5},{k:'3pm',lb:'3-Pointers Made',lo:1.5,hi:4.5,st:0.5},{k:'pra',lb:'Pts+Reb+Ast',lo:24,hi:48,st:0.5},{k:'stl_pg',lb:'Steals',lo:0.5,hi:2.5,st:0.5},{k:'pa',lb:'Pts+Ast',lo:18,hi:42,st:0.5},{k:'tov_pg',lb:'Turnovers',lo:1.5,hi:5.5,st:0.5}]},
       {p:'SG',props:[{k:'pts_sg',lb:'Points',lo:10,hi:28,st:0.5},{k:'3pm_sg',lb:'3-Pointers Made',lo:1.5,hi:4.5,st:0.5},{k:'reb_sg',lb:'Rebounds',lo:2.5,hi:6.5,st:0.5},{k:'ast_sg',lb:'Assists',lo:1.5,hi:5.5,st:0.5},{k:'stl_sg',lb:'Steals',lo:0.5,hi:2.5,st:0.5}]},
       {p:'SF',props:[{k:'pts_sf',lb:'Points',lo:12,hi:30,st:0.5},{k:'reb_sf',lb:'Rebounds',lo:4.5,hi:9.5,st:0.5},{k:'ast_sf',lb:'Assists',lo:1.5,hi:5.5,st:0.5},{k:'3pm_sf',lb:'3-Pointers Made',lo:0.5,hi:3.5,st:0.5},{k:'pr_sf',lb:'Pts+Reb',lo:16,hi:38,st:0.5}]},
+      {p:'PF',props:[{k:'pts_pf',lb:'Points',lo:10,hi:26,st:0.5},{k:'reb_pf',lb:'Rebounds',lo:6.5,hi:12.5,st:0.5},{k:'ast_pf',lb:'Assists',lo:1.5,hi:4.5,st:0.5},{k:'blk_pf',lb:'Blocks',lo:0.5,hi:2.5,st:0.5},{k:'pra_pf',lb:'Pts+Reb+Ast',lo:18,hi:40,st:0.5},{k:'pr_pf',lb:'Pts+Reb',lo:16,hi:36,st:0.5}]},
       {p:'C', props:[{k:'pts_c',lb:'Points',lo:10,hi:26,st:0.5},{k:'reb_c',lb:'Rebounds',lo:8.5,hi:15.5,st:0.5},{k:'blk',lb:'Blocks',lo:0.5,hi:2.5,st:0.5},{k:'pra_c',lb:'Pts+Reb+Ast',lo:20,hi:42,st:0.5},{k:'fgm_c',lb:'FG Made',lo:4.5,hi:10.5,st:0.5},{k:'pr_c',lb:'Pts+Reb',lo:18,hi:40,st:0.5}]},
     ],
     gp:[
       {k:'1q_tot',lb:'1st Quarter Total',lo:50,hi:66,st:0.5,t:'total'},
+      {k:'2q_tot_nba',lb:'2nd Quarter Total',lo:48,hi:64,st:0.5,t:'total'},
       {k:'1h_tot_nba',lb:'1st Half Total',lo:98,hi:116,st:0.5,t:'total'},
+      {k:'3q_tot',lb:'3rd Quarter Total',lo:46,hi:60,st:0.5,t:'total'},
+      {k:'4q_tot_nba',lb:'4th Quarter Total',lo:44,hi:62,st:0.5,t:'total'},
       {k:'lead_10',lb:'First to Score 10',t:'teams'},
       {k:'race_20',lb:'Race to 20 Points',t:'teams'},
+      {k:'race_30',lb:'Race to 30 Points',t:'teams'},
+      {k:'race_50',lb:'Race to 50 Points',t:'teams'},
       {k:'away_tot_nba',lb:'Away Team Total',lo:100,hi:120,st:0.5,t:'teamtot',tm:'away'},
       {k:'home_tot_nba',lb:'Home Team Total',lo:100,hi:120,st:0.5,t:'teamtot',tm:'home',off:3},
       {k:'1q_ml',lb:'1st Quarter Winner',t:'ml'},
-      {k:'3q_tot',lb:'3rd Quarter Total',lo:46,hi:60,st:0.5,t:'total'},
       {k:'ot_nba',lb:'Game Goes to OT',t:'yesno'},
+      {k:'dbl_lead',lb:'Team Lead by 10+ at Any Point',t:'teams'},
     ],
   },
   basketball_ncaab: {
@@ -972,19 +983,25 @@ const PROP_SPORTS = {
   },
   icehockey_nhl: {
     pos:[
-      {p:'G', props:[{k:'svs',lb:'Saves',lo:22.5,hi:34.5,st:0.5},{k:'ga',lb:'Goals Against',lo:1.5,hi:4.5,st:0.5}]},
-      {p:'C', props:[{k:'pts_nhl',lb:'Points (G+A)',lo:0.5,hi:2.5,st:0.5},{k:'sog_c',lb:'Shots on Goal',lo:1.5,hi:4.5,st:0.5}]},
-      {p:'LW',props:[{k:'g_lw',lb:'Anytime Goal Scorer',lo:0.5,hi:0.5,st:0,isYN:true},{k:'sog_lw',lb:'Shots on Goal',lo:1.5,hi:3.5,st:0.5},{k:'pts_lw',lb:'Points',lo:0.5,hi:1.5,st:0.5}]},
+      {p:'G', props:[{k:'svs',lb:'Saves',lo:22.5,hi:34.5,st:0.5},{k:'ga',lb:'Goals Against',lo:1.5,hi:4.5,st:0.5},{k:'svpct',lb:'Save %',lo:0.88,hi:0.96,st:0.005}]},
+      {p:'C', props:[{k:'pts_nhl',lb:'Points (G+A)',lo:0.5,hi:2.5,st:0.5},{k:'sog_c',lb:'Shots on Goal',lo:1.5,hi:4.5,st:0.5},{k:'blk_nhl',lb:'Blocked Shots',lo:0.5,hi:3.5,st:0.5},{k:'hit_c',lb:'Hits',lo:1.5,hi:5.5,st:0.5}]},
+      {p:'LW',props:[{k:'g_lw',lb:'Anytime Goal Scorer',lo:0.5,hi:0.5,st:0,isYN:true},{k:'sog_lw',lb:'Shots on Goal',lo:1.5,hi:3.5,st:0.5},{k:'pts_lw',lb:'Points',lo:0.5,hi:1.5,st:0.5},{k:'hit_lw',lb:'Hits',lo:1.5,hi:4.5,st:0.5}]},
+      {p:'D', props:[{k:'pts_d',lb:'Points',lo:0.5,hi:1.5,st:0.5},{k:'sog_d',lb:'Shots on Goal',lo:1.5,hi:4.5,st:0.5},{k:'blk_d',lb:'Blocked Shots',lo:1.5,hi:5.5,st:0.5},{k:'toi_d',lb:'Time on Ice (min)',lo:16.5,hi:26.5,st:0.5}]},
     ],
     gp:[
       {k:'1p_tot',lb:'1st Period Total',lo:0.5,hi:2.5,st:0.5,t:'total'},
+      {k:'2p_tot',lb:'2nd Period Total',lo:0.5,hi:2.5,st:0.5,t:'total'},
+      {k:'3p_tot',lb:'3rd Period Total',lo:0.5,hi:2.5,st:0.5,t:'total'},
       {k:'1p_ml',lb:'1st Period Moneyline',t:'ml'},
       {k:'score_1p',lb:'Team to Score in 1st',t:'teams'},
       {k:'away_tot_nhl',lb:'Away Team Total',lo:1.5,hi:3.5,st:0.5,t:'teamtot',tm:'away'},
       {k:'home_tot_nhl',lb:'Home Team Total',lo:1.5,hi:3.5,st:0.5,t:'teamtot',tm:'home',off:0.5},
       {k:'ot_nhl',lb:'Game Goes to OT/SO',t:'yesno'},
       {k:'shutout',lb:'Shutout (Y/N)',t:'yesno'},
-      {k:'2p_tot',lb:'2nd Period Total',lo:0.5,hi:2.5,st:0.5,t:'total'},
+      {k:'sog_tot',lb:'Total Shots on Goal',lo:54.5,hi:68.5,st:0.5,t:'total'},
+      {k:'ppg',lb:'Power Play Goal Scored',t:'yesno'},
+      {k:'pen_min',lb:'Total Penalty Minutes',lo:8.5,hi:16.5,st:0.5,t:'total'},
+      {k:'so_game',lb:'Decided in Shootout',t:'yesno'},
     ],
   },
   soccer_epl: {
@@ -2389,11 +2406,22 @@ function renderGameCard(g) {
   const spH = sp ? `${oddsBtn('spreads', sp.find(o=>o.name===away)||sp[0])}${oddsBtn('spreads', sp.find(o=>o.name===home)||sp[1])}` : '<span class="no-odds">TBD</span>';
   const totH = tot ? `${oddsBtn('totals', tot.find(o=>o.name==='Over')||tot[0])}${oddsBtn('totals', tot.find(o=>o.name==='Under')||tot[1])}` : '<span class="no-odds">TBD</span>';
 
+  // Community pick % bars (seeded)
+  const ppHash = s => { let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h; };
+  const mlPct = 38 + ppHash(g.id+'ml') % 25; // 38-62%
+  const spPct = 40 + ppHash(g.id+'sp') % 22; // 40-62%
+  const ovPct = 38 + ppHash(g.id+'tot') % 26; // 38-64%
+  const ppBar = (pct, lA, lB) => `<div class="pick-pct-wrap">
+    <div class="pick-pct-bar"><div class="ppb-a" style="width:${pct}%"></div><div class="ppb-b" style="width:${100-pct}%"></div></div>
+    <div class="pick-pct-labels"><span>${pct}% ${esc(lA)}</span><span>${esc(lB)} ${100-pct}%</span></div>
+  </div>`;
+  const awayShortP = away.split(' ').pop(), homeShortP = home.split(' ').pop();
+
   const marketsHtml = isVersus
-    ? `<div class="market-col" style="grid-column:1/-1"><div class="market-lbl">Moneyline</div><div class="odds-pair">${mlH}</div></div>`
-    : `<div class="market-col"><div class="market-lbl">Moneyline</div><div class="odds-pair">${mlH}</div></div>
-       <div class="market-col"><div class="market-lbl">Spread</div><div class="odds-pair">${spH}</div></div>
-       <div class="market-col"><div class="market-lbl">Total</div><div class="odds-pair">${totH}</div></div>`;
+    ? `<div class="market-col" style="grid-column:1/-1"><div class="market-lbl">Moneyline</div><div class="odds-pair">${mlH}</div>${ppBar(mlPct,awayShortP,homeShortP)}</div>`
+    : `<div class="market-col"><div class="market-lbl">Moneyline</div><div class="odds-pair">${mlH}</div>${ppBar(mlPct,awayShortP,homeShortP)}</div>
+       <div class="market-col"><div class="market-lbl">Spread</div><div class="odds-pair">${spH}</div>${ppBar(spPct,awayShortP,homeShortP)}</div>
+       <div class="market-col"><div class="market-lbl">Total</div><div class="odds-pair">${totH}</div>${ppBar(ovPct,'Over','Under')}</div>`;
 
   const liveBadge = g.isLive ? `<span class="live-badge"><span class="live-dot"></span>LIVE</span>` : '';
   const accent = SPORT_ACCENTS[currentSport] || 'var(--gold)';
