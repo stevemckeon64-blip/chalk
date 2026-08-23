@@ -2016,11 +2016,11 @@ async function settlePending() {
         } else if (result === 'lost') {
           showToast(`${bet.selection} lost · -${fmt(bet.stake)}`, 'error');
           flashBalance('dn');
+        }
         // Pulse the My Bets badge when a bet settles and user isn't viewing it
         if (currentView !== 'bets') {
           const curCount = parseInt(document.getElementById('betsBadge')?.textContent||'0')||0;
           updateBetsBadge(Math.max(0, curCount - 1), false);
-          updateBetsBadge(0); // pending count decreases
         }
       }
     } catch(e) { console.error('settlement error',e); }
