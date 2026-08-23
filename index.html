@@ -414,6 +414,10 @@ body::after{
 .sb-bar-wrap{flex:1;height:6px;background:var(--bg-ch);border-radius:3px;overflow:hidden}
 .sb-bar{height:100%;border-radius:3px;transition:width .4s ease}
 .sb-count{font-size:11px;color:var(--t3);width:24px;text-align:right;flex-shrink:0}
+/* ── P&L SPARKLINE ──────────────────────────────────────── */
+.pnl-sparkline{width:100%;border-radius:var(--r);background:var(--bg-c);display:block;margin-bottom:20px}
+/* ── RESPONSIBLE NOTE ───────────────────────────────────── */
+.responsible-note{font-size:11px;color:var(--t3);text-align:center;padding:10px;margin-bottom:16px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg-c);line-height:1.5}
 /* ── COPY-CODE BTN color fix ─────────────────────────────── */
 .copy-code-btn:hover{background:var(--gold-bg)}
 
@@ -676,6 +680,72 @@ function showToast(msg, type='success') {
   t.innerHTML = `<span class="toast-icon">${icon}</span><span>${msg}</span>`;
   t.className = 'toast show ' + type;
   clearTimeout(t._t); t._t = setTimeout(() => t.className = 'toast', 3200);
+}
+
+function drawPnlSparkline(settled) {
+  const canvas = document.getElementById('pnlSparkline');
+  if (!canvas || !settled.length) return;
+  const W = canvas.offsetWidth || 300;
+  const H = 80;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  // Build cumulative P&L array (oldest first)
+  const bets = [...settled].reverse();
+  let running = 0;
+  const points = [0, ...bets.map(b => {
+    running += b.status==='won' ? b.potential_payout-b.stake : b.status==='lost' ? -b.stake : 0;
+    return running;
+  })];
+
+  const minV = Math.min(...points), maxV = Math.max(...points);
+  const range = maxV - minV || 1;
+  const pad = { l:4, r:4, t:8, b:8 };
+  const toY = v => pad.t + (1 - (v - minV) / range) * (H - pad.t - pad.b);
+  const toX = i => pad.l + (i / (points.length - 1)) * (W - pad.l - pad.r);
+
+  // Zero line
+  const zeroY = toY(0);
+  ctx.setLineDash([3,3]);
+  ctx.strokeStyle = 'rgba(255,255,255,.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.l, zeroY); ctx.lineTo(W-pad.r, zeroY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Gradient fill
+  const lastV = points[points.length-1];
+  const lineColor = lastV >= 0 ? '#30D158' : '#FF3B30';
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, lastV >= 0 ? 'rgba(48,209,88,.25)' : 'rgba(255,59,48,.2)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(points[0]));
+  for (let i = 1; i < points.length; i++) ctx.lineTo(toX(i), toY(points[i]));
+  ctx.lineTo(toX(points.length-1), H);
+  ctx.lineTo(toX(0), H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(points[0]));
+  for (let i = 1; i < points.length; i++) ctx.lineTo(toX(i), toY(points[i]));
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // End dot
+  ctx.beginPath();
+  ctx.arc(toX(points.length-1), toY(points[points.length-1]), 4, 0, Math.PI*2);
+  ctx.fillStyle = lineColor;
+  ctx.fill();
 }
 
 function usernameGradient(name) {
@@ -1673,7 +1743,12 @@ async function loadProfileView() {
       <div class="stat-tile"><div class="st-val neg">${biggestLoss>0?'-'+fmt(biggestLoss):'—'}</div><div class="st-lbl">Worst Loss</div></div>
     </div>
     ${sportBreakdown}
+    <div class="profile-section-hdr">P&amp;L History</div>
+    <canvas id="pnlSparkline" class="pnl-sparkline"></canvas>
+    <div class="responsible-note">🎮 This is a game. No real money involved. Play responsibly.</div>
     <button class="sign-out-btn" onclick="doSignOut()">Sign Out</button>`;
+  // Draw sparkline after DOM render
+  requestAnimationFrame(() => drawPnlSparkline(settled));
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────
