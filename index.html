@@ -491,6 +491,16 @@ body::after{
 .sgp-quick-odds.pos{color:#30D158}.sgp-quick-odds:not(.pos){color:var(--gold)}
 .sgp-add-btn{padding:5px 12px;background:linear-gradient(135deg,var(--gold),var(--gold-b));color:#000;border-radius:20px;font-size:11px;font-weight:900;letter-spacing:.04em;transition:all .15s;box-shadow:0 2px 10px rgba(245,166,35,.3)}
 .sgp-add-btn:hover{transform:scale(1.05);box-shadow:0 4px 16px rgba(245,166,35,.5)}
+/* ── WIN PROBABILITY BAR ──────────────────────────────────── */
+.win-prob-bar{display:flex;height:3px;border-radius:3px;overflow:hidden;margin:6px 14px 0;gap:1px}
+.wpb-away{background:var(--sport-accent,var(--gold));opacity:.7;border-radius:3px 0 0 3px;position:relative;min-width:20px;transition:width .4s ease}
+.wpb-home{background:rgba(255,255,255,.22);border-radius:0 3px 3px 0;position:relative;min-width:20px;transition:width .4s ease}
+.wpb-labels{display:flex;justify-content:space-between;padding:2px 14px 0;font-size:9px;font-weight:700;letter-spacing:.06em;color:var(--t3)}
+/* ── INJURY BADGES ────────────────────────────────────────── */
+.inj-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;padding:1px 4px;border-radius:4px;font-size:8px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;margin-left:4px}
+.inj-badge.q{background:rgba(255,159,10,.2);color:#FF9F0A;border:1px solid rgba(255,159,10,.4)}
+.inj-badge.dtd{background:rgba(255,107,53,.2);color:#FF6B35;border:1px solid rgba(255,107,53,.4)}
+.inj-badge.out{background:rgba(255,59,48,.2);color:#FF3B30;border:1px solid rgba(255,59,48,.4)}
 /* ── PLAYER PROPS ─────────────────────────────────────────── */
 .props-sec-hdr{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);padding:8px 0 6px;border-top:1px solid var(--bdr);margin-top:4px}
 .props-sec-hdr:first-child{border-top:none;margin-top:0;padding-top:0}
@@ -647,6 +657,10 @@ body::after{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6A9 9 0 0 1 18.4 18.4M18.4 5.6A9 9 0 0 1 5.6 18.4"/></svg>
       NBA
     </button>
+    <button class="sport-tab" data-sport="basketball_ncaab" onclick="switchSport(this)" aria-label="NCAAB">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6A9 9 0 0 1 18.4 18.4M18.4 5.6A9 9 0 0 1 5.6 18.4"/></svg>
+      NCAAB
+    </button>
     <button class="sport-tab" data-sport="baseball_mlb" onclick="switchSport(this)" aria-label="MLB">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.5 7.5 Q9 12 5.5 16.5"/><path d="M18.5 7.5 Q15 12 18.5 16.5"/></svg>
       MLB
@@ -751,6 +765,7 @@ const SPORTS = {
   americanfootball_nfl:   { label:'NFL',   icon:'🏈', espn:'football/nfl' },
   americanfootball_ncaaf: { label:'NCAAF', icon:'🏈', espn:'football/college-football' },
   basketball_nba:         { label:'NBA',   icon:'🏀', espn:'basketball/nba' },
+  basketball_ncaab:       { label:'NCAAB', icon:'🏀', espn:'basketball/mens-college-basketball' },
   baseball_mlb:           { label:'MLB',   icon:'⚾', espn:'baseball/mlb' },
   icehockey_nhl:          { label:'NHL',   icon:'🏒', espn:'hockey/nhl' },
   soccer_epl:             { label:'EPL',   icon:'⚽', espn:'soccer/eng.1' },
@@ -764,6 +779,7 @@ const SPORT_ACCENTS = {
   americanfootball_nfl:   '#00D4AA',
   americanfootball_ncaaf: '#FF6B35',
   basketball_nba:         '#FF8C00',
+  basketball_ncaab:       '#FF7700',
   baseball_mlb:           '#E8294B',
   icehockey_nhl:          '#4A9EFF',
   soccer_epl:             '#38D47A',
@@ -832,6 +848,21 @@ const PROP_SPORTS = {
       {k:'1q_ml',lb:'1st Quarter Winner',t:'ml'},
       {k:'3q_tot',lb:'3rd Quarter Total',lo:46,hi:60,st:0.5,t:'total'},
       {k:'ot_nba',lb:'Game Goes to OT',t:'yesno'},
+    ],
+  },
+  basketball_ncaab: {
+    pos:[
+      {p:'PG',props:[{k:'pts_cpg',lb:'Points',lo:11,hi:26,st:0.5},{k:'ast_cpg',lb:'Assists',lo:2.5,hi:7.5,st:0.5},{k:'3pm_cpg',lb:'3-Pointers',lo:0.5,hi:3.5,st:0.5}]},
+      {p:'SF',props:[{k:'pts_csf',lb:'Points',lo:9,hi:22,st:0.5},{k:'reb_csf',lb:'Rebounds',lo:3.5,hi:8.5,st:0.5},{k:'ast_csf',lb:'Assists',lo:1.5,hi:4.5,st:0.5}]},
+      {p:'C', props:[{k:'pts_cc',lb:'Points',lo:8,hi:20,st:0.5},{k:'reb_cc',lb:'Rebounds',lo:5.5,hi:12.5,st:0.5},{k:'blk_cc',lb:'Blocks',lo:0.5,hi:2.5,st:0.5}]},
+    ],
+    gp:[
+      {k:'1h_nca',lb:'1st Half Total',lo:60,hi:76,st:0.5,t:'total'},
+      {k:'1h_ml_nca',lb:'1st Half Winner',t:'ml'},
+      {k:'lead_10_nca',lb:'First to 10 Points',t:'teams'},
+      {k:'ot_nca',lb:'Game Goes to OT',t:'yesno'},
+      {k:'away_tot_nca',lb:'Away Team Total',lo:55,hi:78,st:0.5,t:'teamtot',tm:'away'},
+      {k:'home_tot_nca',lb:'Home Team Total',lo:55,hi:78,st:0.5,t:'teamtot',tm:'home',off:4},
     ],
   },
   baseball_mlb: {
@@ -1055,6 +1086,13 @@ function generatePlayerProps(g) {
     const hf = sh(team+posSlot+'fn'), hl = sh(team+posSlot+'ln');
     return `${PLAYER_FIRSTS[hf % PLAYER_FIRSTS.length]} ${PLAYER_LASTS[hl % PLAYER_LASTS.length]}`;
   };
+  const injBadge = (name) => {
+    const s = sh(name+'injstatus') % 18;
+    if (s === 0) return '<span class="inj-badge out">OUT</span>';
+    if (s <= 2)  return '<span class="inj-badge dtd">D</span>';
+    if (s <= 5)  return '<span class="inj-badge q">Q</span>';
+    return '';
+  };
   const propLine = (lo,hi,st,seed) => {
     const steps = Math.max(1, Math.round((hi-lo)/st));
     return Math.round((lo + (sh(seed) % steps) * st) * 10) / 10;
@@ -1106,6 +1144,7 @@ function generatePlayerProps(g) {
           <div class="player-prop-hdr">
             <span class="pos-badge">${esc(posDef.p)}</span>
             <span class="player-name">${esc(pName)}</span>
+            ${injBadge(pName)}
             <span class="player-team-tag">${esc(teamShort)}</span>
           </div>${rows}</div>`;
       }
@@ -2092,6 +2131,22 @@ function renderGameCard(g) {
   const awayLogoHtml = g.away_logo ? `<img class="team-logo" src="${esc(g.away_logo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
   const homeLogoHtml = g.home_logo ? `<img class="team-logo" src="${esc(g.home_logo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
 
+  // Win probability bar
+  let winProbBar = '';
+  if (ml && ml.length >= 2 && !isVersus) {
+    const aO = ml.find(o=>o.name===away) || ml[0];
+    const hO = ml.find(o=>o.name===home) || ml[1];
+    const implP = odds => odds < 0 ? Math.abs(odds)/(Math.abs(odds)+100) : 100/(odds+100);
+    const pA = implP(aO.price), pH = implP(hO.price);
+    const awayPct = Math.round(pA/(pA+pH)*100);
+    const homePct = 100 - awayPct;
+    winProbBar = `<div class="win-prob-bar" title="${esc(away)}: ${awayPct}% | ${esc(home)}: ${homePct}%">
+      <div class="wpb-away" style="width:${awayPct}%"></div>
+      <div class="wpb-home" style="width:${homePct}%"></div>
+    </div>
+    <div class="wpb-labels"><span>${awayPct}%</span><span>${homePct}%</span></div>`;
+  }
+
   // Generate seeded game-level props
   const propsHtml = PROP_SPORTS[currentSport] ? generatePlayerProps(g) : '';
 
@@ -2109,6 +2164,7 @@ function renderGameCard(g) {
       </div>
       <div class="game-meta">${liveBadge}${soonLabel}${hotBadge}<div class="game-time">${time}</div></div>
     </div>
+    ${winProbBar}
     <div class="game-markets">${marketsHtml}</div>
     ${propsHtml ? `
     <div class="more-markets-toggle" onclick="toggleProps(this)">
