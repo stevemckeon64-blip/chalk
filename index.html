@@ -469,6 +469,28 @@ body::after{
 .pnl-sparkline{width:100%;border-radius:var(--r);background:var(--bg-c);display:block;margin-bottom:20px}
 /* ── RESPONSIBLE NOTE ───────────────────────────────────── */
 .responsible-note{font-size:11px;color:var(--t3);text-align:center;padding:10px;margin-bottom:16px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg-c);line-height:1.5}
+/* ── DAILY PICK ──────────────────────────────────────────── */
+.pick-of-day{background:linear-gradient(135deg,rgba(245,166,35,.12) 0%,rgba(245,166,35,.04) 100%);border:1px solid rgba(245,166,35,.4);border-radius:12px;padding:12px 14px;margin:0 0 12px;position:relative;overflow:hidden}
+.pick-of-day::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:radial-gradient(circle,rgba(245,166,35,.18) 0%,transparent 70%)}
+.pick-header{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.pick-badge{background:var(--gold);color:#000;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:20px}
+.pick-label{font-size:10px;color:var(--t2);letter-spacing:.06em}
+.pick-body{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pick-teams{font-size:13px;font-weight:700;color:var(--txt)}
+.pick-sub{font-size:11px;color:var(--t2);margin-top:3px}
+.pick-odds-chip{background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.3);border-radius:8px;padding:6px 14px;font-size:15px;font-weight:800;color:var(--gold);cursor:pointer;transition:all .15s;flex-shrink:0}
+.pick-odds-chip:hover,.pick-odds-chip.in-slip{background:var(--gold);color:#000}
+/* ── TRANSACTION HISTORY ─────────────────────────────────── */
+.txn-list{border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden;margin-bottom:16px}
+.txn-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bdr);transition:background .12s}
+.txn-row:last-child{border-bottom:none}
+.txn-row:hover{background:var(--bg-c)}
+.txn-icon{font-size:16px;flex-shrink:0;width:24px;text-align:center}
+.txn-info{flex:1;min-width:0}
+.txn-desc{font-size:12px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.txn-date{font-size:10px;color:var(--t3);margin-top:2px}
+.txn-amt{font-size:12px;font-weight:700;white-space:nowrap}
+.txn-empty{padding:20px;text-align:center;color:var(--t3);font-size:13px}
 /* ── COPY-CODE BTN color fix ─────────────────────────────── */
 .copy-code-btn:hover{background:var(--gold-bg)}
 
@@ -596,6 +618,7 @@ body::after{
         <div class="promo-text"><b>First Deposit Bonus</b><br>Add funds and get 100% matched chips up to $500</div>
         <button class="promo-cta">Claim</button>
       </div>
+      <div id="dailyPickWrap" style="padding:0 16px;display:none"></div>
       <div class="search-bar-wrap">
         <input class="games-search" id="gamesSearch" type="search" placeholder="Search teams…" oninput="filterGames(this.value)" autocomplete="off">
       </div>
@@ -1356,6 +1379,7 @@ async function loadGames(sport) {
   const games = SPORTS[sport]?.ppl ? await fetchPPL() : await fetchOdds(sport);
   _allGames = games;
   renderFeatured(games);
+  renderDailyPick(games);
   renderGames(games);
   loadLiveTicker(sport);
 }
@@ -1390,6 +1414,36 @@ function renderFeatured(games) {
       </div>
     </div>`;
   }).join('');
+}
+
+function renderDailyPick(games) {
+  const wrap = document.getElementById('dailyPickWrap');
+  if (!wrap || !games.length) { if (wrap) wrap.style.display='none'; return; }
+  // Seed a pick from today's date so it stays stable all day
+  const today = new Date(); const seed = today.getFullYear()*10000 + (today.getMonth()+1)*100 + today.getDate();
+  const idx = seed % games.length;
+  const g = games[idx];
+  const ml = getMarket(g,'h2h');
+  if (!ml || ml.length < 2) { wrap.style.display='none'; return; }
+  // Pick the underdog (higher odds)
+  const pick = ml[0].price > ml[1].price ? ml[0] : ml[1];
+  const inSlip = betSlipLegs.some(l => l.gameId===g.id && l.market==='h2h' && l.selection===pick.name);
+  const sport = SPORTS[currentSport]?.label || currentSport;
+  wrap.style.display = 'block';
+  wrap.innerHTML = `<div class="pick-of-day">
+    <div class="pick-header"><span class="pick-badge">⚡ Pick of the Day</span><span class="pick-label">${sport} · Moneyline</span></div>
+    <div class="pick-body">
+      <div>
+        <div class="pick-teams">${esc(pick.name)}</div>
+        <div class="pick-sub">${esc(g.away_team)} vs ${esc(g.home_team)}</div>
+      </div>
+      <button class="pick-odds-chip${inSlip?' in-slip':''}"
+        data-gid="${esc(g.id)}" data-market="h2h" data-sel="${esc(pick.name)}"
+        data-odds="${pick.price}" data-line="" data-home="${esc(g.home_team)}"
+        data-away="${esc(g.away_team)}" data-ct="${esc(g.commence_time)}"
+        onclick="toggleLeg({gameId:this.dataset.gid,market:'h2h',selection:this.dataset.sel,odds:+this.dataset.odds,line:'',home:this.dataset.home,away:this.dataset.away,commenceTime:this.dataset.ct},this)">${fmtOdds(pick.price)}</button>
+    </div>
+  </div>`;
 }
 
 function renderGames(games) {
@@ -1737,7 +1791,7 @@ async function placeBet() {
   updateFab();
   closeBetSlip();
   flashBalance('dn'); // balance went down — flash red briefly
-  showToast(`Bet placed! ${label} · To win ${fmt(payout-stake)} 🎯`);
+  showToast(`🎯 ${label} · Risking ${fmt(stake)} · To win ${fmt(payout-stake)}`);
   // Increment pending badge (we don't know count exactly but +1 is right)
   const curBadge = parseInt(document.getElementById('betsBadge')?.textContent||'0')||0;
   updateBetsBadge(curBadge + 1);
@@ -1769,7 +1823,15 @@ function updateTierChip() {
 
 function renderBets(bets) {
   const el = document.getElementById('betsInner');
-  if (!bets.length) { el.innerHTML = '<div class="empty-state">No bets yet.<br>Head to Games to place your first bet!</div>'; return; }
+  if (!bets.length) {
+    el.innerHTML = `<div class="empty-state" style="padding:80px 30px">
+      <div style="font-size:3rem;margin-bottom:12px">🎯</div>
+      <b style="font-size:1.1rem;display:block;margin-bottom:8px">No bets yet</b>
+      <div style="font-size:.85rem;color:var(--t3);margin-bottom:20px">Browse today's games and add picks to your slip</div>
+      <button onclick="showView('games')" style="background:var(--gold);color:#000;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.04em">Browse Games</button>
+    </div>`;
+    return;
+  }
   const pending = bets.filter(b=>b.status==='pending');
   const settled = bets.filter(b=>b.status!=='pending');
   const pnl = settled.reduce((acc,b)=>acc+(b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:0),0);
@@ -2036,6 +2098,24 @@ async function loadProfileView() {
     ${sportBreakdown}
     <div class="profile-section-hdr">P&amp;L History</div>
     <canvas id="pnlSparkline" class="pnl-sparkline"></canvas>
+    <div class="profile-section-hdr">Recent Activity</div>
+    <div class="txn-list">${all.slice(0,15).map(b=>{
+      const isPending = b.status==='pending';
+      const isWon = b.status==='won';
+      const isLost = b.status==='lost';
+      let label = 'Bet';
+      try { const sel = JSON.parse(b.selection); if (sel.legs) label='Parlay'; else label=sel.team||b.market; } catch(e){}
+      const sport = SPORTS[b.sport]?.label||b.sport||'Bet';
+      const icon = isWon ? '✅' : isLost ? '❌' : '⏳';
+      const amtClass = isWon ? 'pos' : isLost ? 'neg' : '';
+      const amtStr = isWon ? '+'+fmt(b.potential_payout-b.stake) : isLost ? '-'+fmt(b.stake) : '-'+fmt(b.stake)+' (pending)';
+      const ts = new Date(b.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      return `<div class="txn-row">
+        <span class="txn-icon">${icon}</span>
+        <div class="txn-info"><div class="txn-desc">${esc(label)} · ${sport}</div><div class="txn-date">${ts}</div></div>
+        <div class="txn-amt ${amtClass}">${amtStr}</div>
+      </div>`;
+    }).join('') || '<div class="txn-empty">No bets placed yet</div>'}</div>
     <div class="responsible-note">🎮 This is a game. No real money involved. Play responsibly.</div>
     <button class="add-funds-btn-main" onclick="openAddFunds()">+ Add Virtual Funds</button>
     <button class="sign-out-btn" onclick="doSignOut()">Sign Out</button>`;
