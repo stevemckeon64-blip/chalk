@@ -313,7 +313,7 @@ body::after{
       <div class="auth-error" id="suError"></div>
       <button class="auth-btn" id="suBtn" onclick="doSignUp()">Create Account — $5,000 Free</button>
     </div>
-    <div class="auth-footer">NFL · NCAAF · MLB · All three markets</div>
+    <div class="auth-footer">NFL · NCAAF · MLB · ATP · All markets</div>
   </div>
 </div>
 
@@ -363,6 +363,10 @@ body::after{
     <button class="sport-tab" data-sport="mma_mixed_martial_arts" onclick="switchSport(this)" aria-label="UFC">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v5a6 6 0 0 1-6 6H8a4 4 0 0 1-4-4v-3a2 2 0 0 1 2-2h2V6Z"/><path d="M16 9h2a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-2"/></svg>
       UFC
+    </button>
+    <button class="sport-tab" data-sport="tennis_atp" onclick="switchSport(this)" aria-label="ATP Tennis">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5 9c2 1.5 2 4.5 0 6"/><path d="M19 9c-2 1.5-2 4.5 0 6"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+      ATP
     </button>
     <button class="sport-tab" data-sport="padel_ppt" onclick="switchSport(this)" aria-label="Padel Premier Tour">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="6"/><line x1="14.5" y1="14.5" x2="21" y2="21"/><line x1="7" y1="10" x2="13" y2="10"/><line x1="10" y1="7" x2="10" y2="13"/></svg>
@@ -415,6 +419,7 @@ const SPORTS = {
   americanfootball_ncaaf: { label:'NCAAF', espn:'football/college-football' },
   baseball_mlb:           { label:'MLB',   espn:'baseball/mlb' },
   mma_mixed_martial_arts: { label:'UFC',   espn:'mma/ufc', versus:true },
+  tennis_atp:             { label:'ATP',   espn:'tennis/atp', versus:true },
   padel_ppt:              { label:'PPT',   espn:null, versus:true, ppl:true },
 };
 const MARKET_LABELS = { h2h:'Moneyline', spreads:'Spread', totals:'Total' };
