@@ -214,8 +214,15 @@ body::after{
 .lb-row:hover{background:var(--bg-ch)}.lb-row.me{background:rgba(245,166,35,.06);border-color:rgba(245,166,35,.25)}
 .lb-rank{width:30px;font-size:18px;text-align:center;flex-shrink:0}
 .lb-rank.num{font-size:14px;font-weight:800;color:var(--t3);text-align:center}
+.lb-rank-num{width:28px;font-size:14px;font-weight:800;color:var(--t3);text-align:center;flex-shrink:0}
+.lb-list .lb-row:nth-child(1) .lb-rank-num,.lb-list .lb-row:nth-child(1) .lb-avatar{opacity:1}
 .lb-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#7A5A1A);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#000;flex-shrink:0}
+.lb-info{flex:1;min-width:0}
 .lb-name{font-size:14px;font-weight:700}
+.lb-record{font-size:10px;color:var(--t3);margin-top:1px;font-weight:600}
+.lb-list{border-radius:var(--rl);overflow:hidden;border:1px solid var(--bdr)}
+.lb-list .lb-row{border:none;border-bottom:1px solid var(--bdr)}
+.lb-list .lb-row:last-child{border-bottom:none}
 .lb-you{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-b);background:var(--gold-bg);padding:1px 5px;border-radius:20px;margin-left:5px}
 .lb-right{margin-left:auto;text-align:right}
 .lb-balance{font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--gold-b)}
@@ -286,6 +293,19 @@ body::after{
 .live-badge{display:inline-flex;align-items:center;gap:4px;background:var(--live-dim);border:1px solid rgba(255,59,48,.3);color:var(--live);font-size:9px;font-weight:800;letter-spacing:.1em;padding:2px 6px;border-radius:4px;flex-shrink:0}
 .live-dot{width:5px;height:5px;background:var(--live);border-radius:50%;animation:livePulse 1.4s ease-in-out infinite}
 @keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.6)}}
+/* ── BALANCE FLASH ───────────────────────────────────────── */
+@keyframes balFlashGreen{0%{color:var(--win)}30%{color:var(--win);text-shadow:0 0 12px rgba(48,209,88,.6)}100%{color:inherit;text-shadow:none}}
+@keyframes balFlashRed{0%{color:var(--loss)}30%{color:var(--loss);text-shadow:0 0 12px rgba(255,59,48,.5)}100%{color:inherit;text-shadow:none}}
+.bal-flash-up{animation:balFlashGreen .9s ease-out forwards}
+.bal-flash-dn{animation:balFlashRed .9s ease-out forwards}
+/* ── CONFETTI BURST ──────────────────────────────────────── */
+#confettiCanvas{position:fixed;inset:0;pointer-events:none;z-index:9999;display:none}
+/* ── MOBILE BET SLIP (bottom sheet) ─────────────────────── */
+@media(max-width:600px){
+  #betSlipWrap{align-items:flex-end!important}
+  .bet-slip-panel{max-width:100%!important;height:88vh!important;border-left:none!important;border-top:1px solid var(--bdr-h)!important;border-radius:var(--rl) var(--rl) 0 0!important;animation:slideUp .22s ease-out!important}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+}
 .live-score{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--t1);letter-spacing:.04em}
 .live-period{font-size:10px;color:var(--t2);margin-top:1px}
 
@@ -528,6 +548,7 @@ body::after{
 </button>
 
 <div class="toast" id="toast"></div>
+<canvas id="confettiCanvas"></canvas>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -628,6 +649,56 @@ function showToast(msg, type='success') {
   const t = document.getElementById('toast');
   t.textContent = msg; t.className = 'toast show ' + type;
   clearTimeout(t._t); t._t = setTimeout(() => t.className = 'toast', 2800);
+}
+
+function flashBalance(direction) {
+  const el = document.getElementById('headerBalance');
+  if (!el) return;
+  el.classList.remove('bal-flash-up','bal-flash-dn');
+  void el.offsetWidth; // reflow to restart animation
+  el.classList.add(direction === 'up' ? 'bal-flash-up' : 'bal-flash-dn');
+  setTimeout(() => el.classList.remove('bal-flash-up','bal-flash-dn'), 1000);
+}
+
+function launchConfetti() {
+  const canvas = document.getElementById('confettiCanvas');
+  if (!canvas) return;
+  canvas.style.display = 'block';
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const colors = ['#F5A623','#FFD700','#30D158','#4A9EFF','#FF8C00','#C8FF57'];
+  const particles = Array.from({length:80}, () => ({
+    x: Math.random() * canvas.width,
+    y: -10 - Math.random() * 40,
+    vx: (Math.random()-0.5)*4,
+    vy: 2 + Math.random()*4,
+    color: colors[Math.floor(Math.random()*colors.length)],
+    size: 5 + Math.random()*6,
+    rot: Math.random()*360,
+    rotV: (Math.random()-0.5)*8,
+    life: 1,
+  }));
+  let frame = 0;
+  const tick = () => {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let alive = false;
+    for (const p of particles) {
+      p.x += p.vx; p.y += p.vy; p.rot += p.rotV;
+      p.vy += 0.08; p.life -= 0.008;
+      if (p.life <= 0 || p.y > canvas.height) continue;
+      alive = true;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI/180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.5);
+      ctx.restore();
+    }
+    if (alive && frame++ < 180) requestAnimationFrame(tick);
+    else canvas.style.display = 'none';
+  };
+  requestAnimationFrame(tick);
 }
 function randomCode() {
   const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -1290,10 +1361,10 @@ async function placeBet() {
   profile.balance = newBal;
   document.getElementById('headerBalance').textContent = fmt(newBal);
   const label = isParlay ? `${betSlipLegs.length}-leg parlay` : fmtOdds(odds);
-  const snap = [...betSlipLegs];
   betSlipLegs = [];
   updateFab();
   closeBetSlip();
+  flashBalance('dn'); // balance went down — flash red briefly
   showToast(`Bet placed! ${label} · To win ${fmt(payout-stake)} 🎯`);
 }
 
@@ -1384,6 +1455,15 @@ async function settlePending() {
         await sb.from('bets').update({status:result,settled_at:new Date().toISOString()}).eq('id',bet.id);
         await sb.from('profiles').update({balance:newBal}).eq('id',user.id);
         profile.balance = newBal;
+        if (result === 'won') {
+          const profit = bet.potential_payout - bet.stake;
+          showToast(`🏆 ${bet.selection} WON · +${fmt(profit)}`, 'success');
+          launchConfetti();
+          flashBalance('up');
+        } else if (result === 'lost') {
+          showToast(`${bet.selection} lost · -${fmt(bet.stake)}`, 'error');
+          flashBalance('dn');
+        }
       }
     } catch(e) { console.error('settlement error',e); }
   }
@@ -1437,28 +1517,47 @@ async function loadLeaderboard() {
   let q = sb.from('profiles').select('id,username,balance,created_at').order('balance',{ascending:false}).limit(100);
   if (ids) q = q.in('id', ids);
   const { data: rows } = await q;
-  renderLeaderboard(rows||[]);
+  if (!rows?.length) { renderLeaderboard([]); return; }
+  // Fetch settled bet stats for all players
+  const userIds = rows.map(r=>r.id);
+  const { data: betStats } = await sb.from('bets').select('user_id,status,stake,potential_payout').in('user_id', userIds).neq('status','pending');
+  const statsByUser = {};
+  for (const b of (betStats||[])) {
+    if (!statsByUser[b.user_id]) statsByUser[b.user_id] = {wins:0,total:0,wagered:0,pnl:0};
+    const s = statsByUser[b.user_id];
+    s.total++;
+    s.wagered += Number(b.stake);
+    if (b.status==='won') { s.wins++; s.pnl += b.potential_payout - b.stake; }
+    else if (b.status==='lost') { s.pnl -= b.stake; }
+  }
+  renderLeaderboard(rows||[], statsByUser);
 }
 
-function renderLeaderboard(rows) {
+function renderLeaderboard(rows, statsByUser={}) {
   const medals = ['🥇','🥈','🥉'];
   const title = currentRoom ? `🏠 ${esc(currentRoom.name)}` : '🌐 Global Leaderboard';
   const roomCode = currentRoom ? `<div class="lb-room-info"><span class="lb-code">Code: <b>${currentRoom.code}</b></span><button class="copy-code-btn" onclick="navigator.clipboard.writeText('${currentRoom.code}');showToast('Code copied!')">Copy</button></div>` : '';
+  if (!rows.length) { document.getElementById('lbInner').innerHTML = '<div class="empty-state">No players yet.</div>'; return; }
   const rowsHtml = rows.map((p,i) => {
     const isMe = p.id === user.id;
     const pnl = p.balance - STARTING_BALANCE;
-    const rankDisplay = i < 3 ? medals[i] : `<span class="lb-rank num">${i+1}</span>`;
+    const stats = statsByUser[p.id] || {wins:0,total:0,wagered:0,pnl:0};
+    const winRate = stats.total > 0 ? Math.round(stats.wins/stats.total*100) : null;
+    const rankDisplay = i < 3 ? medals[i] : `${i+1}`;
     return `<div class="lb-row ${isMe?'me':''}">
-      <div class="lb-rank">${rankDisplay}</div>
+      <div class="lb-rank-num">${rankDisplay}</div>
       <div class="lb-avatar">${p.username[0].toUpperCase()}</div>
-      <div class="lb-name">${esc(p.username)}${isMe?'<span class="lb-you">you</span>':''}</div>
+      <div class="lb-info">
+        <div class="lb-name">${esc(p.username)}${isMe?'<span class="lb-you">you</span>':''}</div>
+        <div class="lb-record">${stats.total > 0 ? `${stats.wins}W-${stats.total-stats.wins}L${winRate!==null?' · '+winRate+'%':''}` : 'No bets yet'}</div>
+      </div>
       <div class="lb-right">
         <div class="lb-balance">${fmt(p.balance)}</div>
         <div class="lb-pnl ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)}</div>
       </div>
     </div>`;
   }).join('');
-  document.getElementById('lbInner').innerHTML = `<div class="lb-hdr"><h2 class="lb-title">${title}</h2>${roomCode}</div><div>${rowsHtml}</div>`;
+  document.getElementById('lbInner').innerHTML = `<div class="lb-hdr"><h2 class="lb-title">${title}</h2>${roomCode}</div><div class="lb-list">${rowsHtml}</div>`;
 }
 
 // ── PROFILE VIEW ──────────────────────────────────────────────────
