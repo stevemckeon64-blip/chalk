@@ -950,16 +950,22 @@ const PROP_SPORTS = {
   },
   americanfootball_ncaaf: {
     pos:[
-      {p:'QB',props:[{k:'pyd_c',lb:'Pass Yards',lo:180,hi:320,st:0.5},{k:'ptd_c',lb:'Pass TDs',lo:0.5,hi:4.5,st:0.5},{k:'ryd_c',lb:'Rush Yards',lo:10,hi:55,st:0.5}]},
-      {p:'RB',props:[{k:'ryd_rb_c',lb:'Rush Yards',lo:35,hi:120,st:0.5},{k:'att_c',lb:'Rush Attempts',lo:8.5,hi:20.5,st:1}]},
-      {p:'WR',props:[{k:'wyd_c',lb:'Rec Yards',lo:30,hi:88,st:0.5},{k:'rec_c',lb:'Receptions',lo:2.5,hi:7.5,st:0.5}]},
+      {p:'QB',props:[{k:'pyd_c',lb:'Pass Yards',lo:180,hi:320,st:0.5},{k:'ptd_c',lb:'Pass TDs',lo:0.5,hi:4.5,st:0.5},{k:'ryd_c',lb:'Rush Yards',lo:10,hi:55,st:0.5},{k:'comp_c',lb:'Completions',lo:12.5,hi:26.5,st:0.5},{k:'int_c',lb:'Interceptions',lo:0.5,hi:1.5,st:0.5}]},
+      {p:'RB',props:[{k:'ryd_rb_c',lb:'Rush Yards',lo:35,hi:120,st:0.5},{k:'att_c',lb:'Rush Attempts',lo:8.5,hi:20.5,st:1},{k:'rcyd_c',lb:'Rec Yards',lo:5,hi:35,st:0.5},{k:'rtd_c',lb:'Rushing TD',lo:0.5,hi:0.5,st:0,isYN:true}]},
+      {p:'WR',props:[{k:'wyd_c',lb:'Rec Yards',lo:30,hi:88,st:0.5},{k:'rec_c',lb:'Receptions',lo:2.5,hi:7.5,st:0.5},{k:'wtd_c',lb:'Rec TD',lo:0.5,hi:1.5,st:0.5},{k:'tgt_c',lb:'Targets',lo:3.5,hi:9.5,st:0.5}]},
+      {p:'TE',props:[{k:'tyd_c',lb:'Rec Yards',lo:15,hi:55,st:0.5},{k:'trec_c',lb:'Receptions',lo:1.5,hi:5.5,st:0.5}]},
     ],
     gp:[
       {k:'1h_tot_c',lb:'1st Half Total',lo:20,hi:32,st:0.5,t:'total'},
+      {k:'2h_tot_c',lb:'2nd Half Total',lo:18,hi:30,st:0.5,t:'total'},
       {k:'1h_ml_c',lb:'1st Half ML',t:'ml'},
       {k:'score1st_c',lb:'Team to Score 1st',t:'teams'},
       {k:'away_tot_c',lb:'Away Team Total',lo:14,hi:28,st:0.5,t:'teamtot',tm:'away'},
       {k:'home_tot_c',lb:'Home Team Total',lo:14,hi:28,st:0.5,t:'teamtot',tm:'home',off:3},
+      {k:'1q_tot_c',lb:'1st Quarter Total',lo:5,hi:13,st:0.5,t:'total'},
+      {k:'lead_1q_c',lb:'Lead After 1st Quarter',t:'teams'},
+      {k:'ot_c',lb:'Game Goes to OT',t:'yesno'},
+      {k:'margin_10_c',lb:'Win Margin 10+ Points',t:'teams'},
     ],
   },
   basketball_nba: {
@@ -3238,11 +3244,13 @@ function renderLeaderboard(rows, statsByUser={}) {
     const stats = statsByUser[p.id] || {wins:0,total:0,wagered:0,pnl:0};
     const winRate = stats.total > 0 ? Math.round(stats.wins/stats.total*100) : null;
     const rankDisplay = i < 3 ? medals[i] : `${i+1}`;
+    const tierInfo = getTier(stats.wagered||0);
+    const hotBadge = winRate !== null && winRate >= 60 ? '<span style="font-size:9px;margin-left:4px">🔥</span>' : '';
     return `<div class="lb-row ${isMe?'me':''}">
       <div class="lb-rank-num">${rankDisplay}</div>
       <div class="lb-avatar" style="background:${usernameGradient(p.username)}">${p.username[0].toUpperCase()}</div>
       <div class="lb-info">
-        <div class="lb-name">${esc(p.username)}${isMe?'<span class="lb-you">you</span>':''}</div>
+        <div class="lb-name">${esc(p.username)}${isMe?'<span class="lb-you">you</span>':''}${hotBadge}<span style="font-size:9px;margin-left:4px;opacity:.8">${tierInfo.icon}</span></div>
         <div class="lb-record">${stats.total > 0 ? `${stats.wins}W-${stats.total-stats.wins}L${winRate!==null?' · '+winRate+'%':''}` : 'No bets yet'}</div>
       </div>
       <div class="lb-right">
