@@ -491,6 +491,18 @@ body::after{
 .sgp-quick-odds.pos{color:#30D158}.sgp-quick-odds:not(.pos){color:var(--gold)}
 .sgp-add-btn{padding:5px 12px;background:linear-gradient(135deg,var(--gold),var(--gold-b));color:#000;border-radius:20px;font-size:11px;font-weight:900;letter-spacing:.04em;transition:all .15s;box-shadow:0 2px 10px rgba(245,166,35,.3)}
 .sgp-add-btn:hover{transform:scale(1.05);box-shadow:0 4px 16px rgba(245,166,35,.5)}
+/* ── PROP CATEGORY TABS ───────────────────────────────────── */
+.prop-tabs-row{display:flex;gap:5px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:8px;flex-wrap:nowrap}
+.prop-tabs-row::-webkit-scrollbar{display:none}
+.prop-tab-btn{flex-shrink:0;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--t2);border:1px solid var(--bdr);transition:all .15s;white-space:nowrap}
+.prop-tab-btn.active{background:var(--bg-ch);color:var(--t1);border-color:var(--bdr-h)}
+.prop-group{transition:opacity .15s}
+.prop-group.hidden{display:none}
+/* ── CONSENSUS % ──────────────────────────────────────────── */
+.consensus-row{display:flex;align-items:center;gap:5px;margin-top:3px;padding:0 2px}
+.con-label{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.04em;white-space:nowrap}
+.con-bar{flex:1;height:3px;background:var(--bdr-h);border-radius:3px;overflow:hidden}
+.con-fill{height:100%;background:linear-gradient(90deg,var(--sport-accent,var(--gold)),rgba(245,166,35,.5));border-radius:3px}
 /* ── WIN PROBABILITY BAR ──────────────────────────────────── */
 .win-prob-bar{display:flex;height:3px;border-radius:3px;overflow:hidden;margin:6px 14px 0;gap:1px}
 .wpb-away{background:var(--sport-accent,var(--gold));opacity:.7;border-radius:3px 0 0 3px;position:relative;min-width:20px;transition:width .4s ease}
@@ -673,6 +685,18 @@ body::after{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3l2 5H10l2-5zM3.2 10l4 1-2 4-2-5zM20.8 10l-4 1 2 4 2-5zM7 19l1-4 3 2-4 2zM17 19l-1-4-3 2 4 2z"/></svg>
       EPL
     </button>
+    <button class="sport-tab" data-sport="soccer_spain_la_liga" onclick="switchSport(this)" aria-label="La Liga">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3l2 5H10l2-5zM3.2 10l4 1-2 4-2-5zM20.8 10l-4 1 2 4 2-5zM7 19l1-4 3 2-4 2zM17 19l-1-4-3 2 4 2z"/></svg>
+      La Liga
+    </button>
+    <button class="sport-tab" data-sport="soccer_germany_bundesliga" onclick="switchSport(this)" aria-label="Bundesliga">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3l2 5H10l2-5zM3.2 10l4 1-2 4-2-5zM20.8 10l-4 1 2 4 2-5zM7 19l1-4 3 2-4 2zM17 19l-1-4-3 2 4 2z"/></svg>
+      BL
+    </button>
+    <button class="sport-tab" data-sport="soccer_uefa_champs_league" onclick="switchSport(this)" aria-label="UEFA Champions League">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3l2 5H10l2-5zM3.2 10l4 1-2 4-2-5zM20.8 10l-4 1 2 4 2-5zM7 19l1-4 3 2-4 2zM17 19l-1-4-3 2 4 2z"/></svg>
+      UCL
+    </button>
     <button class="sport-tab" data-sport="mma_mixed_martial_arts" onclick="switchSport(this)" aria-label="UFC">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v5a6 6 0 0 1-6 6H8a4 4 0 0 1-4-4v-3a2 2 0 0 1 2-2h2V6Z"/><path d="M16 9h2a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-2"/></svg>
       UFC
@@ -769,6 +793,9 @@ const SPORTS = {
   baseball_mlb:           { label:'MLB',   icon:'⚾', espn:'baseball/mlb' },
   icehockey_nhl:          { label:'NHL',   icon:'🏒', espn:'hockey/nhl' },
   soccer_epl:             { label:'EPL',   icon:'⚽', espn:'soccer/eng.1' },
+  soccer_spain_la_liga:   { label:'La Liga',icon:'⚽', espn:'soccer/esp.1' },
+  soccer_germany_bundesliga:{ label:'Bundesliga',icon:'⚽', espn:'soccer/ger.1' },
+  soccer_uefa_champs_league:{ label:'UCL',  icon:'⚽', espn:'soccer/uer.1' },
   mma_mixed_martial_arts: { label:'UFC',   icon:'🥊', espn:'mma/ufc', versus:true },
   tennis_atp:             { label:'ATP',   icon:'🎾', espn:'tennis/atp', versus:true },
   padel_ppt:              { label:'PPT',   icon:'🏓', espn:null, versus:true, ppl:true },
@@ -783,6 +810,9 @@ const SPORT_ACCENTS = {
   baseball_mlb:           '#E8294B',
   icehockey_nhl:          '#4A9EFF',
   soccer_epl:             '#38D47A',
+  soccer_spain_la_liga:   '#C8102E',
+  soccer_germany_bundesliga:'#D20515',
+  soccer_uefa_champs_league:'#1B5FA8',
   mma_mixed_martial_arts: '#FF3B30',
   tennis_atp:             '#C8FF57',
   padel_ppt:              '#F5A623',
@@ -913,6 +943,28 @@ const PROP_SPORTS = {
       {k:'total_goals',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
     ],
   },
+  soccer_spain_la_liga:    { pos: [], gp: [
+    {k:'btts_ll',lb:'Both Teams to Score',t:'yesno'},
+    {k:'cs_ll',lb:'Home Clean Sheet',t:'yesno'},
+    {k:'corners_ll',lb:'Total Corners',lo:7.5,hi:12.5,st:0.5,t:'total'},
+    {k:'goals_ll',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
+    {k:'1h_g_ll',lb:'1st Half Goals',lo:0.5,hi:2.5,st:0.5,t:'total'},
+  ]},
+  soccer_germany_bundesliga:{ pos: [], gp: [
+    {k:'btts_bl',lb:'Both Teams to Score',t:'yesno'},
+    {k:'cs_bl',lb:'Away Clean Sheet',t:'yesno'},
+    {k:'goals_bl',lb:'Total Goals',lo:1.5,hi:4.5,st:0.5,t:'total'},
+    {k:'corners_bl',lb:'Total Corners',lo:8.5,hi:13.5,st:0.5,t:'total'},
+    {k:'1h_tot_bl',lb:'1st Half Total',lo:0.5,hi:2.5,st:0.5,t:'total'},
+  ]},
+  soccer_uefa_champs_league:{ pos: [], gp: [
+    {k:'btts_ucl',lb:'Both Teams to Score',t:'yesno'},
+    {k:'goals_ucl',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
+    {k:'cs_ucl',lb:'Home Clean Sheet',t:'yesno'},
+    {k:'et_ucl',lb:'Extra Time',t:'yesno'},
+    {k:'pen_ucl',lb:'Penalty Shootout',t:'yesno'},
+    {k:'1h_g_ucl',lb:'1st Half Goals',lo:0.5,hi:2.5,st:0.5,t:'total'},
+  ]},
   mma_mixed_martial_arts: {
     pos:[],
     gp:[
@@ -1075,6 +1127,15 @@ function toggleProps(el) {
   arrow.textContent = open ? '⌄' : '›';
   el.classList.toggle('open', open);
 }
+function switchPropTab(btn, group) {
+  const container = btn.closest('.game-props');
+  if (!container) return;
+  container.querySelectorAll('.prop-tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  container.querySelectorAll('.prop-group').forEach(g => {
+    g.classList.toggle('hidden', group !== 'all' && g.dataset.pgroup !== group);
+  });
+}
 
 function generatePlayerProps(g) {
   const gid = g.id, away = g.away_team, home = g.home_team, ct = g.commence_time;
@@ -1115,11 +1176,17 @@ function generatePlayerProps(g) {
     </button>`;
   };
 
-  let html = '';
+  const conBar = (seed, label) => {
+    const pct = 40 + (sh(seed+'con') % 41); // 40–80%
+    return `<div class="consensus-row"><span class="con-label">${pct}% bet ${esc(label)}</span><div class="con-bar"><div class="con-fill" style="width:${pct}%"></div></div></div>`;
+  };
+
+  let gPlayers = '', gGame = '', gSGP = '', gAlt = '';
+  const awayShort = away.split(' ').pop(), homeShort = home.split(' ').pop();
 
   // ── PLAYER PROPS ─────────────────────────────────────────
   if (cfg.pos.length) {
-    html += `<div class="props-sec-hdr">👤 Player Props</div>`;
+    gPlayers += `<div class="props-sec-hdr">👤 Player Props</div>`;
     const teams = [away, home];
     for (const posDef of cfg.pos) {
       for (let ti = 0; ti < 2; ti++) {
@@ -1132,15 +1199,15 @@ function generatePlayerProps(g) {
           if (prop.isYN) {
             const yo = propOdds(gid+prop.k+pName+'y', -165);
             const no = propOdds(gid+prop.k+pName+'n', 135);
-            rows += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(prop.lb)}</span><div class="odds-pair">${pBtn(mk,'Yes',yo,null)}${pBtn(mk,'No',no,null)}</div></div>`;
+            rows += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(prop.lb)}</span><div class="odds-pair">${pBtn(mk,'Yes',yo,null)}${pBtn(mk,'No',no,null)}</div></div>${conBar(gid+prop.k+pName,'Yes')}`;
           } else {
             const line = propLine(prop.lo,prop.hi,prop.st,gid+prop.k+pName);
             const oo = propOdds(gid+prop.k+pName+'o');
             const uo = propOdds(gid+prop.k+pName+'u');
-            rows += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(prop.lb)}</span><div class="odds-pair">${pBtn(mk,'Over',oo,'O '+line)}${pBtn(mk,'Under',uo,'U '+line)}</div></div>`;
+            rows += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(prop.lb)}</span><div class="odds-pair">${pBtn(mk,'Over',oo,'O '+line)}${pBtn(mk,'Under',uo,'U '+line)}</div></div>${conBar(gid+prop.k+pName,'Over')}`;
           }
         }
-        html += `<div class="player-prop-card">
+        gPlayers += `<div class="player-prop-card">
           <div class="player-prop-hdr">
             <span class="pos-badge">${esc(posDef.p)}</span>
             <span class="player-name">${esc(pName)}</span>
@@ -1152,30 +1219,29 @@ function generatePlayerProps(g) {
   }
 
   // ── GAME PROPS ────────────────────────────────────────────
-  html += `<div class="props-sec-hdr">🎯 Game Props</div>`;
-  const awayShort = away.split(' ').pop(), homeShort = home.split(' ').pop();
+  gGame += `<div class="props-sec-hdr">🎯 Game Props</div>`;
 
   for (const gp of cfg.gp) {
     const mk = `gp_${gp.k}`;
     if (gp.t === 'total') {
       const line = propLine(gp.lo,gp.hi,gp.st,gid+gp.k);
-      html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,'Over',propOdds(gid+gp.k+'o'),'O '+line)}${pBtn(mk,'Under',propOdds(gid+gp.k+'u'),'U '+line)}</div></div>`;
+      gGame += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,'Over',propOdds(gid+gp.k+'o'),'O '+line)}${pBtn(mk,'Under',propOdds(gid+gp.k+'u'),'U '+line)}</div></div>`;
     } else if (gp.t === 'ml') {
-      html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,awayShort,propOdds(gid+gp.k+'a',-130),null)}${pBtn(mk,homeShort,propOdds(gid+gp.k+'h',110),null)}</div></div>`;
+      gGame += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,awayShort,propOdds(gid+gp.k+'a',-130),null)}${pBtn(mk,homeShort,propOdds(gid+gp.k+'h',110),null)}</div></div>`;
     } else if (gp.t === 'spread') {
       const sp = getMarket(g,'spreads');
       const base = sp ? Math.abs(sp[0]?.point||3.5) : propLine(gp.lo,gp.hi,gp.st,gid+gp.k);
       const half = Math.round(base/2*2)/2;
-      html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,awayShort,propOdds(gid+gp.k+'a'),'+'+half)}${pBtn(mk,homeShort,propOdds(gid+gp.k+'h'),'-'+half)}</div></div>`;
+      gGame += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,awayShort,propOdds(gid+gp.k+'a'),'+'+half)}${pBtn(mk,homeShort,propOdds(gid+gp.k+'h'),'-'+half)}</div></div>`;
     } else if (gp.t === 'teams') {
-      html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,awayShort,propOdds(gid+gp.k+'a',-115),null)}${pBtn(mk,homeShort,propOdds(gid+gp.k+'h',-105),null)}</div></div>`;
+      gGame += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,awayShort,propOdds(gid+gp.k+'a',-115),null)}${pBtn(mk,homeShort,propOdds(gid+gp.k+'h',-105),null)}</div></div>`;
     } else if (gp.t === 'teamtot') {
       const off = gp.off||0;
       const line = (propLine(gp.lo,gp.hi,gp.st,gid+gp.k) + off).toFixed(1);
       const label = gp.tm==='away'?awayShort:homeShort;
-      html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)} · ${esc(label)}</span><div class="odds-pair">${pBtn(mk,'Over',propOdds(gid+gp.k+'o'),'O '+line)}${pBtn(mk,'Under',propOdds(gid+gp.k+'u'),'U '+line)}</div></div>`;
+      gGame += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)} · ${esc(label)}</span><div class="odds-pair">${pBtn(mk,'Over',propOdds(gid+gp.k+'o'),'O '+line)}${pBtn(mk,'Under',propOdds(gid+gp.k+'u'),'U '+line)}</div></div>`;
     } else if (gp.t === 'yesno') {
-      html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,'Yes',propOdds(gid+gp.k+'y',-120),null)}${pBtn(mk,'No',propOdds(gid+gp.k+'n',100),null)}</div></div>`;
+      gGame += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,'Yes',propOdds(gid+gp.k+'y',-120),null)}${pBtn(mk,'No',propOdds(gid+gp.k+'n',100),null)}</div></div>`;
     }
   }
 
@@ -1185,7 +1251,7 @@ function generatePlayerProps(g) {
     const tot2 = getMarket(g, 'totals');
     const sp2  = getMarket(g, 'spreads');
     if (ml2 && ml2.length >= 2 && tot2 && tot2.length >= 2) {
-      html += `<div class="props-sec-hdr">⚡ SGP Quick Picks</div>`;
+      gSGP += `<div class="props-sec-hdr">⚡ SGP Quick Picks</div>`;
       const favTeam = ml2.reduce((a,b) => a.price <= b.price ? a : b);
       const dogTeam = ml2.reduce((a,b) => a.price >= b.price ? a : b);
       const overO = tot2.find(o=>o.name==='Over') || tot2[0];
@@ -1197,13 +1263,10 @@ function generatePlayerProps(g) {
       const favShort = favTeam.name.split(' ').pop();
       const dogShort = dogTeam.name.split(' ').pop();
       const combos = [];
-      // Combo 1: Favorite ML + Over Total
       const c1 = [mkLeg('h2h',favTeam.name,favTeam.price,null), mkLeg('totals','Over',overO.price,overO.point)];
       combos.push({ desc:`<b>${favShort} ML</b> + <b>Over ${overO.point}</b>`, legs:c1 });
-      // Combo 2: Underdog ML + Under Total
       const c2 = [mkLeg('h2h',dogTeam.name,dogTeam.price,null), mkLeg('totals','Under',underO.price,underO.point)];
       combos.push({ desc:`<b>${dogShort} ML</b> + <b>Under ${underO.point}</b>`, legs:c2 });
-      // Combo 3: 3-leg — Fav ML + Over + Spread (if available)
       if (sp2 && sp2[0]) {
         const spFav = sp2.find(o=>o.name===favTeam.name) || sp2[0];
         const spSel = spFav.name.split(' ').pop();
@@ -1213,7 +1276,7 @@ function generatePlayerProps(g) {
       for (const c of combos) {
         const pOdds = calcParlayOdds(c.legs);
         const dataCombo = esc(JSON.stringify(c.legs));
-        html += `<div class="sgp-quick-card">
+        gSGP += `<div class="sgp-quick-card">
           <div class="sgp-quick-desc">${c.desc}</div>
           <div class="sgp-quick-footer">
             <span class="sgp-leg-count">${c.legs.length}-Leg SGP</span>
@@ -1233,7 +1296,7 @@ function generatePlayerProps(g) {
   if (altSp || altTot) {
     if (altSp && altSp[0]) {
       const base = Math.abs(altSp[0].point || 3.5);
-      html += `<div class="props-sec-hdr">📐 Alternate Spreads</div>`;
+      gAlt += `<div class="props-sec-hdr">📐 Alternate Spreads</div>`;
       const adjs = [-3, -1.5, 0, 1.5, 3];
       for (const adj of adjs) {
         const line = Math.round((base + adj) * 2) / 2;
@@ -1241,24 +1304,41 @@ function generatePlayerProps(g) {
         const awayO = Math.round(-110 + adj * 22);
         const homeO = Math.round(-110 - adj * 22);
         const mk = `alt_sp_${line}`;
-        html += `<div class="prop-market-row alt-line-row"><span class="prop-mkt-lbl">${line}</span><div class="odds-pair">${pBtn(mk,awayShort,awayO,'+'+line)}${pBtn(mk,homeShort,homeO,'-'+line)}</div></div>`;
+        gAlt += `<div class="prop-market-row alt-line-row"><span class="prop-mkt-lbl">${line}</span><div class="odds-pair">${pBtn(mk,awayShort,awayO,'+'+line)}${pBtn(mk,homeShort,homeO,'-'+line)}</div></div>`;
       }
     }
     if (altTot && altTot[0]) {
       const base = altTot[0].point || 44.5;
-      html += `<div class="props-sec-hdr">📐 Alternate Totals</div>`;
+      gAlt += `<div class="props-sec-hdr">📐 Alternate Totals</div>`;
       const adjs = [-7.5, -4, 0, 4, 7.5];
       for (const adj of adjs) {
         const line = (Math.round((base + adj) * 2) / 2).toFixed(1);
         const overO = Math.round(-110 - adj * 13);
         const underO = Math.round(-110 + adj * 13);
         const mk = `alt_tot_${line}`;
-        html += `<div class="prop-market-row alt-line-row"><span class="prop-mkt-lbl">${line}</span><div class="odds-pair">${pBtn(mk,'Over',overO,'O '+line)}${pBtn(mk,'Under',underO,'U '+line)}</div></div>`;
+        gAlt += `<div class="prop-market-row alt-line-row"><span class="prop-mkt-lbl">${line}</span><div class="odds-pair">${pBtn(mk,'Over',overO,'O '+line)}${pBtn(mk,'Under',underO,'U '+line)}</div></div>`;
       }
     }
   }
 
-  return html;
+  // ── ASSEMBLE WITH TABS ────────────────────────────────────
+  const tabs = [
+    {id:'all',label:'All'},
+    gPlayers ? {id:'players',label:'👤 Players'} : null,
+    gGame ? {id:'game',label:'🎯 Game'} : null,
+    gSGP ? {id:'sgp',label:'⚡ SGP'} : null,
+    gAlt ? {id:'alt',label:'📐 Alt Lines'} : null,
+  ].filter(Boolean);
+
+  const tabRow = `<div class="prop-tabs-row">${tabs.map((t,i)=>
+    `<button class="prop-tab-btn${i===0?' active':''}" onclick="switchPropTab(this,'${t.id}')">${t.label}</button>`
+  ).join('')}</div>`;
+
+  return tabRow
+    + (gPlayers ? `<div class="prop-group" data-pgroup="players">${gPlayers}</div>` : '')
+    + (gGame ? `<div class="prop-group" data-pgroup="game">${gGame}</div>` : '')
+    + (gSGP ? `<div class="prop-group" data-pgroup="sgp">${gSGP}</div>` : '')
+    + (gAlt ? `<div class="prop-group" data-pgroup="alt">${gAlt}</div>` : '');
 }
 
 // Fake but consistent odds movement seeded by game id + market + outcome
