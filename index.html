@@ -396,8 +396,9 @@ body::after{
 .bft-btn.active{background:var(--gold-bg);border-color:var(--gold);color:var(--gold)}
 .parlay-legs-list{margin-bottom:12px}
 /* ── SLIP LEG rows ──────────────────────────────────────── */
-.sl-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}
-.sl-game{font-size:10px;color:var(--t2);font-weight:600}
+.sl-header{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px}
+.sl-sport{font-size:13px;flex-shrink:0}
+.sl-game{font-size:10px;color:var(--t2);font-weight:600;flex:1}
 .sl-remove{background:none;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:0;line-height:1;flex-shrink:0;transition:color .15s}
 .sl-remove:hover{color:var(--loss)}
 .sl-pick{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -878,10 +879,10 @@ const PLAYER_LASTS  = ['Williams','Johnson','Davis','Brown','Jones','Miller','Wi
 const PROP_SPORTS = {
   americanfootball_nfl: {
     pos:[
-      {p:'QB',props:[{k:'pyd',lb:'Pass Yards',lo:195,hi:330,st:0.5},{k:'ptd',lb:'Pass TDs',lo:0.5,hi:3.5,st:0.5},{k:'ryd_qb',lb:'Rush Yards',lo:5,hi:40,st:0.5},{k:'int',lb:'Interceptions',lo:0.5,hi:1.5,st:0.5}]},
-      {p:'RB',props:[{k:'ryd',lb:'Rush Yards',lo:42,hi:108,st:0.5},{k:'att',lb:'Rush Attempts',lo:9.5,hi:19.5,st:1},{k:'rcyd',lb:'Rec Yards',lo:8,hi:45,st:0.5},{k:'rtd',lb:'Rushing TD',lo:0.5,hi:0.5,st:0,isYN:true}]},
-      {p:'WR',props:[{k:'wyd',lb:'Rec Yards',lo:35,hi:92,st:0.5},{k:'rec',lb:'Receptions',lo:2.5,hi:7.5,st:0.5},{k:'wtd',lb:'Rec TD',lo:0.5,hi:1.5,st:0.5}]},
-      {p:'TE',props:[{k:'tyd',lb:'Rec Yards',lo:18,hi:62,st:0.5},{k:'trec',lb:'Receptions',lo:1.5,hi:5.5,st:0.5},{k:'ttd',lb:'Rec TD',lo:0.5,hi:0.5,st:0,isYN:true}]},
+      {p:'QB',props:[{k:'pyd',lb:'Pass Yards',lo:195,hi:330,st:0.5},{k:'ptd',lb:'Pass TDs',lo:0.5,hi:3.5,st:0.5},{k:'ryd_qb',lb:'Rush Yards',lo:5,hi:40,st:0.5},{k:'int',lb:'Interceptions',lo:0.5,hi:1.5,st:0.5},{k:'comp',lb:'Completions',lo:14.5,hi:28.5,st:0.5},{k:'lng_pass',lb:'Longest Pass',lo:22,hi:46,st:0.5},{k:'cpct',lb:'Completion %',lo:58,hi:76,st:0.5}]},
+      {p:'RB',props:[{k:'ryd',lb:'Rush Yards',lo:42,hi:108,st:0.5},{k:'att',lb:'Rush Attempts',lo:9.5,hi:19.5,st:1},{k:'rcyd',lb:'Rec Yards',lo:8,hi:45,st:0.5},{k:'rtd',lb:'Rushing TD',lo:0.5,hi:0.5,st:0,isYN:true},{k:'lng_rush',lb:'Longest Rush',lo:6,hi:28,st:0.5},{k:'scr',lb:'Scrimmage Yards',lo:50,hi:130,st:0.5}]},
+      {p:'WR',props:[{k:'wyd',lb:'Rec Yards',lo:35,hi:92,st:0.5},{k:'rec',lb:'Receptions',lo:2.5,hi:7.5,st:0.5},{k:'wtd',lb:'Rec TD',lo:0.5,hi:1.5,st:0.5},{k:'tgt',lb:'Targets',lo:3.5,hi:10.5,st:0.5},{k:'lng_rec_wr',lb:'Longest Reception',lo:12,hi:38,st:0.5}]},
+      {p:'TE',props:[{k:'tyd',lb:'Rec Yards',lo:18,hi:62,st:0.5},{k:'trec',lb:'Receptions',lo:1.5,hi:5.5,st:0.5},{k:'ttd',lb:'Rec TD',lo:0.5,hi:0.5,st:0,isYN:true},{k:'ttgt',lb:'Targets',lo:2.5,hi:8.5,st:0.5},{k:'lng_rec_te',lb:'Longest Reception',lo:8,hi:28,st:0.5}]},
     ],
     gp:[
       {k:'1h_tot',lb:'1st Half Total',lo:18,hi:27,st:0.5,t:'total'},
@@ -914,10 +915,10 @@ const PROP_SPORTS = {
   },
   basketball_nba: {
     pos:[
-      {p:'PG',props:[{k:'pts_pg',lb:'Points',lo:14,hi:34,st:0.5},{k:'ast',lb:'Assists',lo:4.5,hi:11.5,st:0.5},{k:'3pm',lb:'3-Pointers Made',lo:1.5,hi:4.5,st:0.5},{k:'pra',lb:'Pts+Reb+Ast',lo:24,hi:48,st:0.5}]},
-      {p:'SG',props:[{k:'pts_sg',lb:'Points',lo:10,hi:28,st:0.5},{k:'3pm_sg',lb:'3-Pointers Made',lo:1.5,hi:4.5,st:0.5},{k:'reb_sg',lb:'Rebounds',lo:2.5,hi:6.5,st:0.5}]},
-      {p:'SF',props:[{k:'pts_sf',lb:'Points',lo:12,hi:30,st:0.5},{k:'reb_sf',lb:'Rebounds',lo:4.5,hi:9.5,st:0.5},{k:'ast_sf',lb:'Assists',lo:1.5,hi:5.5,st:0.5}]},
-      {p:'C', props:[{k:'pts_c',lb:'Points',lo:10,hi:26,st:0.5},{k:'reb_c',lb:'Rebounds',lo:8.5,hi:15.5,st:0.5},{k:'blk',lb:'Blocks',lo:0.5,hi:2.5,st:0.5},{k:'pra_c',lb:'Pts+Reb+Ast',lo:20,hi:42,st:0.5}]},
+      {p:'PG',props:[{k:'pts_pg',lb:'Points',lo:14,hi:34,st:0.5},{k:'ast',lb:'Assists',lo:4.5,hi:11.5,st:0.5},{k:'3pm',lb:'3-Pointers Made',lo:1.5,hi:4.5,st:0.5},{k:'pra',lb:'Pts+Reb+Ast',lo:24,hi:48,st:0.5},{k:'stl_pg',lb:'Steals',lo:0.5,hi:2.5,st:0.5},{k:'pa',lb:'Pts+Ast',lo:18,hi:42,st:0.5},{k:'tov_pg',lb:'Turnovers',lo:1.5,hi:5.5,st:0.5}]},
+      {p:'SG',props:[{k:'pts_sg',lb:'Points',lo:10,hi:28,st:0.5},{k:'3pm_sg',lb:'3-Pointers Made',lo:1.5,hi:4.5,st:0.5},{k:'reb_sg',lb:'Rebounds',lo:2.5,hi:6.5,st:0.5},{k:'ast_sg',lb:'Assists',lo:1.5,hi:5.5,st:0.5},{k:'stl_sg',lb:'Steals',lo:0.5,hi:2.5,st:0.5}]},
+      {p:'SF',props:[{k:'pts_sf',lb:'Points',lo:12,hi:30,st:0.5},{k:'reb_sf',lb:'Rebounds',lo:4.5,hi:9.5,st:0.5},{k:'ast_sf',lb:'Assists',lo:1.5,hi:5.5,st:0.5},{k:'3pm_sf',lb:'3-Pointers Made',lo:0.5,hi:3.5,st:0.5},{k:'pr_sf',lb:'Pts+Reb',lo:16,hi:38,st:0.5}]},
+      {p:'C', props:[{k:'pts_c',lb:'Points',lo:10,hi:26,st:0.5},{k:'reb_c',lb:'Rebounds',lo:8.5,hi:15.5,st:0.5},{k:'blk',lb:'Blocks',lo:0.5,hi:2.5,st:0.5},{k:'pra_c',lb:'Pts+Reb+Ast',lo:20,hi:42,st:0.5},{k:'fgm_c',lb:'FG Made',lo:4.5,hi:10.5,st:0.5},{k:'pr_c',lb:'Pts+Reb',lo:18,hi:40,st:0.5}]},
     ],
     gp:[
       {k:'1q_tot',lb:'1st Quarter Total',lo:50,hi:66,st:0.5,t:'total'},
@@ -2514,19 +2515,29 @@ function openBetSlip() {
       ${canRR?`<button class="slip-mode-btn ${slipMode==='rr'?'active':''}" onclick="setSlipMode('rr')">Round Robin</button>`:''}
     </div>` : '';
 
+  // Sport icon helper
+  const sportIcon = () => SPORTS[currentSport]?.icon || '🎯';
   // Leg list
-  const legsHtml = betSlipLegs.map((leg,i) => `
-    <div class="slip-leg">
+  const legsHtml = betSlipLegs.map((leg,i) => {
+    const mktLabel = leg.market.startsWith('pp_') ? 'Player Prop'
+      : leg.market.startsWith('gp_') ? 'Game Prop'
+      : leg.market.startsWith('alt_') ? 'Alt Line'
+      : leg.market.startsWith('live_') ? '🔴 Live'
+      : leg.market.startsWith('futures_') ? '🏆 Future'
+      : MARKET_LABELS[leg.market] || leg.market;
+    return `<div class="slip-leg">
       <div class="sl-header">
-        <span class="sl-game">${esc(leg.awayTeam)} @ ${esc(leg.homeTeam)}</span>
+        <span class="sl-sport">${sportIcon()}</span>
+        <span class="sl-game">${esc(leg.awayTeam?.split(' ').pop()||leg.awayTeam||'')} @ ${esc(leg.homeTeam?.split(' ').pop()||leg.homeTeam||'')}</span>
         <button class="sl-remove" onclick="removeLeg(${i})" title="Remove">✕</button>
       </div>
       <div class="sl-pick">
-        <span class="sl-market">${MARKET_LABELS[leg.market]||leg.market}</span>
+        <span class="sl-market">${esc(mktLabel)}</span>
         <span class="sl-sel">${esc(selLabel(leg))}</span>
         <span class="bs-pick-odds ${leg.odds>0?'pos':'neg'}">${fmtOdds(leg.odds)}</span>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   // Detect SGP (multiple legs from same game)
   const gameIds = betSlipLegs.map(l=>l.gameId);
