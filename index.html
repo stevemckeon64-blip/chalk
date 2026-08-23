@@ -1640,7 +1640,14 @@ function updateFab() {
   const fab = document.getElementById('slipFab');
   const cnt = document.getElementById('fabCount');
   const n = betSlipLegs.length;
-  if (fab) fab.classList.toggle('visible', n > 0);
+  if (fab) {
+    fab.classList.toggle('visible', n > 0);
+    // Dynamic label
+    const gameIds = betSlipLegs.map(l=>l.gameId);
+    const isSGP = n > 1 && gameIds.length !== new Set(gameIds).size;
+    const label = n === 0 ? 'Bet Slip' : n === 1 ? 'Bet Slip' : isSGP ? 'SGP Builder' : 'Open Parlay';
+    fab.childNodes[0].textContent = label + ' ';
+  }
   if (cnt) cnt.textContent = n;
   // Re-sync in-slip class on all rendered odds buttons
   document.querySelectorAll('.odds-btn').forEach(btn => {
@@ -1717,6 +1724,28 @@ function openBetSlip() {
     <button class="bs-place-btn" id="bsPlaceBtn" onclick="placeBet()">Place ${isParlay?'Parlay':'Bet'}</button>`;
   document.getElementById('betSlipWrap').style.display = 'flex';
   updateBsPayout();
+  // Mobile swipe-to-dismiss
+  const panel = document.querySelector('.bet-slip-panel');
+  if (panel && window.innerWidth <= 600) {
+    let startY = null;
+    const onStart = e => { startY = e.touches[0].clientY; };
+    const onMove = e => {
+      if (startY === null) return;
+      const dy = e.touches[0].clientY - startY;
+      if (dy > 0) { panel.style.transform = `translateY(${dy}px)`; panel.style.transition = 'none'; }
+    };
+    const onEnd = e => {
+      if (startY === null) return;
+      const dy = e.changedTouches[0].clientY - startY;
+      panel.style.transition = '';
+      panel.style.transform = '';
+      startY = null;
+      if (dy > 100) closeBetSlip();
+    };
+    panel.addEventListener('touchstart', onStart, {passive:true});
+    panel.addEventListener('touchmove', onMove, {passive:true});
+    panel.addEventListener('touchend', onEnd, {passive:true});
+  }
 }
 
 function setSlipMode(mode) { slipMode = mode; openBetSlip(); }
@@ -2113,6 +2142,14 @@ async function loadProfileView() {
   }
   const streakLabel = streak > 0 ? `${streak} ${streakType === 'won' ? 'W' : 'L'}` : '—';
   const streakClass = streakType === 'won' ? 'pos' : streakType === 'lost' ? 'neg' : '';
+  // Visual streak squares (last 10 settled bets)
+  const recentResults = settled.slice(0,10).reverse();
+  const streakSquares = recentResults.map(b=>{
+    const col = b.status==='won' ? 'var(--win)' : b.status==='lost' ? 'var(--loss)' : 'var(--push)';
+    const lbl = b.status==='won' ? 'W' : b.status==='lost' ? 'L' : 'P';
+    return `<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:4px;background:${col}22;border:1px solid ${col}55;font-size:9px;font-weight:800;color:${col}">${lbl}</span>`;
+  }).join('');
+  const streakViz = recentResults.length ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;margin-bottom:4px">${streakSquares}</div>` : '';
 
   // Sport breakdown
   const sportCounts = {};
@@ -2160,6 +2197,7 @@ async function loadProfileView() {
       <div class="stat-tile"><div class="st-val pos">${bestWin>0?'+'+fmt(bestWin):'—'}</div><div class="st-lbl">Best Win</div></div>
       <div class="stat-tile"><div class="st-val neg">${biggestLoss>0?'-'+fmt(biggestLoss):'—'}</div><div class="st-lbl">Worst Loss</div></div>
     </div>
+    ${streakViz ? `<div class="profile-section-hdr">Last ${recentResults.length} Bets</div>${streakViz}` : ''}
     ${sportBreakdown}
     <div class="profile-section-hdr">P&amp;L History</div>
     <canvas id="pnlSparkline" class="pnl-sparkline"></canvas>
