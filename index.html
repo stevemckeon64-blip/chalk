@@ -414,6 +414,25 @@ body::after{
 .sb-bar-wrap{flex:1;height:6px;background:var(--bg-ch);border-radius:3px;overflow:hidden}
 .sb-bar{height:100%;border-radius:3px;transition:width .4s ease}
 .sb-count{font-size:11px;color:var(--t3);width:24px;text-align:right;flex-shrink:0}
+/* ── LIVE SCORES TICKER ─────────────────────────────────── */
+.live-ticker-wrap{display:flex;align-items:center;gap:0;background:rgba(255,59,48,.08);border-bottom:1px solid rgba(255,59,48,.2);overflow:hidden;height:28px;flex-shrink:0}
+.ticker-label{font-size:8px;font-weight:900;letter-spacing:.14em;color:#fff;background:var(--live);padding:4px 8px;white-space:nowrap;flex-shrink:0;height:100%;display:flex;align-items:center}
+.ticker-track{display:flex;align-items:center;gap:0;white-space:nowrap;animation:tickerScroll 40s linear infinite;flex-shrink:0}
+.ticker-track:hover{animation-play-state:paused}
+@keyframes tickerScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ticker-item{display:inline-flex;align-items:center;gap:8px;padding:0 16px;font-size:11px;font-weight:700;color:var(--t1)}
+.ticker-teams{font-variant-numeric:tabular-nums}
+.ticker-period{font-size:9px;color:var(--live);font-weight:800;text-transform:uppercase}
+.ticker-sep{color:var(--t3);padding:0 8px;font-size:10px}
+/* ── MORE MARKETS toggle ────────────────────────────────── */
+.more-markets-toggle{display:flex;align-items:center;justify-content:space-between;padding:7px 14px;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--t3);cursor:pointer;border-top:1px solid var(--bdr);transition:color .15s,background .15s;text-transform:uppercase}
+.more-markets-toggle:hover,.more-markets-toggle.open{color:var(--gold);background:var(--gold-dim)}
+.mm-arrow{font-size:14px;transition:transform .15s}
+.more-markets-toggle.open .mm-arrow{transform:rotate(90deg)}
+/* ── GAME PROPS section ─────────────────────────────────── */
+.game-props{padding:10px 14px 12px;background:var(--bg);border-top:1px solid var(--bdr);display:grid;gap:10px}
+.prop-row{}
+.prop-btn{min-height:52px}
 /* ── TIER CHIP in header ────────────────────────────────── */
 .tier-chip{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border:1px solid;border-radius:20px;padding:2px 8px;display:inline-flex;align-items:center;gap:3px;flex-shrink:0}
 /* ── TIER CARD in profile ───────────────────────────────── */
@@ -554,6 +573,10 @@ body::after{
   </div>
   <div class="main-content">
     <div class="view active" id="view-games">
+      <div id="liveTickerWrap" class="live-ticker-wrap" style="display:none">
+        <div class="ticker-label">LIVE</div>
+        <div class="ticker-track" id="tickerTrack"></div>
+      </div>
       <div id="featuredSection" class="featured-section" style="display:none">
         <div class="featured-lbl">🔥 Featured</div>
         <div class="featured-scroll" id="featuredScroll"></div>
@@ -644,6 +667,88 @@ function calcParlayOdds(legs) {
   return dec >= 2 ? Math.round((dec-1)*100) : Math.round(-100/(dec-1));
 }
 function legKey(leg) { return `${leg.gameId}_${leg.market}_${leg.selection}`; }
+
+async function loadLiveTicker(sport) {
+  const wrap = document.getElementById('liveTickerWrap');
+  const track = document.getElementById('tickerTrack');
+  if (!wrap || !track) return;
+  const espn = SPORTS[sport]?.espn;
+  if (!espn) { wrap.style.display='none'; return; }
+  try {
+    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espn}/scoreboard`);
+    const { events=[] } = await res.json();
+    const live = events.filter(ev => ev.status?.type?.state === 'in');
+    if (!live.length) { wrap.style.display='none'; return; }
+    const items = live.map(ev => {
+      const comp = ev.competitions?.[0];
+      const cs = comp?.competitors||[];
+      const home = cs.find(c=>c.homeAway==='home')||cs[1];
+      const away = cs.find(c=>c.homeAway==='away')||cs[0];
+      if (!home||!away) return '';
+      const getName = c => (c.team?.abbreviation||c.team?.displayName||c.athlete?.displayName||'?').substring(0,12);
+      const hs = home.score||'0', as_ = away.score||'0';
+      const period = comp?.status?.type?.shortDetail||'';
+      return `<span class="ticker-item"><span class="ticker-teams">${esc(getName(away))} ${esc(as_)} – ${esc(hs)} ${esc(getName(home))}</span><span class="ticker-period">${esc(period)}</span></span>`;
+    }).filter(Boolean).join('<span class="ticker-sep">·</span>');
+    if (!items) { wrap.style.display='none'; return; }
+    // Duplicate for seamless loop
+    track.innerHTML = items + '<span class="ticker-sep">·</span>' + items;
+    wrap.style.display='flex';
+  } catch(e) { wrap.style.display='none'; }
+}
+
+function toggleProps(el) {
+  const props = el.nextElementSibling;
+  const arrow = el.querySelector('.mm-arrow');
+  const open = props.style.display === 'none';
+  props.style.display = open ? 'block' : 'none';
+  arrow.textContent = open ? '⌄' : '›';
+  el.classList.toggle('open', open);
+}
+
+function generateGameProps(g) {
+  // Seed random values from game id for consistency
+  const seed = s => { let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))&0xFFFFFFFF; return h; };
+  const rng = (s,n) => ((seed(s) % n) + n) % n;
+  const home = g.home_team, away = g.away_team, gid = g.id;
+
+  const propDefs = [
+    { label:'1st Half Total', outcomes: [
+        { name:'Over', price: -110 + rng(gid+'1ho',20) - 10, point: 22 + rng(gid+'1hp',15) * 0.5 },
+        { name:'Under', price: -110 + rng(gid+'1hu',20) - 10, point: 22 + rng(gid+'1hp',15) * 0.5 },
+    ]},
+    { label:`${away} 1H ML`, outcomes: [
+        { name: away, price: -115 + rng(gid+'a1ml',80) - 40 },
+        { name: home, price: -115 + rng(gid+'h1ml',80) - 40 },
+    ]},
+    { label:'Team to Score 1st', outcomes: [
+        { name: away, price: -120 + rng(gid+'tts1',60) - 30 },
+        { name: home, price: -120 + rng(gid+'tts2',60) - 30 },
+    ]},
+  ];
+
+  return propDefs.map(prop => {
+    const btns = prop.outcomes.map((o,i) => {
+      const mv = oddsMovement(gid, prop.label, i);
+      const inSlip = betSlipLegs.some(l => l.gameId===g.id && l.market===prop.label && l.selection===o.name);
+      return `<button class="odds-btn${inSlip?' in-slip':''} prop-btn"
+        data-gid="${esc(gid)}" data-market="${esc(prop.label)}" data-sel="${esc(o.name)}"
+        data-odds="${o.price}" data-line="${o.point??''}"
+        data-home="${esc(home)}" data-away="${esc(away)}" data-ct="${esc(g.commence_time)}">
+        <span class="ob-team">${esc(o.name.split(' ').slice(-1)[0])}</span>
+        ${o.point!=null?`<span class="ob-line">${o.point}</span>`:''}
+        <span class="ob-odds-row">
+          <span class="ob-odds ${o.price>0?'pos':'neg'}">${fmtOdds(o.price)}</span>
+          ${mv.label?`<span class="ob-move ${mv.cls}">${mv.label}</span>`:''}
+        </span>
+      </button>`;
+    }).join('');
+    return `<div class="prop-row">
+      <div class="market-lbl" style="font-size:9px;margin-bottom:6px">${esc(prop.label)}</div>
+      <div class="odds-pair">${btns}</div>
+    </div>`;
+  }).join('');
+}
 
 // Fake but consistent odds movement seeded by game id + market + outcome
 function oddsMovement(gameId, market, selIdx) {
@@ -1215,6 +1320,7 @@ async function loadGames(sport) {
   _allGames = games;
   renderFeatured(games);
   renderGames(games);
+  loadLiveTicker(sport);
 }
 
 function renderFeatured(games) {
@@ -1331,6 +1437,9 @@ function renderGameCard(g) {
   const awayLogoHtml = g.away_logo ? `<img class="team-logo" src="${esc(g.away_logo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
   const homeLogoHtml = g.home_logo ? `<img class="team-logo" src="${esc(g.home_logo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
 
+  // Generate seeded game-level props
+  const propsHtml = isVersus ? '' : generateGameProps(g);
+
   return `<div class="game-card${g.isLive?' is-live':''}" style="--sport-accent:${accent}">
     <div class="game-card-accent-bar"></div>
     <div class="game-card-top">
@@ -1341,6 +1450,11 @@ function renderGameCard(g) {
       <div class="game-meta">${liveBadge}${soonLabel}<div class="game-time">${time}</div></div>
     </div>
     <div class="game-markets">${marketsHtml}</div>
+    ${propsHtml ? `
+    <div class="more-markets-toggle" onclick="toggleProps(this)">
+      <span>More Markets</span><span class="mm-arrow">›</span>
+    </div>
+    <div class="game-props" style="display:none">${propsHtml}</div>` : ''}
   </div>`;
 }
 
@@ -1365,9 +1479,7 @@ function toggleLeg(leg, triggerBtn) {
     // Already in slip — remove it
     betSlipLegs.splice(idx, 1);
   } else {
-    // Remove any existing leg from the same game (one per game)
-    betSlipLegs = betSlipLegs.filter(l => l.gameId !== leg.gameId);
-    betSlipLegs.push(leg);
+    betSlipLegs.push(leg); // Allow multiple legs from same game (SGP)
   }
   updateFab();
   if (betSlipLegs.length === 0) { closeBetSlip(); return; }
@@ -1420,10 +1532,18 @@ function openBetSlip() {
       </div>
     </div>`).join('');
 
+  // Detect SGP (multiple legs from same game)
+  const gameIds = betSlipLegs.map(l=>l.gameId);
+  const hasSGP = gameIds.length !== new Set(gameIds).size;
+  const parlayLabel = hasSGP ? 'Same-Game Parlay' : `${betSlipLegs.length}-Leg Parlay`;
+
   // Parlay summary bar
   const summaryBar = isParlay ? `
     <div class="parlay-summary">
-      <span>${betSlipLegs.length}-Leg Parlay</span>
+      <div>
+        <div style="font-size:13px;font-weight:800">${parlayLabel}</div>
+        ${hasSGP ? `<div style="font-size:10px;color:var(--t3);margin-top:2px">Odds not correlation-adjusted</div>` : ''}
+      </div>
       <span class="bs-pick-odds ${displayOdds>0?'pos':'neg'}">${fmtOdds(displayOdds)}</span>
     </div>` : '';
 
