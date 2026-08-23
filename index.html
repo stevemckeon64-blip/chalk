@@ -479,6 +479,18 @@ body::after{
 /* ── ALT LINES ────────────────────────────────────────────── */
 .alt-line-row{background:rgba(255,255,255,.018);border-radius:6px;margin-bottom:2px}
 .alt-line-row .prop-mkt-lbl{font-variant-numeric:tabular-nums;color:var(--t2);min-width:40px;font-size:11px;font-weight:700;letter-spacing:.02em}
+/* ── SGP QUICK PICKS ──────────────────────────────────────── */
+.sgp-quick-card{background:linear-gradient(135deg,rgba(245,166,35,.07),rgba(245,166,35,.02));border:1px solid rgba(245,166,35,.25);border-radius:8px;padding:10px 12px;margin-bottom:7px;position:relative;overflow:hidden}
+.sgp-quick-card::before{content:'SGP';position:absolute;right:8px;top:6px;font-size:8px;font-weight:900;letter-spacing:.12em;color:var(--gold);opacity:.3}
+.sgp-quick-desc{font-size:11px;color:var(--t1);font-weight:600;line-height:1.4;margin-bottom:8px}
+.sgp-quick-desc b{color:var(--gold)}
+.sgp-quick-footer{display:flex;align-items:center;justify-content:space-between}
+.sgp-leg-count{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
+.sgp-right{display:flex;align-items:center;gap:8px}
+.sgp-quick-odds{font-size:15px;font-weight:900;font-variant-numeric:tabular-nums}
+.sgp-quick-odds.pos{color:#30D158}.sgp-quick-odds:not(.pos){color:var(--gold)}
+.sgp-add-btn{padding:5px 12px;background:linear-gradient(135deg,var(--gold),var(--gold-b));color:#000;border-radius:20px;font-size:11px;font-weight:900;letter-spacing:.04em;transition:all .15s;box-shadow:0 2px 10px rgba(245,166,35,.3)}
+.sgp-add-btn:hover{transform:scale(1.05);box-shadow:0 4px 16px rgba(245,166,35,.5)}
 /* ── PLAYER PROPS ─────────────────────────────────────────── */
 .props-sec-hdr{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);padding:8px 0 6px;border-top:1px solid var(--bdr);margin-top:4px}
 .props-sec-hdr:first-child{border-top:none;margin-top:0;padding-top:0}
@@ -782,6 +794,11 @@ const PROP_SPORTS = {
       {k:'att_td',lb:'Anytime TD Scorer',t:'teams'},
       {k:'away_tot',lb:'Away Team Total',lo:14,hi:25,st:0.5,t:'teamtot',tm:'away'},
       {k:'home_tot',lb:'Home Team Total',lo:14,hi:25,st:0.5,t:'teamtot',tm:'home',off:2},
+      {k:'2h_tot',lb:'2nd Half Total',lo:17,hi:26,st:0.5,t:'total'},
+      {k:'2h_ml',lb:'2nd Half Moneyline',t:'ml'},
+      {k:'ot_game',lb:'Game Goes to OT',t:'yesno'},
+      {k:'lead_1q',lb:'Lead After 1st Quarter',t:'teams'},
+      {k:'lead_1h',lb:'Lead at Halftime',t:'teams'},
     ],
   },
   americanfootball_ncaaf: {
@@ -812,6 +829,9 @@ const PROP_SPORTS = {
       {k:'race_20',lb:'Race to 20 Points',t:'teams'},
       {k:'away_tot_nba',lb:'Away Team Total',lo:100,hi:120,st:0.5,t:'teamtot',tm:'away'},
       {k:'home_tot_nba',lb:'Home Team Total',lo:100,hi:120,st:0.5,t:'teamtot',tm:'home',off:3},
+      {k:'1q_ml',lb:'1st Quarter Winner',t:'ml'},
+      {k:'3q_tot',lb:'3rd Quarter Total',lo:46,hi:60,st:0.5,t:'total'},
+      {k:'ot_nba',lb:'Game Goes to OT',t:'yesno'},
     ],
   },
   baseball_mlb: {
@@ -840,6 +860,9 @@ const PROP_SPORTS = {
       {k:'score_1p',lb:'Team to Score in 1st',t:'teams'},
       {k:'away_tot_nhl',lb:'Away Team Total',lo:1.5,hi:3.5,st:0.5,t:'teamtot',tm:'away'},
       {k:'home_tot_nhl',lb:'Home Team Total',lo:1.5,hi:3.5,st:0.5,t:'teamtot',tm:'home',off:0.5},
+      {k:'ot_nhl',lb:'Game Goes to OT/SO',t:'yesno'},
+      {k:'shutout',lb:'Shutout (Y/N)',t:'yesno'},
+      {k:'2p_tot',lb:'2nd Period Total',lo:0.5,hi:2.5,st:0.5,t:'total'},
     ],
   },
   soccer_epl: {
@@ -854,6 +877,9 @@ const PROP_SPORTS = {
       {k:'corners',lb:'Total Corners',lo:7.5,hi:12.5,st:0.5,t:'total'},
       {k:'cards',lb:'Total Cards',lo:2.5,hi:5.5,st:0.5,t:'total'},
       {k:'1h_goals',lb:'1st Half Goals',lo:0.5,hi:2.5,st:0.5,t:'total'},
+      {k:'dnb',lb:'Draw No Bet Away',t:'teams'},
+      {k:'ht_ft',lb:'HT/FT — Away Win',t:'yesno'},
+      {k:'total_goals',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
     ],
   },
   mma_mixed_martial_arts: {
@@ -865,6 +891,9 @@ const PROP_SPORTS = {
       {k:'tot_rds',lb:'Total Rounds',lo:1.5,hi:4.5,st:0.5,t:'total'},
       {k:'distance',lb:'Fight Goes Distance',t:'yesno'},
       {k:'kd',lb:'Fighter Knockdown (Y/N)',t:'yesno'},
+      {k:'r1_finish',lb:'Finish in Round 1',t:'yesno'},
+      {k:'r2_finish',lb:'Finish in Round 2',t:'yesno'},
+      {k:'r3_finish',lb:'Finish in Round 3',t:'yesno'},
     ],
   },
   tennis_atp: {
@@ -927,7 +956,36 @@ const FUTURES_MARKETS = [
     {n:'O. Watkins (AVL)',o:800},{n:'C. Palmer (CHE)',o:900},{n:'D. Núñez (LIV)',o:1200},
     {n:'A. Isak (NEW)',o:1500},{n:'A. Saka (ARS)',o:2000},
   ]},
+  { id:'ncaab', sport:'nba', title:'🏀 March Madness Champion', icon:'🏆', teams:[
+    {n:'Kansas Jayhawks',o:450},{n:'Duke Blue Devils',o:500},{n:'Kentucky Wildcats',o:600},
+    {n:'Gonzaga Bulldogs',o:700},{n:'Houston Cougars',o:800},{n:'Auburn Tigers',o:1000},
+    {n:'Arizona Wildcats',o:1200},{n:'Baylor Bears',o:1400},{n:'UConn Huskies',o:1600},
+    {n:'Tennessee Volunteers',o:1800},{n:'Purdue Boilermakers',o:2000},{n:'Michigan State',o:2500},
+    {n:'Alabama Crimson Tide',o:3000},{n:'Indiana Hoosiers',o:4000},{n:'Illinois Fighting Illini',o:5000},
+  ]},
+  { id:'nhl_hart', sport:'nhl', title:'🏒 NHL Hart Trophy (MVP)', icon:'🥇', teams:[
+    {n:'N. MacKinnon (COL)',o:-160},{n:'C. McDavid (EDM)',o:280},{n:'L. Draisaitl (EDM)',o:500},
+    {n:'M. Matthews (TOR)',o:700},{n:'A. Ovechkin (WSH)',o:900},{n:'D. Pastrnak (BOS)',o:1200},
+    {n:'C. Makar (COL)',o:1500},{n:'J. Hughes (NJD)',o:2000},{n:'K. Kaprizov (MIN)',o:2500},
+  ]},
+  { id:'ufc_lhc', sport:'mma', title:'🥊 UFC Lightweight Champion', icon:'🏆', teams:[
+    {n:'Islam Makhachev',o:-400},{n:'Dustin Poirier',o:280},{n:'Justin Gaethje',o:450},
+    {n:'Charles Oliveira',o:600},{n:'Beneil Dariush',o:900},{n:'Arman Tsarukyan',o:1200},
+    {n:'Rafael Fiziev',o:1800},{n:'Michael Chandler',o:2500},
+  ]},
 ];
+
+// ── SGP COMBO ─────────────────────────────────────────────────────
+function addSGPCombo(btn) {
+  try {
+    const legs = JSON.parse(btn.dataset.combo);
+    for (const leg of legs) {
+      if (!betSlipLegs.find(l => legKey(l) === legKey(leg))) betSlipLegs.push(leg);
+    }
+    updateFab();
+    openBetSlip();
+  } catch(e) { console.error('SGP combo error', e); }
+}
 
 // ── PARLAY MATH ───────────────────────────────────────────────────
 function toDecimal(american) {
@@ -1079,6 +1137,54 @@ function generatePlayerProps(g) {
       html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)} · ${esc(label)}</span><div class="odds-pair">${pBtn(mk,'Over',propOdds(gid+gp.k+'o'),'O '+line)}${pBtn(mk,'Under',propOdds(gid+gp.k+'u'),'U '+line)}</div></div>`;
     } else if (gp.t === 'yesno') {
       html += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(gp.lb)}</span><div class="odds-pair">${pBtn(mk,'Yes',propOdds(gid+gp.k+'y',-120),null)}${pBtn(mk,'No',propOdds(gid+gp.k+'n',100),null)}</div></div>`;
+    }
+  }
+
+  // ── SGP QUICK PICKS ──────────────────────────────────────
+  {
+    const ml2 = getMarket(g, 'h2h');
+    const tot2 = getMarket(g, 'totals');
+    const sp2  = getMarket(g, 'spreads');
+    if (ml2 && ml2.length >= 2 && tot2 && tot2.length >= 2) {
+      html += `<div class="props-sec-hdr">⚡ SGP Quick Picks</div>`;
+      const favTeam = ml2.reduce((a,b) => a.price <= b.price ? a : b);
+      const dogTeam = ml2.reduce((a,b) => a.price >= b.price ? a : b);
+      const overO = tot2.find(o=>o.name==='Over') || tot2[0];
+      const underO = tot2.find(o=>o.name==='Under') || tot2[1] || tot2[0];
+      const mkLeg = (market, sel, odds, line) => ({
+        gameId:gid, market, selection:sel, odds:Math.round(odds), line:line||null,
+        homeTeam:home, awayTeam:away, commenceTime:ct
+      });
+      const favShort = favTeam.name.split(' ').pop();
+      const dogShort = dogTeam.name.split(' ').pop();
+      const combos = [];
+      // Combo 1: Favorite ML + Over Total
+      const c1 = [mkLeg('h2h',favTeam.name,favTeam.price,null), mkLeg('totals','Over',overO.price,overO.point)];
+      combos.push({ desc:`<b>${favShort} ML</b> + <b>Over ${overO.point}</b>`, legs:c1 });
+      // Combo 2: Underdog ML + Under Total
+      const c2 = [mkLeg('h2h',dogTeam.name,dogTeam.price,null), mkLeg('totals','Under',underO.price,underO.point)];
+      combos.push({ desc:`<b>${dogShort} ML</b> + <b>Under ${underO.point}</b>`, legs:c2 });
+      // Combo 3: 3-leg — Fav ML + Over + Spread (if available)
+      if (sp2 && sp2[0]) {
+        const spFav = sp2.find(o=>o.name===favTeam.name) || sp2[0];
+        const spSel = spFav.name.split(' ').pop();
+        const c3 = [mkLeg('h2h',favTeam.name,favTeam.price,null), mkLeg('totals','Over',overO.price,overO.point), mkLeg('spreads',spFav.name,spFav.price,spFav.point)];
+        combos.push({ desc:`<b>${favShort} ML</b> + <b>Over ${overO.point}</b> + <b>${spSel} ${spFav.point>0?'+':''}${spFav.point}</b>`, legs:c3 });
+      }
+      for (const c of combos) {
+        const pOdds = calcParlayOdds(c.legs);
+        const dataCombo = esc(JSON.stringify(c.legs));
+        html += `<div class="sgp-quick-card">
+          <div class="sgp-quick-desc">${c.desc}</div>
+          <div class="sgp-quick-footer">
+            <span class="sgp-leg-count">${c.legs.length}-Leg SGP</span>
+            <div class="sgp-right">
+              <span class="sgp-quick-odds ${pOdds>0?'pos':''}">${fmtOdds(pOdds)}</span>
+              <button class="sgp-add-btn" data-combo="${dataCombo}" onclick="addSGPCombo(this)">⚡ Add All</button>
+            </div>
+          </div>
+        </div>`;
+      }
     }
   }
 
