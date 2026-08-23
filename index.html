@@ -103,7 +103,9 @@ body::after{
 .sport-tab.active{background:var(--accent-dim,var(--gold-bg));border-color:var(--accent,var(--gold));color:var(--accent,var(--gold-b))}
 .sport-tab.active svg{opacity:1}
 /* Nav badge */
-.nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;background:var(--gold);color:#000;font-size:9px;font-weight:900;border-radius:8px;padding:0 4px;margin-left:5px;vertical-align:middle}
+.nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;background:var(--gold);color:#000;font-size:9px;font-weight:900;border-radius:8px;padding:0 4px;margin-left:5px;vertical-align:middle;transition:transform .2s}
+.nav-badge.pulse{animation:badgePulse .6s ease-out}
+@keyframes badgePulse{0%{transform:scale(1)}30%{transform:scale(1.6)}60%{transform:scale(.9)}100%{transform:scale(1)}}
 /* Team logos */
 .team-row{display:flex;align-items:center;gap:6px}
 .team-logo{width:18px;height:18px;object-fit:contain;flex-shrink:0;opacity:.9}
@@ -297,6 +299,7 @@ body::after{
 .skeleton-mkt{background:var(--bg-c);padding:12px;display:flex;flex-direction:column;gap:5px}
 .sk{background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.10) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:4px}
 @keyframes shimmer{to{background-position:-200% 0}}
+@keyframes ripplePop{0%{transform:scale(0);opacity:.4}100%{transform:scale(1);opacity:0}}
 .sk-lg{height:13px;width:75%}.sk-sm{height:10px;width:50%}.sk-xs{height:9px;width:40%}
 .sk-odds-pair{display:flex;gap:5px}
 .sk-btn{flex:1;height:52px;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.10) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
@@ -1594,11 +1597,32 @@ document.addEventListener('click', e => {
     selection: btn.dataset.sel, odds: parseInt(btn.dataset.odds),
     line: btn.dataset.line ? parseFloat(btn.dataset.line) : null,
   };
-  toggleLeg(leg, btn);
+  toggleLeg(leg, btn, e);
 });
 
-function toggleLeg(leg, triggerBtn) {
+function spawnRipple(btn, e) {
+  if (!btn) return;
+  const rect = btn.getBoundingClientRect();
+  const x = (e?.clientX ?? rect.left + rect.width/2) - rect.left;
+  const y = (e?.clientY ?? rect.top + rect.height/2) - rect.top;
+  const r = document.createElement('span');
+  const size = Math.max(rect.width, rect.height) * 1.8;
+  Object.assign(r.style, {
+    position:'absolute', width:size+'px', height:size+'px',
+    left: (x-size/2)+'px', top: (y-size/2)+'px',
+    borderRadius:'50%', transform:'scale(0)', opacity:'.4',
+    background:'rgba(245,166,35,.5)', pointerEvents:'none',
+    animation:'ripplePop .55s ease-out forwards'
+  });
+  btn.style.position = btn.style.position || 'relative';
+  btn.style.overflow = 'hidden';
+  btn.appendChild(r);
+  setTimeout(() => r.remove(), 600);
+}
+
+function toggleLeg(leg, triggerBtn, evt) {
   if (!profile) { showToast('Sign in to bet', 'error'); return; }
+  spawnRipple(triggerBtn, evt);
   const key = legKey(leg);
   const idx = betSlipLegs.findIndex(l => legKey(l) === key);
   if (idx > -1) {
@@ -1957,11 +1981,16 @@ async function settlePending() {
         } else if (result === 'lost') {
           showToast(`${bet.selection} lost · -${fmt(bet.stake)}`, 'error');
           flashBalance('dn');
+        // Pulse the My Bets badge when a bet settles and user isn't viewing it
+        if (currentView !== 'bets') {
+          const curCount = parseInt(document.getElementById('betsBadge')?.textContent||'0')||0;
+          updateBetsBadge(Math.max(0, curCount - 1), false);
+          updateBetsBadge(0); // pending count decreases
         }
       }
     } catch(e) { console.error('settlement error',e); }
   }
-  document.getElementById('headerBalance').textContent = fmt(profile.balance);
+  animateBalance(profile.balance);
 }
 
 function matchEvent(events, homeTeam, awayTeam) {
@@ -2195,11 +2224,18 @@ function filterGames(q) {
   ));
 }
 
-function updateBetsBadge(count) {
+function updateBetsBadge(count, doPulse=false) {
   const badge = document.getElementById('betsBadge');
   if (!badge) return;
-  if (count > 0) { badge.textContent = count; badge.style.display = 'inline-flex'; }
-  else badge.style.display = 'none';
+  if (count > 0) {
+    badge.textContent = count; badge.style.display = 'inline-flex';
+    if (doPulse) {
+      badge.classList.remove('pulse');
+      void badge.offsetWidth;
+      badge.classList.add('pulse');
+      setTimeout(() => badge.classList.remove('pulse'), 700);
+    }
+  } else badge.style.display = 'none';
 }
 
 function showAuth() {
