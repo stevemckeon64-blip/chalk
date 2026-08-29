@@ -333,12 +333,6 @@ body::after{
 /* ── CARD ENTRANCE ANIMATION ─────────────────────────────── */
 @keyframes cardEntrance{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 .card-enter{animation:cardEntrance .35s ease-out both}
-/* ── PROMO BANNER ────────────────────────────────────────── */
-.promo-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#1a1230 0%,#1d1a2e 100%);border:1px solid rgba(245,166,35,.35);border-radius:10px;padding:10px 14px;margin:0 0 14px;font-size:.8rem;color:var(--txt-s);cursor:pointer;transition:border-color .2s}
-.promo-banner:hover{border-color:var(--gold)}
-.promo-icon{font-size:1.3rem;flex-shrink:0}
-.promo-text b{color:var(--gold);font-size:.85rem}
-.promo-cta{margin-left:auto;background:var(--gold);color:#000;font-size:.72rem;font-weight:700;border:none;border-radius:5px;padding:4px 10px;cursor:pointer;white-space:nowrap}
 /* ── CONFETTI BURST ──────────────────────────────────────── */
 #confettiCanvas{position:fixed;inset:0;pointer-events:none;z-index:9999;display:none}
 /* ── MOBILE BET SLIP (bottom sheet) ─────────────────────── */
@@ -589,12 +583,6 @@ body::after{
 /* ── CASH OUT button ────────────────────────────────────── */
 .cashout-btn{width:100%;margin-top:10px;padding:8px;background:rgba(48,209,88,.08);border:1px solid rgba(48,209,88,.25);border-radius:var(--r);font-size:11px;font-weight:800;color:var(--win);letter-spacing:.04em;cursor:pointer;transition:all .15s;text-transform:uppercase}
 .cashout-btn:hover{background:rgba(48,209,88,.15);border-color:rgba(48,209,88,.4)}
-/* ── ADD FUNDS buttons ──────────────────────────────────── */
-.add-funds-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.add-funds-btn{padding:12px;background:var(--gold-bg);border:1px solid var(--gold);border-radius:var(--r);font-size:14px;font-weight:800;color:var(--gold);cursor:pointer;transition:all .15s}
-.add-funds-btn:hover{background:rgba(245,166,35,.25)}
-.add-funds-btn-main{width:100%;padding:11px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);border-radius:var(--r);font-size:12px;font-weight:800;color:var(--gold);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .15s;margin-bottom:10px}
-.add-funds-btn-main:hover{background:var(--gold-bg);border-color:var(--gold)}
 /* ── ODDS MOVEMENT arrows ───────────────────────────────── */
 .ob-odds-row{display:flex;align-items:center;justify-content:center;gap:3px}
 .ob-move{font-size:8px;font-weight:900;line-height:1}
@@ -603,22 +591,6 @@ body::after{
 .pnl-sparkline{width:100%;border-radius:var(--r);background:var(--bg-c);display:block;margin-bottom:20px}
 /* ── RESPONSIBLE NOTE ───────────────────────────────────── */
 .responsible-note{font-size:11px;color:var(--t3);text-align:center;padding:10px;margin-bottom:16px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg-c);line-height:1.5}
-.wallet-card{background:var(--bg-c);border:1px solid var(--bdr-h);border-radius:12px;padding:14px;margin-bottom:10px}
-.wallet-balance-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.wallet-bal-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
-.wallet-bal-val{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
-.wallet-action-btn{padding:7px 14px;background:var(--bg-b);border:1px solid var(--bdr-h);border-radius:8px;font-size:11px;font-weight:800;color:var(--t1);cursor:pointer;transition:all .15s}
-.deposit-btn{background:rgba(245,166,35,.1);border-color:rgba(245,166,35,.3);color:var(--gold)}
-.wallet-quick-row{display:flex;gap:6px}
-.wallet-quick-chip{flex:1;padding:6px 4px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:8px;font-size:11px;font-weight:800;color:var(--gold);cursor:pointer;transition:all .15s}
-.wallet-quick-chip:hover{background:rgba(245,166,35,.15);transform:scale(1.03)}
-.referral-card{background:linear-gradient(135deg,rgba(48,209,88,.08),rgba(48,209,88,.02));border:1px solid rgba(48,209,88,.25);border-radius:12px;padding:14px;margin-bottom:10px}
-.referral-top{margin-bottom:10px}
-.referral-title{font-size:14px;font-weight:800;color:var(--t1);margin-bottom:4px}
-.referral-sub{font-size:11px;color:var(--t3);line-height:1.4}
-.referral-code-row{display:flex;align-items:center;gap:8px;background:var(--bg-b);border-radius:8px;padding:8px 12px}
-.referral-code{font-size:13px;font-weight:900;font-family:monospace;letter-spacing:.12em;color:#30D158;flex:1}
-.referral-copy-btn{padding:5px 12px;background:rgba(48,209,88,.15);border:1px solid rgba(48,209,88,.3);border-radius:6px;font-size:11px;font-weight:800;color:#30D158;cursor:pointer}
 /* ── DAILY PICK ──────────────────────────────────────────── */
 .pick-of-day{background:linear-gradient(135deg,rgba(245,166,35,.12) 0%,rgba(245,166,35,.04) 100%);border:1px solid rgba(245,166,35,.4);border-radius:12px;padding:12px 14px;margin:0 0 12px;position:relative;overflow:hidden}
 .potd-card{background:linear-gradient(135deg,rgba(48,209,88,.1) 0%,rgba(48,209,88,.03) 100%);border:1px solid rgba(48,209,88,.35);border-radius:12px;padding:12px 14px;margin-bottom:12px;position:relative;overflow:hidden}
@@ -813,11 +785,6 @@ body::after{
       <div id="featuredSection" class="featured-section" style="display:none">
         <div class="featured-lbl">🔥 Featured</div>
         <div class="featured-scroll" id="featuredScroll"></div>
-      </div>
-      <div id="promoBanner" class="promo-banner" onclick="openAddFunds()">
-        <span class="promo-icon">🎁</span>
-        <div class="promo-text"><b>First Deposit Bonus</b><br>Add funds and get 100% matched chips up to $500</div>
-        <button class="promo-cta">Claim</button>
       </div>
       <div id="dailyPickWrap" style="padding:0 16px;display:none"></div>
       <div id="potdWrap" style="padding:0 16px 8px;display:none"></div>
@@ -2271,14 +2238,9 @@ async function loadGames(sport) {
     document.getElementById('liveTickerWrap').style.display = 'none';
     document.getElementById('boostsSection').style.display = 'none';
     document.getElementById('trendingSection').style.display = 'none';
-    const pb = document.getElementById('promoBanner');
-    if (pb) pb.style.display = 'none';
     return;
   }
   document.getElementById('gamesInner').innerHTML = `<div class="skeleton-wrap">${skeletonCard()}${skeletonCard()}${skeletonCard()}</div>`;
-  // Show/hide promo based on balance (hide once user funds above starter amount)
-  const pb = document.getElementById('promoBanner');
-  if (pb && profile) pb.style.display = profile.balance > 5500 ? 'none' : 'flex';
   const games = SPORTS[sport]?.ppl ? await fetchPPL() : await fetchOdds(sport);
   _allGames = games;
   renderFeatured(games);
@@ -2946,28 +2908,12 @@ async function cashOut(betId, coValue, origStake) {
   loadMyBets();
 }
 
-// ── ADD FUNDS ────────────────────────────────────────────────────
-function openAddFunds() {
-  document.getElementById('roomModalBox').innerHTML = `
-    <div class="modal-hdr"><span class="modal-title">Add Virtual Funds</span><button class="modal-close" onclick="closeRoomModal()">✕</button></div>
-    <div class="modal-body">
-      <p style="font-size:13px;color:var(--t2);margin-bottom:16px;line-height:1.6">Add fake money to your account. This is a game — no real money involved.</p>
-      <div class="add-funds-grid">
-        ${[1000,2500,5000,10000].map(amt=>`<button class="add-funds-btn" onclick="doAddFunds(${amt})">+${fmt(amt)}</button>`).join('')}
-      </div>
-    </div>`;
-  document.getElementById('roomModalWrap').style.display = 'flex';
-}
-async function addVirtualFunds(amt) { doAddFunds(amt); }
-async function doAddFunds(amt) {
-  if (!profile) return;
-  const newBal = await applyBalanceDelta(amt);
-  animateBalance(newBal);
-  closeRoomModal();
-  flashBalance('up');
-  showToast(`${fmt(amt)} added to your account! 🎰`);
-  loadProfileView();
-}
+// NOTE: There is intentionally no way for a user to add funds to their own balance.
+// The plan is a real prize for whoever has the biggest winnings, so the starting stake
+// has to be the same for everyone and un-toppable — a self-serve "add funds" button
+// (which existed here previously) would make the leaderboard meaningless. If comped
+// balance is ever needed (e.g. correcting a bug), it should be an admin action against
+// the `profiles` table directly, never a button any signed-in user can click.
 function toggleOddsFormat() {
   oddsFormat = oddsFormat === 'american' ? 'decimal' : 'american';
   try { localStorage.setItem('chalk_odds_fmt', oddsFormat); } catch(e) {}
@@ -3592,39 +3538,7 @@ async function loadProfileView() {
         <div class="txn-amt ${amtClass}">${amtStr}</div>
       </div>`;
     }).join('') || '<div class="txn-empty">No bets placed yet</div>'}</div>
-    <div class="profile-section-hdr">Wallet</div>
-    <div class="wallet-card">
-      <div class="wallet-balance-row">
-        <div>
-          <div class="wallet-bal-lbl">Available Balance</div>
-          <div class="wallet-bal-val gold">${fmt(profile?.balance||0)}</div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="wallet-action-btn deposit-btn" onclick="openAddFunds()">+ Deposit</button>
-          <button class="wallet-action-btn" onclick="showToast('Withdrawals coming soon!')">Withdraw</button>
-        </div>
-      </div>
-      <div class="wallet-quick-row">
-        <button class="wallet-quick-chip" onclick="addVirtualFunds(50)">+$50</button>
-        <button class="wallet-quick-chip" onclick="addVirtualFunds(100)">+$100</button>
-        <button class="wallet-quick-chip" onclick="addVirtualFunds(250)">+$250</button>
-        <button class="wallet-quick-chip" onclick="addVirtualFunds(500)">+$500</button>
-      </div>
-    </div>
-    <div class="profile-section-hdr">Refer a Friend</div>
-    <div class="referral-card">
-      <div class="referral-top">
-        <div>
-          <div class="referral-title">🎁 Invite friends, earn chips</div>
-          <div class="referral-sub">You both get $250 in bonus chips when they sign up and place a bet.</div>
-        </div>
-      </div>
-      <div class="referral-code-row">
-        <div class="referral-code">${(profile?.username||'chalk').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8)}-CHALK</div>
-        <button class="referral-copy-btn" onclick="navigator.clipboard?.writeText(this.previousElementSibling.textContent);showToast('Referral code copied!')">Copy</button>
-      </div>
-    </div>
-    <div class="responsible-note">🎮 This is a game. No real money involved. Play responsibly.</div>
+    <div class="responsible-note">🎮 This is a skill competition with a real prize on the line — no real-money deposits or withdrawals, and no way to top up your balance. Everyone plays the same $${STARTING_BALANCE.toLocaleString()} starting stake.</div>
     <button class="sign-out-btn" onclick="doSignOut()">Sign Out</button>`;
   // Draw sparkline after DOM render
   requestAnimationFrame(() => drawPnlSparkline(settled));
