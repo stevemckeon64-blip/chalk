@@ -1391,21 +1391,33 @@ function generatePlayerProps(g) {
   // ── PLAYER PROPS ─────────────────────────────────────────
   // Only some positions have a real, ESPN-sourced name behind them right now: NFL/NCAAF
   // QB/RB/WR via that team's current season passing/rushing/receiving leader, MLB SP via
-  // the announced probable starter, and MMA/tennis where the "player" is simply the real
-  // match participant already known from the odds (no lookup needed). Everything else is
-  // skipped rather than filled in with a made-up name — a missing prop market beats a
-  // fabricated one attached to a real team. (NBA/NHL/NCAAB/NCAAW/golf and MLB's non-pitcher
-  // positions need a roster/box-score data source this app doesn't have wired up yet.)
+  // the announced probable starter, MLB position players from the real starting lineup
+  // (only available same-day — see attachMlbLineups), and MMA/tennis where the "player" is
+  // simply the real match participant already known from the odds (no lookup needed).
+  // Everything else is skipped rather than filled in with a made-up name — a missing prop
+  // market beats a fabricated one attached to a real team. (NBA/NHL/NCAAB/NCAAW/golf need a
+  // real-time box-score/roster data source this app doesn't have wired up yet.)
   const realPlayerFor = (posLabel, ti) => {
     if (SPORTS[currentSport]?.versus && (posLabel === 'F1' || posLabel === 'P1')) return { name: away };
     if (SPORTS[currentSport]?.versus && (posLabel === 'F2' || posLabel === 'P2')) return { name: home };
     const leaders = ti === 0 ? g.away_leaders : g.home_leaders;
     const probable = ti === 0 ? g.away_probable : g.home_probable;
+    const lineup = ti === 0 ? g.away_lineup : g.home_lineup;
     if (posLabel === 'QB' && leaders?.passing) return { name: leaders.passing.name };
     if (posLabel === 'RB' && leaders?.rushing) return { name: leaders.rushing.name };
     if (posLabel === 'WR' && leaders?.receiving) return { name: leaders.receiving.name };
     if (posLabel === 'SP' && probable) return { name: probable.name };
     if (posLabel === 'FWD' && leaders?.goals) return { name: leaders.goals.name };
+    if (lineup) {
+      if (posLabel === 'C' && lineup.C) return { name: lineup.C };
+      if (posLabel === '1B' && lineup['1B']) return { name: lineup['1B'] };
+      if (posLabel === 'SS' && lineup.SS) return { name: lineup.SS };
+      if (posLabel === 'DH' && lineup.DH) return { name: lineup.DH };
+      if (posLabel === 'OF') {
+        const of = lineup.CF || lineup.LF || lineup.RF;
+        if (of) return { name: of };
+      }
+    }
     return null;
   };
   if (cfg.pos.length) {
@@ -2139,6 +2151,44 @@ async function fetchOdds(sport) {
   }
 }
 
+// Real MLB starting lineups (position players) — unlike the probable pitcher (usually
+// announced days ahead) or season stat leaders (available all season), a real batting
+// order only exists close to first pitch, so this is only fetched for today's games; a
+// game further out simply has no real lineup yet — never fabricate one to fill the gap.
+let _lineupCache = {};
+async function fetchMlbLineup(eventId) {
+  const cached = _lineupCache[eventId];
+  if (cached && Date.now() - cached.ts < 20 * 60 * 1000) return cached.data;
+  try {
+    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/summary?event=${eventId}`);
+    const json = await res.json();
+    const byHomeAway = {};
+    for (const r of (json.rosters || [])) {
+      const byPos = {};
+      for (const p of (r.roster || [])) {
+        if (!p.starter) continue;
+        const abbr = p.athlete?.positions?.[0]?.abbreviation;
+        if (abbr && p.athlete?.fullName && !byPos[abbr]) byPos[abbr] = p.athlete.fullName;
+      }
+      byHomeAway[r.homeAway] = byPos;
+    }
+    _lineupCache[eventId] = { data: byHomeAway, ts: Date.now() };
+    return byHomeAway;
+  } catch(e) { console.error('MLB lineup fetch error', eventId, e); return null; }
+}
+// Attaches home_lineup/away_lineup to each of today's MLB games in place, in parallel.
+async function attachMlbLineups(games) {
+  const todayStr = new Date().toDateString();
+  const todays = games.filter(g => new Date(g.commence_time).toDateString() === todayStr);
+  if (!todays.length) return;
+  await Promise.all(todays.map(async g => {
+    const lineup = await fetchMlbLineup(g.id);
+    if (!lineup) return;
+    g.away_lineup = lineup.away || null;
+    g.home_lineup = lineup.home || null;
+  }));
+}
+
 function getMock(sport) {
   const d0 = new Date(), d1 = new Date(d0), d2 = new Date(d0);
   d1.setDate(d1.getDate()+1); d2.setDate(d2.getDate()+2);
@@ -2258,6 +2308,7 @@ async function loadGames(sport) {
   }
   document.getElementById('gamesInner').innerHTML = `<div class="skeleton-wrap">${skeletonCard()}${skeletonCard()}${skeletonCard()}</div>`;
   const games = SPORTS[sport]?.ppl ? await fetchPPL() : await fetchOdds(sport);
+  if (sport === 'baseball_mlb') await attachMlbLineups(games);
   _allGames = games;
   renderFeatured(games);
   renderDailyPick(games);
