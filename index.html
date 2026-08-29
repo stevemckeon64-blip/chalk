@@ -1349,7 +1349,7 @@ function generatePlayerProps(g) {
 
   const pBtn = (mkt, sel, price, point) => {
     const inSlip = betSlipLegs.some(l=>l.gameId===gid&&l.market===mkt&&l.selection===sel);
-    const mv = oddsMovement(gid, mkt+sel, 0);
+    const mv = oddsMovement(gid, mkt, sel, price);
     return `<button class="odds-btn prop-odds-btn${inSlip?' in-slip':''}"
       data-gid="${esc(gid)}" data-market="${esc(mkt)}" data-sel="${esc(sel)}"
       data-odds="${price}" data-line="${point??''}"
@@ -1582,15 +1582,16 @@ function generatePlayerProps(g) {
     + (gAlt ? `<div class="prop-group" data-pgroup="alt">${gAlt}</div>` : '');
 }
 
-// Fake but consistent odds movement seeded by game id + market + outcome
-function oddsMovement(gameId, market, selIdx) {
-  let h = 0;
-  const key = `${gameId}${market}${selIdx}`;
-  for (let i=0;i<key.length;i++) h=(h*31+key.charCodeAt(i))&0xFFFFFF;
-  const r = (h % 100) / 100; // 0..1
-  if (r < 0.35) return { dir:'up',   label:'▲', cls:'move-up'   };
-  if (r < 0.65) return { dir:'flat', label:'',  cls:''          };
-  return                { dir:'dn',  label:'▼', cls:'move-dn'   };
+// Real odds movement — compares this price to the last price seen for the exact same
+// gameId+market+selection within this browser session (odds refresh every 5 minutes, or on
+// tab focus if stale). No history yet ⇒ no arrow, rather than guessing a direction.
+let _oddsHistory = {};
+function oddsMovement(gameId, market, selection, price) {
+  const key = `${gameId}_${market}_${selection}`;
+  const prev = _oddsHistory[key];
+  _oddsHistory[key] = price;
+  if (prev === undefined || prev === price || price == null) return { dir:'flat', label:'', cls:'' };
+  return price > prev ? { dir:'up', label:'▲', cls:'move-up' } : { dir:'dn', label:'▼', cls:'move-dn' };
 }
 
 // ── STATE ─────────────────────────────────────────────────────────
@@ -2611,13 +2612,12 @@ function renderGameCard(g, gamePcts={}) {
   const away = g.away_team, home = g.home_team;
   const isVersus = SPORTS[currentSport]?.versus;
 
-  let _btnIdx = 0;
   const oddsBtn = (market, outcome) => {
     const label = market==='totals' ? outcome.name : outcome.name.split(' ').slice(-1)[0];
     const sub = (market==='spreads' && outcome.point!=null) ? ((outcome.point>0?'+':'')+outcome.point) : market==='totals' ? (outcome.name==='Over'?'O ':'U ')+outcome.point : '';
     const o = outcome.price; const oStr = fmtOdds(o);
     const inSlip = betSlipLegs.some(l => l.gameId===g.id && l.market===market && l.selection===outcome.name);
-    const mv = oddsMovement(g.id, market, _btnIdx++);
+    const mv = oddsMovement(g.id, market, outcome.name, o);
     return `<button class="odds-btn${inSlip?' in-slip':''}" data-gid="${esc(g.id)}" data-market="${market}"
       data-sel="${esc(outcome.name)}" data-odds="${o}" data-line="${outcome.point??''}"
       data-home="${esc(home)}" data-away="${esc(away)}" data-ct="${esc(g.commence_time)}">
