@@ -509,6 +509,8 @@ body::after{
 .rr-combo-odds{font-weight:900;font-variant-numeric:tabular-nums;flex-shrink:0;margin-left:10px}
 .rr-summary{padding:8px 10px;background:rgba(245,166,35,.07);border-radius:7px;margin-top:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center}
 .rr-combos-count{font-size:9px;color:var(--t2);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+/* ── TEAM RECORD (real, from ESPN) ─────────────────────────── */
+.team-record{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.04em;margin-left:5px;flex-shrink:0}
 /* ── LIVE SCORE ──────────────────────────────────────────── */
 .live-score-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:44px}
 .live-score-row{display:flex;align-items:center;gap:5px;justify-content:flex-end}
@@ -520,14 +522,10 @@ body::after{
 .wpb-away{background:var(--sport-accent,var(--gold));opacity:.7;border-radius:3px 0 0 3px;position:relative;min-width:20px;transition:width .4s ease}
 .wpb-home{background:rgba(255,255,255,.22);border-radius:0 3px 3px 0;position:relative;min-width:20px;transition:width .4s ease}
 .wpb-labels{display:flex;justify-content:space-between;padding:2px 14px 0;font-size:9px;font-weight:700;letter-spacing:.06em;color:var(--t3)}
-/* ── INJURY BADGES ────────────────────────────────────────── */
-.inj-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;padding:1px 4px;border-radius:4px;font-size:8px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;margin-left:4px}
-.inj-badge.q{background:rgba(255,159,10,.2);color:#FF9F0A;border:1px solid rgba(255,159,10,.4)}
-.inj-badge.dtd{background:rgba(255,107,53,.2);color:#FF6B35;border:1px solid rgba(255,107,53,.4)}
-.inj-badge.out{background:rgba(255,59,48,.2);color:#FF3B30;border:1px solid rgba(255,59,48,.4)}
 /* ── PLAYER PROPS ─────────────────────────────────────────── */
 .props-sec-hdr{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);padding:8px 0 6px;border-top:1px solid var(--bdr);margin-top:4px}
 .props-sec-hdr:first-child{border-top:none;margin-top:0;padding-top:0}
+.props-disclaimer{font-size:10px;color:var(--t3);line-height:1.4;margin:-2px 0 8px;font-style:italic}
 .player-prop-card{background:var(--bg-s);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:8px}
 .player-prop-hdr{display:flex;align-items:center;gap:7px;margin-bottom:8px}
 .pos-badge{background:rgba(245,166,35,.15);color:var(--gold);font-size:8px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:4px;flex-shrink:0}
@@ -862,15 +860,11 @@ const SPORT_ACCENTS = {
 let oddsFormat = (()=>{ try { return localStorage.getItem('chalk_odds_fmt')||'american'; } catch(e){return 'american';} })();
 
 // ── PLAYER PROP CONFIG ────────────────────────────────────────────
-// Purely generic filler names for procedurally generated player props — deliberately
-// scrubbed of anything that reads as one specific real, famous pro athlete (this pool used
-// to include real stars' surnames like Mahomes/Kelce/Burrow/Chase/Jefferson/Diggs/Henry and
-// the first-initial "Dak.", which meant a completely fabricated stat line could show up
-// under a real, identifiable player's name — and worse, on the wrong sport entirely, since
-// this same pool feeds NFL/NBA/MLB/NHL/soccer props alike). Every remaining entry is a
-// common surname/initial with no single, obvious real-athlete match.
-const PLAYER_FIRSTS = ['J.','M.','D.','T.','K.','C.','A.','R.','B.','L.','S.','N.','P.','E.','Z.','Ty.','Tre.','De\'','Cam.'];
-const PLAYER_LASTS  = ['Williams','Johnson','Davis','Brown','Jones','Miller','Wilson','Moore','Taylor','Anderson','Thomas','Jackson','White','Harris','Martin','Thompson','Garcia','Robinson','Clark','Lewis','Walker','Hall','Allen','Young','Hernandez','King','Wright','Baker','Nelson','Carter','Mitchell','Roberts','Turner','Evans','Edwards','Collins','Stewart','Morris','Rogers','Cook','Morgan','Bell','Rivera','Cooper','Adams','Hill','Andrews','Perez','Sanders','Price','Bennett','Wood','Ross','Coleman','Jenkins'];
+// No fictional-name generator anymore — player props are only shown when a real name is
+// available from ESPN (season leaders / probable starters / the match participant itself);
+// see realPlayerFor() inside generatePlayerProps(). PROP_SPORTS below still defines the
+// full menu of stat categories per position; only the ones with a real player behind them
+// actually render for a given game.
 
 const PROP_SPORTS = {
   americanfootball_nfl: {
@@ -1347,17 +1341,6 @@ function generatePlayerProps(g) {
   if (!cfg) return '';
 
   const sh = s => { let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))&0xFFFFFFFF; return h>>>0; };
-  const playerName = (team, posSlot) => {
-    const hf = sh(team+posSlot+'fn'), hl = sh(team+posSlot+'ln');
-    return `${PLAYER_FIRSTS[hf % PLAYER_FIRSTS.length]} ${PLAYER_LASTS[hl % PLAYER_LASTS.length]}`;
-  };
-  const injBadge = (name) => {
-    const s = sh(name+'injstatus') % 18;
-    if (s === 0) return '<span class="inj-badge out">OUT</span>';
-    if (s <= 2)  return '<span class="inj-badge dtd">D</span>';
-    if (s <= 5)  return '<span class="inj-badge q">Q</span>';
-    return '';
-  };
   const propLine = (lo,hi,st,seed) => {
     const steps = Math.max(1, Math.round((hi-lo)/st));
     return Math.round((lo + (sh(seed) % steps) * st) * 10) / 10;
@@ -1406,14 +1389,34 @@ function generatePlayerProps(g) {
   }
 
   // ── PLAYER PROPS ─────────────────────────────────────────
+  // Only some positions have a real, ESPN-sourced name behind them right now: NFL/NCAAF
+  // QB/RB/WR via that team's current season passing/rushing/receiving leader, MLB SP via
+  // the announced probable starter, and MMA/tennis where the "player" is simply the real
+  // match participant already known from the odds (no lookup needed). Everything else is
+  // skipped rather than filled in with a made-up name — a missing prop market beats a
+  // fabricated one attached to a real team. (NBA/NHL/NCAAB/NCAAW/golf and MLB's non-pitcher
+  // positions need a roster/box-score data source this app doesn't have wired up yet.)
+  const realPlayerFor = (posLabel, ti) => {
+    if (SPORTS[currentSport]?.versus && (posLabel === 'F1' || posLabel === 'P1')) return { name: away };
+    if (SPORTS[currentSport]?.versus && (posLabel === 'F2' || posLabel === 'P2')) return { name: home };
+    const leaders = ti === 0 ? g.away_leaders : g.home_leaders;
+    const probable = ti === 0 ? g.away_probable : g.home_probable;
+    if (posLabel === 'QB' && leaders?.passing) return { name: leaders.passing.name };
+    if (posLabel === 'RB' && leaders?.rushing) return { name: leaders.rushing.name };
+    if (posLabel === 'WR' && leaders?.receiving) return { name: leaders.receiving.name };
+    if (posLabel === 'SP' && probable) return { name: probable.name };
+    if (posLabel === 'FWD' && leaders?.goals) return { name: leaders.goals.name };
+    return null;
+  };
   if (cfg.pos.length) {
-    gPlayers += `<div class="props-sec-hdr">👤 Player Props</div>`;
     const teams = [away, home];
+    let playersHtml = '';
     for (const posDef of cfg.pos) {
       for (let ti = 0; ti < 2; ti++) {
-        const team = teams[ti];
-        const pName = playerName(team, posDef.p+ti);
-        const teamShort = team.split(' ').pop();
+        const real = realPlayerFor(posDef.p, ti);
+        if (!real) continue; // no real ESPN data for this position/sport yet — skip rather than invent one
+        const pName = real.name;
+        const teamShort = teams[ti].split(' ').pop();
         let rows = '';
         for (const prop of posDef.props) {
           const mk = `pp_${prop.k}_${pName.replace(/\W/g,'')}`;
@@ -1428,14 +1431,17 @@ function generatePlayerProps(g) {
             rows += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(prop.lb)}</span><div class="odds-pair">${pBtn(mk,'Over',oo,'O '+line)}${pBtn(mk,'Under',uo,'U '+line)}</div></div>`;
           }
         }
-        gPlayers += `<div class="player-prop-card">
+        playersHtml += `<div class="player-prop-card">
           <div class="player-prop-hdr">
             <span class="pos-badge">${esc(posDef.p)}</span>
             <span class="player-name">${esc(pName)}</span>
-            ${injBadge(pName)}
             <span class="player-team-tag">${esc(teamShort)}</span>
           </div>${rows}</div>`;
       }
+    }
+    if (playersHtml) {
+      gPlayers += `<div class="props-sec-hdr">👤 Player Props</div>
+        <div class="props-disclaimer">Real players, real starters — betting lines are illustrative (no live prop-odds feed).</div>${playersHtml}`;
     }
   }
 
@@ -2045,6 +2051,40 @@ async function fetchOdds(sport) {
       const homeLogo = getLogo(home);
       const awayLogo = getLogo(away);
 
+      // Real season record, straight from the same ESPN payload — replaces what used to be
+      // a fabricated win-loss record stapled onto each team's name.
+      const getRecord = c => (c.records || []).find(r => r.type === 'total' || r.name === 'overall')?.summary
+                            || c.records?.[0]?.summary || null;
+      const homeRecord = getRecord(home), awayRecord = getRecord(away);
+
+      // Real statistical leaders (passing/rushing/receiving for football, goals for soccer),
+      // when ESPN has them for this game — used to source real player-prop names. Absent
+      // early in a season or during the off-season; that's fine, props are simply skipped
+      // for whatever isn't available rather than inventing a name.
+      const getLeader = (c, statName) => {
+        const entry = (c.leaders || []).find(l => l.name === statName);
+        const lead = entry?.leaders?.[0];
+        if (!lead?.athlete?.fullName) return null;
+        return { name: lead.athlete.fullName, short: lead.athlete.shortName || lead.athlete.fullName, displayValue: lead.displayValue || '' };
+      };
+      const leadersFor = c => ({
+        passing: getLeader(c, 'passingLeader'),
+        rushing: getLeader(c, 'rushingLeader'),
+        receiving: getLeader(c, 'receivingLeader'),
+        goals: getLeader(c, 'goalsLeaders') || getLeader(c, 'goals'),
+      });
+      const homeLeaders = leadersFor(home), awayLeaders = leadersFor(away);
+
+      // Real MLB probable starting pitcher (name + real season W-L/ERA), when ESPN has
+      // announced one for this game.
+      const getProbable = c => {
+        const p = (c.probables || []).find(x => x.name === 'probableStartingPitcher') || c.probables?.[0];
+        const a = p?.athlete;
+        if (!a?.fullName) return null;
+        return { name: a.fullName, short: a.shortName || a.fullName, record: p.record || '' };
+      };
+      const homeProbable = getProbable(home), awayProbable = getProbable(away);
+
       const o = comp.odds?.[0];
       const markets = [];
       if (o) {
@@ -2081,6 +2121,9 @@ async function fetchOdds(sport) {
       return {
         id: ev.id, home_team: homeName, away_team: awayName,
         home_logo: homeLogo, away_logo: awayLogo,
+        home_record: homeRecord, away_record: awayRecord,
+        home_leaders: homeLeaders, away_leaders: awayLeaders,
+        home_probable: homeProbable, away_probable: awayProbable,
         commence_time: ev.date,
         isLive: ev.status?.type?.state === 'in',
         bookmakers: markets.length ? [{ key:'espn', markets }] : [],
@@ -2611,8 +2654,8 @@ function renderGameCard(g, gamePcts={}) {
     <div class="game-card-accent-bar"></div>
     <div class="game-card-top">
       <div class="game-teams">
-        <div class="team-row away">${awayLogoHtml}<span>${esc(away)}</span></div>
-        <div class="team-row home">${homeLogoHtml}<span>${isVersus ? 'vs' : '@'} ${esc(home)}</span></div>
+        <div class="team-row away">${awayLogoHtml}<span>${esc(away)}</span>${g.away_record?`<span class="team-record">${esc(g.away_record)}</span>`:''}</div>
+        <div class="team-row home">${homeLogoHtml}<span>${isVersus ? 'vs' : '@'} ${esc(home)}</span>${g.home_record?`<span class="team-record">${esc(g.home_record)}</span>`:''}</div>
       </div>
       ${liveScoreHtml ? liveScoreHtml : `<div class="game-meta">${liveBadge}${soonLabel}<div class="game-time">${time}</div></div>`}
     </div>
@@ -2620,7 +2663,7 @@ function renderGameCard(g, gamePcts={}) {
     <div class="game-markets">${marketsHtml}</div>
     ${propsHtml ? `
     <div class="more-markets-toggle" onclick="toggleProps(this)">
-      <span>Player Props &amp; More <span style="font-size:9px;background:rgba(245,166,35,.15);color:var(--gold);border-radius:10px;padding:1px 6px;margin-left:4px">${(() => { const cfg=PROP_SPORTS[currentSport]; if(!cfg) return ''; const pp=cfg.pos.reduce((a,p)=>a+p.props.length,0); const gp=cfg.gp.length; return pp+gp+'+';})()} markets</span></span><span class="mm-arrow">›</span>
+      <span>Player Props &amp; More <span style="font-size:9px;background:rgba(245,166,35,.15);color:var(--gold);border-radius:10px;padding:1px 6px;margin-left:4px">${(propsHtml.match(/prop-market-row/g)||[]).length} markets</span></span><span class="mm-arrow">›</span>
     </div>
     <div class="game-props" style="display:none;padding:12px 14px">${propsHtml}</div>` : ''}
   </div>`;
