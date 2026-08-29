@@ -212,6 +212,7 @@ body::after{
 .bet-card.won{border-left-color:var(--win)}.bet-card.won::before{background:var(--win)}
 .bet-card.lost{border-left-color:var(--loss)}.bet-card.lost::before{background:var(--loss)}
 .bet-card.push{border-left-color:var(--push)}
+.bet-card.void{border-left-color:var(--push)}
 .bet-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
 .bet-matchup{font-size:12px;font-weight:700;flex:1}
 .bet-status-badge{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:20px;flex-shrink:0}
@@ -220,6 +221,7 @@ body::after{
 .bet-status-badge.won{background:rgba(77,184,122,.15);color:var(--win)}
 .bet-status-badge.lost{background:rgba(217,84,84,.12);color:var(--loss)}
 .bet-status-badge.push{background:rgba(107,122,141,.12);color:var(--push)}
+.bet-status-badge.void{background:rgba(107,122,141,.12);color:var(--push)}
 .bet-pick{font-size:12px;color:var(--t2);margin-bottom:8px}
 .bet-pick b{color:var(--t1)}.bet-pick .bet-odds{color:var(--t3);font-weight:700}
 .bet-footer{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--t2)}
@@ -681,7 +683,7 @@ body::after{
       <button class="auth-tab" id="tabSignUp" onclick="switchAuthTab('up')">Sign Up</button>
     </div>
     <div id="signInForm">
-      <input class="auth-input" id="siEmail" type="email" placeholder="Email" onkeydown="if(event.key==='Enter')doSignIn()">
+      <input class="auth-input" id="siEmail" type="email" placeholder="Email" autofocus onkeydown="if(event.key==='Enter')doSignIn()">
       <input class="auth-input" id="siPassword" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')doSignIn()">
       <div class="auth-error" id="siError"></div>
       <button class="auth-btn" id="siBtn" onclick="doSignIn()">Sign In</button>
@@ -1536,7 +1538,7 @@ function generatePlayerProps(g) {
       const underO = tot2.find(o=>o.name==='Under') || tot2[1] || tot2[0];
       const mkLeg = (market, sel, odds, line) => ({
         gameId:gid, market, selection:sel, odds:Math.round(odds), line:line||null,
-        homeTeam:home, awayTeam:away, commenceTime:ct
+        homeTeam:home, awayTeam:away, commenceTime:ct, sport:currentSport
       });
       const favShort = favTeam.name.split(' ').pop();
       const dogShort = dogTeam.name.split(' ').pop();
@@ -1655,10 +1657,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   const fmtBtn = document.getElementById('oddsFmtBtn');
   if (fmtBtn) fmtBtn.textContent = oddsFormat === 'decimal' ? 'DEC' : 'AMR';
   const { data:{ session } } = await sb.auth.getSession();
-  if (session) { user = session.user; await loadProfile(); showApp(); }
+  if (session) { user = session.user; await loadProfile(); showApp(); backgroundSettle(); }
   else showAuth();
   sb.auth.onAuthStateChange(async (evt, session) => {
-    if (evt === 'SIGNED_IN') { user = session.user; await loadProfile(); showApp(); }
+    if (evt === 'SIGNED_IN') { user = session.user; await loadProfile(); showApp(); backgroundSettle(); }
     else if (evt === 'SIGNED_OUT') { user=null; profile=null; showAuth(); }
   });
   document.addEventListener('click', e => {
@@ -1690,9 +1692,24 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (!document.hidden && currentView === 'games' && user) {
       const c = oddsCache[currentSport];
       if (!c || Date.now() - c.ts > 2 * 60 * 1000) loadGames(currentSport);
+      backgroundSettle();
     }
   });
+  // Settle finished bets in the background regardless of which tab is open — otherwise
+  // balance/leaderboard/tier only ever update once the user happens to visit My Bets,
+  // which can leave a won bet (and the confetti moment that should come with it) invisible
+  // for hours.
+  setInterval(backgroundSettle, 2 * 60 * 1000);
 });
+let _settling = false;
+async function backgroundSettle() {
+  if (_settling || !user) return;
+  _settling = true;
+  try { await settlePending(); } catch(e) { console.error('background settle error', e); }
+  finally { _settling = false; }
+  if (currentView === 'bets') loadMyBets(); // reflect newly-settled bets if already looking at the list
+  if (currentView === 'leaderboard') loadLeaderboard();
+}
 
 // ── UTILS ─────────────────────────────────────────────────────────
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1705,6 +1722,28 @@ const fmtSigned = n => (n >= 0 ? '+' : '-') + fmt(Math.abs(n));
 function calcPayout(stake, odds) {
   if (odds > 0) return stake + stake * odds / 100;
   return stake + stake * 100 / Math.abs(odds);
+}
+// Apply a balance change using optimistic concurrency (compare-and-swap on the
+// balance column) so two near-simultaneous writes — a double-tapped bet, two
+// open tabs, a bet settling while another is being placed — can't silently
+// clobber each other and desync the stored balance from what actually happened.
+async function applyBalanceDelta(delta, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    const oldBal = profile.balance;
+    const newBal = Math.round((oldBal + delta) * 100) / 100;
+    const { data, error } = await sb.from('profiles')
+      .update({ balance: newBal }).eq('id', user.id).eq('balance', oldBal).select('id');
+    if (!error && data && data.length) { profile.balance = newBal; return newBal; }
+    // Someone else changed the balance between our read and write — refetch and retry.
+    const { data: fresh } = await sb.from('profiles').select('balance').eq('id', user.id).single();
+    if (fresh) profile.balance = fresh.balance; else break;
+  }
+  // Retries exhausted (shouldn't happen in practice) — apply blindly rather than
+  // silently dropping the change; better an occasional race than a lost bet result.
+  const newBal = Math.round((profile.balance + delta) * 100) / 100;
+  await sb.from('profiles').update({ balance: newBal }).eq('id', user.id);
+  profile.balance = newBal;
+  return newBal;
 }
 function showToast(msg, type='success') {
   const icons = { success:'✓', error:'✕', warn:'⚠' };
@@ -1868,6 +1907,7 @@ function switchAuthTab(tab) {
   document.getElementById('tabSignUp').classList.toggle('active', tab==='up');
   document.getElementById('signInForm').style.display = tab==='in'?'block':'none';
   document.getElementById('signUpForm').style.display = tab==='up'?'block':'none';
+  document.getElementById(tab==='in'?'siEmail':'suUsername')?.focus();
 }
 async function doSignIn() {
   const email = document.getElementById('siEmail').value.trim();
@@ -1915,9 +1955,13 @@ async function loadProfile() {
 async function loadMyRooms() {
   const { data } = await sb.from('room_members').select('rooms(*)').eq('user_id', user.id);
   myRooms = data?.map(r => r.rooms).filter(Boolean) || [];
+  // Room name is user-authored — build the click payload as an HTML-escaped data attribute
+  // (matching the pattern used for SGP/POTD combos below) rather than interpolating it
+  // straight into an inline onclick string, which broke (and was unsafe) for any room name
+  // containing a quote.
   document.getElementById('myRoomsList').innerHTML = myRooms.map(r =>
-    `<div class="room-opt" onclick='selectRoom(${JSON.stringify(r).replace(/'/g,"\\'")})'">
-      🏠 ${esc(r.name)} <span class="room-code-sm">${r.code}</span>
+    `<div class="room-opt" data-room="${esc(JSON.stringify(r))}" onclick="selectRoom(JSON.parse(this.dataset.room))">
+      🏠 ${esc(r.name)} <span class="room-code-sm">${esc(r.code)}</span>
     </div>`
   ).join('');
 }
@@ -1939,6 +1983,7 @@ function openCreateRoom() {
       </div>
     </div>`;
   document.getElementById('roomModalWrap').style.display = 'flex';
+  document.getElementById('rmName').focus();
 }
 async function doCreateRoom() {
   const name = document.getElementById('rmName').value.trim();
@@ -1970,6 +2015,7 @@ function openJoinRoom() {
       </div>
     </div>`;
   document.getElementById('roomModalWrap').style.display = 'flex';
+  document.getElementById('rmCode').focus();
 }
 async function doJoinRoom() {
   const code = document.getElementById('rmCode').value.trim().toUpperCase();
@@ -2280,6 +2326,7 @@ function handleFuturesBet(btn) {
     gameId: btn.dataset.gid, homeTeam: 'Futures', awayTeam: btn.dataset.away,
     commenceTime: btn.dataset.ct, market: btn.dataset.market,
     selection: btn.dataset.sel, odds: parseInt(btn.dataset.odds), line: null,
+    sport: 'futures',
   };
   toggleLeg(leg, btn, null);
 }
@@ -2458,8 +2505,8 @@ function renderDailyPick(games) {
       <button class="pick-odds-chip${inSlip?' in-slip':''}"
         data-gid="${esc(g.id)}" data-market="h2h" data-sel="${esc(pick.name)}"
         data-odds="${pick.price}" data-line="" data-home="${esc(g.home_team)}"
-        data-away="${esc(g.away_team)}" data-ct="${esc(g.commence_time)}"
-        onclick="toggleLeg({gameId:this.dataset.gid,market:'h2h',selection:this.dataset.sel,odds:+this.dataset.odds,line:'',home:this.dataset.home,away:this.dataset.away,commenceTime:this.dataset.ct},this)">${fmtOdds(pick.price)}</button>
+        data-away="${esc(g.away_team)}" data-ct="${esc(g.commence_time)}" data-sport="${esc(currentSport)}"
+        onclick="toggleLeg({gameId:this.dataset.gid,market:'h2h',selection:this.dataset.sel,odds:+this.dataset.odds,line:null,homeTeam:this.dataset.home,awayTeam:this.dataset.away,commenceTime:this.dataset.ct,sport:this.dataset.sport},this)">${fmtOdds(pick.price)}</button>
     </div>
   </div>`;
 }
@@ -2477,15 +2524,15 @@ function renderParlayOfDay(games) {
   const legs = [];
   // Leg 1: Moneyline pick (favorite)
   const ml1 = getMarket(g1,'h2h'); const fav1 = ml1[0].price <= ml1[1].price ? ml1[0] : ml1[1];
-  legs.push({gameId:g1.id,market:'h2h',selection:fav1.name,odds:fav1.price,line:'',home:g1.home_team,away:g1.away_team,commenceTime:g1.commence_time,
+  legs.push({gameId:g1.id,market:'h2h',selection:fav1.name,odds:fav1.price,line:null,homeTeam:g1.home_team,awayTeam:g1.away_team,commenceTime:g1.commence_time,sport:currentSport,
     desc:`${fav1.name.split(' ').pop()} ML · ${g1.away_team.split(' ').pop()} @ ${g1.home_team.split(' ').pop()}`});
   // Leg 2: Spread cover
   const sp2 = getMarket(g2,'spreads'); const spPick2 = sh(g2.id+'potd') % 2 === 0 ? sp2[0] : sp2[1];
-  legs.push({gameId:g2.id,market:'spreads',selection:spPick2.name,odds:spPick2.price,line:spPick2.point||'',home:g2.home_team,away:g2.away_team,commenceTime:g2.commence_time,
+  legs.push({gameId:g2.id,market:'spreads',selection:spPick2.name,odds:spPick2.price,line:spPick2.point||null,homeTeam:g2.home_team,awayTeam:g2.away_team,commenceTime:g2.commence_time,sport:currentSport,
     desc:`${spPick2.name.split(' ').pop()} ${(spPick2.point>0?'+':'')}${spPick2.point} · ${g2.away_team.split(' ').pop()} @ ${g2.home_team.split(' ').pop()}`});
   // Leg 3: Over on total
   const tot3 = getMarket(g3,'totals'); const ov3 = tot3.find(o=>o.name==='Over') || tot3[0];
-  legs.push({gameId:g3.id,market:'totals',selection:ov3.name,odds:ov3.price,line:ov3.point||'',home:g3.home_team,away:g3.away_team,commenceTime:g3.commence_time,
+  legs.push({gameId:g3.id,market:'totals',selection:ov3.name,odds:ov3.price,line:ov3.point||null,homeTeam:g3.home_team,awayTeam:g3.away_team,commenceTime:g3.commence_time,sport:currentSport,
     desc:`Over ${ov3.point} · ${g3.away_team.split(' ').pop()} @ ${g3.home_team.split(' ').pop()}`});
   const combined = calcParlayOdds(legs);
   wrap.style.display = 'block';
@@ -2683,6 +2730,7 @@ document.addEventListener('click', e => {
     commenceTime: btn.dataset.ct, market: btn.dataset.market,
     selection: btn.dataset.sel, odds: parseInt(btn.dataset.odds),
     line: btn.dataset.line ? parseFloat(btn.dataset.line) : null,
+    sport: btn.dataset.sport || currentSport,
   };
   toggleLeg(leg, btn, e);
 });
@@ -2837,13 +2885,7 @@ function openBetSlip() {
     ${parlayInsurance}
     ${summaryBar}
     ${rrHtml}
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-      <div class="bs-stake-lbl" style="margin-bottom:0">${slipMode==='rr'?'Stake Per Combo':'Bet Amount'}</div>
-      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:10px;font-weight:700;color:var(--t3)">
-        <input type="checkbox" id="bsFreeBet" style="accent-color:var(--gold);width:13px;height:13px" onchange="updateBsPayout()">
-        <span>Free Bet</span>
-      </label>
-    </div>
+    <div class="bs-stake-lbl">${slipMode==='rr'?'Stake Per Combo':'Bet Amount'}</div>
     <div class="bs-amount-row"><span class="bs-dollar">$</span><input class="bs-input" id="bsStake" type="number" inputmode="numeric" min="1" value="50" oninput="updateBsPayout()" onkeydown="if(event.key==='Enter'){event.preventDefault();placeBet()}" autocomplete="off"></div>
     <div class="bs-quick">
       <button onclick="setBsStake(10)">$10</button>
@@ -2853,11 +2895,10 @@ function openBetSlip() {
       <button onclick="setBsStake(Math.floor(profile.balance))">Max</button>
     </div>
     <hr class="bs-divider">
-    <div id="freeBetNote" style="display:none;font-size:10px;color:var(--gold);margin-bottom:6px">✓ Free Bet — stake not returned on win</div>
     <div class="bs-payout-row"><span class="bs-payout-lbl">To Win</span><span class="bs-payout-val" id="bsToWin">—</span></div>
     <div class="bs-payout-row"><span class="bs-payout-lbl">Total Payout</span><span class="bs-payout-val" id="bsPayout">—</span></div>
     <div class="bs-balance">Balance: <b>${fmt(profile.balance)}</b></div>
-    <button class="bs-place-btn" id="bsPlaceBtn" onclick="placeBet()">Place ${isParlay?'Parlay':'Bet'}</button>`;
+    <button class="bs-place-btn" id="bsPlaceBtn" onclick="placeBet()">Place ${isParlay?'Parlay':slipMode==='rr'?'Round Robin':'Bet'}</button>`;
   document.getElementById('betSlipWrap').style.display = 'flex';
   updateBsPayout();
   // Mobile swipe-to-dismiss
@@ -2891,14 +2932,14 @@ async function cashOut(betId, coValue, origStake) {
   if (!profile) return;
   const profit = coValue - origStake;
   if (!confirm(`Cash out for ${fmt(coValue)}? (${profit >= 0 ? '+' : ''}${fmt(profit)} vs stake)`)) return;
-  const newBal = profile.balance + coValue;
-  const { error: be } = await sb.from('profiles').update({ balance: newBal }).eq('id', user.id);
-  if (be) { showToast('Cash out failed', 'error'); return; }
-  const { error: ue } = await sb.from('bets')
+  // Grade the bet still-pending first so a double-click (or a settlement that races in
+  // between) can't cash out a bet that's already been paid out or marked lost.
+  const { data: rows, error: ue } = await sb.from('bets')
     .update({ status: 'won', potential_payout: coValue, settled_at: new Date().toISOString() })
-    .eq('id', betId);
-  if (ue) { await sb.from('profiles').update({ balance: profile.balance }).eq('id', user.id); showToast('Cash out failed', 'error'); return; }
-  profile.balance = newBal;
+    .eq('id', betId).eq('status', 'pending').select('id');
+  if (ue) { showToast('Cash out failed', 'error'); return; }
+  if (!rows || !rows.length) { showToast('That bet already settled', 'error'); loadMyBets(); return; }
+  const newBal = await applyBalanceDelta(coValue);
   animateBalance(newBal);
   flashBalance('up');
   showToast(`Cashed out for ${fmt(coValue)} 💰`);
@@ -2920,10 +2961,7 @@ function openAddFunds() {
 async function addVirtualFunds(amt) { doAddFunds(amt); }
 async function doAddFunds(amt) {
   if (!profile) return;
-  const newBal = profile.balance + amt;
-  const { error } = await sb.from('profiles').update({ balance: newBal }).eq('id', user.id);
-  if (error) { showToast('Error adding funds', 'error'); return; }
-  profile.balance = newBal;
+  const newBal = await applyBalanceDelta(amt);
   animateBalance(newBal);
   closeRoomModal();
   flashBalance('up');
@@ -2949,32 +2987,28 @@ function removeLeg(idx) {
 
 function setBsStake(v) { const i=document.getElementById('bsStake'); if(i){i.value=Math.min(v,Math.floor(profile?.balance||0)); updateBsPayout();} }
 function setBsStakePct(pct) { setBsStake(Math.max(1, Math.floor((profile?.balance||0) * pct / 100))); }
+function rrCombos(legs) {
+  const combos = [];
+  for (let i=0; i<legs.length; i++) for (let j=i+1; j<legs.length; j++) combos.push([legs[i], legs[j]]);
+  return combos;
+}
 function updateBsPayout() {
   const stake = parseFloat(document.getElementById('bsStake')?.value)||0;
   if (!betSlipLegs.length) return;
-  const freeBetEl = document.getElementById('bsFreeBet');
-  const isFreeBet = freeBetEl && freeBetEl.checked;
-  const fbn = document.getElementById('freeBetNote');
-  if (fbn) fbn.style.display = isFreeBet ? 'block' : 'none';
   const isParlay = slipMode === 'parlay' && betSlipLegs.length > 1;
   const isRR = slipMode === 'rr' && betSlipLegs.length >= 3;
-  let totalWin = 0, totalPayout = 0;
   if (isRR) {
-    for (let i=0; i<betSlipLegs.length; i++) for (let j=i+1; j<betSlipLegs.length; j++) {
-      const p = calcPayout(stake, calcParlayOdds([betSlipLegs[i], betSlipLegs[j]]));
-      totalPayout += p; totalWin += (p - stake);
-    }
-    const combosCount = betSlipLegs.length*(betSlipLegs.length-1)/2;
-    document.getElementById('bsToWin').textContent = `Max ${fmt(totalWin)} (${combosCount} combos)`;
-    document.getElementById('bsPayout').textContent = `Total wager: ${fmt(stake*combosCount)}`;
+    const combos = rrCombos(betSlipLegs);
+    let totalWin = 0;
+    for (const pair of combos) totalWin += calcPayout(stake, calcParlayOdds(pair)) - stake;
+    document.getElementById('bsToWin').textContent = `Max ${fmt(totalWin)} (${combos.length} combos)`;
+    document.getElementById('bsPayout').textContent = `Total wager: ${fmt(stake*combos.length)}`;
     return;
   }
   const odds = isParlay ? calcParlayOdds(betSlipLegs) : betSlipLegs[0].odds;
   const payout = calcPayout(stake, odds);
-  const toWin = payout - stake;
-  // Free bet: payout = winnings only (stake is token, not returned)
-  document.getElementById('bsToWin').textContent = fmt(toWin);
-  document.getElementById('bsPayout').textContent = isFreeBet ? fmt(toWin) : fmt(payout);
+  document.getElementById('bsToWin').textContent = fmt(payout - stake);
+  document.getElementById('bsPayout').textContent = fmt(payout);
 }
 function closeBetSlip() { document.getElementById('betSlipWrap').style.display='none'; }
 
@@ -2983,19 +3017,41 @@ async function placeBet() {
   const stake = parseFloat(document.getElementById('bsStake')?.value)||0;
   if (stake <= 0) { showToast('Enter a valid stake','error'); return; }
   if (stake > profile.balance) { showToast('Insufficient balance','error'); return; }
+  const isParlay = slipMode === 'parlay' && betSlipLegs.length > 1;
+  const isRR = slipMode === 'rr' && betSlipLegs.length >= 3;
+  const combos = isRR ? rrCombos(betSlipLegs) : null;
+  const totalStake = isRR ? Math.round(stake * combos.length * 100) / 100 : stake;
+  if (totalStake > profile.balance) { showToast(isRR ? `Insufficient balance for ${combos.length} combos` : 'Insufficient balance','error'); return; }
+
   const btn = document.getElementById('bsPlaceBtn');
   btn.textContent = 'Placing…'; btn.disabled = true;
 
-  const isParlay = slipMode === 'parlay' && betSlipLegs.length > 1;
-  const odds = isParlay ? calcParlayOdds(betSlipLegs) : betSlipLegs[0].odds;
-  const payout = calcPayout(stake, odds);
-  const newBal = profile.balance - stake;
-
-  const { error: be } = await sb.from('profiles').update({ balance: newBal }).eq('id', user.id);
-  if (be) { btn.textContent='Place Bet'; btn.disabled=false; showToast('Error placing bet','error'); return; }
+  const odds = isParlay ? calcParlayOdds(betSlipLegs) : (isRR ? null : betSlipLegs[0].odds);
+  const payout = isRR ? null : calcPayout(stake, odds);
+  const newBal = await applyBalanceDelta(-totalStake);
+  if (newBal < 0) {
+    // Balance moved (another bet, another tab) between the check above and now — undo and bail.
+    await applyBalanceDelta(totalStake);
+    btn.textContent='Place Bet'; btn.disabled=false; showToast('Insufficient balance','error'); return;
+  }
 
   let insertError;
-  if (isParlay) {
+  if (isRR) {
+    // Round robin = one 2-leg parlay row per combo, so each combo settles independently
+    // through the normal parlay grader instead of silently dropping every leg but one.
+    const rows = combos.map(pair => {
+      const cOdds = calcParlayOdds(pair);
+      return {
+        user_id: user.id, sport: currentSport,
+        game_id: 'parlay', home_team: 'Round Robin', away_team: '2 Legs',
+        commence_time: pair[0].commenceTime, market: 'parlay',
+        selection: JSON.stringify({ legs: pair, rr: true }),
+        line: null, odds: cOdds, stake, potential_payout: calcPayout(stake, cOdds),
+      };
+    });
+    const { error: ie } = await sb.from('bets').insert(rows);
+    insertError = ie;
+  } else if (isParlay) {
     const leg0 = betSlipLegs[0];
     const { error: ie } = await sb.from('bets').insert({
       user_id: user.id, sport: currentSport,
@@ -3018,30 +3074,39 @@ async function placeBet() {
   }
 
   if (insertError) {
-    await sb.from('profiles').update({balance:profile.balance}).eq('id',user.id);
+    await applyBalanceDelta(totalStake);
     btn.textContent='Place Bet'; btn.disabled=false;
     showToast('Error placing bet','error'); return;
   }
 
-  profile.balance = newBal;
-  animateBalance(newBal);
+  animateBalance(profile.balance);
   const confNum = 'CHK' + Date.now().toString().slice(-8);
-  const label = isParlay ? `${betSlipLegs.length}-Leg Parlay` : betSlipLegs[0].selection;
+  const label = isRR ? `Round Robin · ${combos.length} combos` : isParlay ? `${betSlipLegs.length}-Leg Parlay` : betSlipLegs[0].selection;
+  const rrMaxPayout = isRR ? combos.reduce((acc,pair)=>acc+calcPayout(stake, calcParlayOdds(pair)),0) : payout;
   const slipSnapshot = [...betSlipLegs];
   betSlipLegs = [];
   updateFab();
   closeBetSlip();
   flashBalance('dn');
   // Show bet receipt modal
-  showBetReceipt({ label, odds, stake, payout, confNum, isParlay, legs: slipSnapshot });
+  showBetReceipt({ label, odds, stake: totalStake, payout: rrMaxPayout, confNum, isParlay: isParlay||isRR, isRR, combosCount: combos?combos.length:0, legs: slipSnapshot });
   const curBadge = parseInt(document.getElementById('betsBadge')?.textContent||'0')||0;
-  updateBetsBadge(curBadge + 1);
+  updateBetsBadge(curBadge + (isRR ? combos.length : 1));
 }
-function showBetReceipt({ label, odds, stake, payout, confNum, isParlay, legs }) {
+function showBetReceipt({ label, odds, stake, payout, confNum, isParlay, isRR, combosCount, legs }) {
   const wrap = document.createElement('div');
   wrap.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px';
   wrap.onclick = e => { if(e.target===wrap) wrap.remove(); };
   const legsHtml = isParlay ? legs.slice(0,5).map(l=>{ const lc=l.odds>0?'#30D158':'var(--gold)'; return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:11px"><span style="color:var(--t2)">${esc(l.selection)}</span><span style="color:${lc};font-weight:800">${fmtOdds(l.odds)}</span></div>`; }).join('') : '';
+  const oddsRow = isRR
+    ? `<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
+        <div style="font-size:11px;color:var(--t3)">Combos</div>
+        <div style="font-size:13px;font-weight:800;color:var(--gold)">${combosCount} × 2-Team</div>
+      </div>`
+    : `<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
+        <div style="font-size:11px;color:var(--t3)">Odds</div>
+        <div style="font-size:13px;font-weight:800;color:${odds>0?'#30D158':'var(--gold)'}">${fmtOdds(odds)}</div>
+      </div>`;
   wrap.innerHTML = `<div style="background:var(--bg-b);border:1px solid rgba(245,166,35,.3);border-radius:16px;width:100%;max-width:360px;overflow:hidden">
     <div style="background:linear-gradient(135deg,rgba(245,166,35,.15),rgba(245,166,35,.05));padding:20px;text-align:center;border-bottom:1px solid rgba(245,166,35,.2)">
       <div style="font-size:36px;margin-bottom:8px">🎯</div>
@@ -3054,16 +3119,13 @@ function showBetReceipt({ label, odds, stake, payout, confNum, isParlay, legs })
         <div style="font-size:13px;font-weight:800;color:var(--t1);text-align:right;max-width:200px">${esc(label)}</div>
       </div>
       ${legsHtml}
-      <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
-        <div style="font-size:11px;color:var(--t3)">Odds</div>
-        <div style="font-size:13px;font-weight:800;color:${odds>0?'#30D158':'var(--gold)'}">${fmtOdds(odds)}</div>
-      </div>
+      ${oddsRow}
       <div style="display:flex;justify-content:space-between;margin-top:8px">
-        <div style="font-size:11px;color:var(--t3)">Stake</div>
+        <div style="font-size:11px;color:var(--t3)">${isRR?'Total Stake':'Stake'}</div>
         <div style="font-size:13px;font-weight:800;color:var(--t1)">${fmt(stake)}</div>
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:8px;padding:10px;background:rgba(48,209,88,.08);border-radius:8px;border:1px solid rgba(48,209,88,.2)">
-        <div style="font-size:12px;font-weight:700;color:var(--t2)">To Win</div>
+        <div style="font-size:12px;font-weight:700;color:var(--t2)">${isRR?'Max Win':'To Win'}</div>
         <div style="font-size:16px;font-weight:900;color:#30D158">+${fmt(payout-stake)}</div>
       </div>
     </div>
@@ -3122,23 +3184,29 @@ function renderBets(bets) {
 
   const rb = b => {
     const isParlay = b.market === 'parlay';
-    const mktL = isParlay ? `${JSON.parse(b.selection||'{}').legs?.length||'?'}-Leg Parlay` : (MARKET_LABELS[b.market]||b.market);
+    let parlayMeta = {}; if (isParlay) { try { parlayMeta = JSON.parse(b.selection||'{}'); } catch(e) {} }
+    const isRR = !!parlayMeta.rr;
+    const mktL = isParlay ? `${parlayMeta.legs?.length||'?'}-Leg ${isRR?'Round Robin Combo':'Parlay'}` : (MARKET_LABELS[b.market]||b.market);
     const selL = isParlay ? '' : (b.market==='spreads'&&b.line!=null?`${b.selection} ${b.line>0?'+':''}${b.line}`:b.market==='totals'&&b.line!=null?`${b.selection} ${b.line}`:b.selection);
-    const statusLabels = {won:'✓ WON',lost:'✗ LOST',push:'~ PUSH',pending:'⏳ PENDING'};
-    const pnlVal = b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:b.status==='push'?0:null;
+    const statusLabels = {won:'✓ WON',lost:'✗ LOST',push:'~ PUSH',void:'○ VOID',pending:'⏳ PENDING'};
+    const pnlVal = b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:(b.status==='push'||b.status==='void')?0:null;
     const d = new Date(b.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
 
+    // Per-leg result chips — populated once a parlay/round-robin settles (settlement writes
+    // each leg's graded outcome back into this same JSON column).
+    const legResultDot = { won:'#30D158', lost:'var(--loss)', void:'var(--push)' };
     let legsList = '';
     if (isParlay) {
-      try {
-        const legs = JSON.parse(b.selection).legs || [];
-        legsList = `<div class="parlay-legs-count">${legs.map(l=>`<span>${esc(l.selection)} ${fmtOdds(l.odds)}</span>`).join(' · ')}</div>`;
-      } catch(e) {}
+      const legs = parlayMeta.legs || [];
+      legsList = `<div class="parlay-legs-count">${legs.map(l=>{
+        const dot = l.result ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${legResultDot[l.result]||'var(--t3)'};margin-right:4px"></span>` : '';
+        return `<span>${dot}${esc(l.selection)} ${fmtOdds(l.odds)}</span>`;
+      }).join(' · ')}</div>`;
     }
 
     const sportIcon = SPORTS[b.sport]?.icon || '';
     const matchupLine = isParlay
-      ? `<div class="bet-matchup">${sportIcon} Parlay · ${fmtOdds(b.odds)}</div>`
+      ? `<div class="bet-matchup">${sportIcon} ${isRR?'Round Robin':'Parlay'} · ${fmtOdds(b.odds)}</div>`
       : `<div class="bet-matchup">${sportIcon ? sportIcon+' ' : ''}${esc(b.away_team)} @ ${esc(b.home_team)}</div>`;
 
     // Cash-out value = stake + 45% of potential profit (like real apps, slightly unfair)
@@ -3169,6 +3237,7 @@ function renderBets(bets) {
   const winPct = total ? Math.round((won/total)*100) : 0;
   const wonBets = bets.filter(b=>b.status==='won');
   const lostBets = bets.filter(b=>b.status==='lost');
+  const otherBets = bets.filter(b=>b.status==='push'||b.status==='void'); // pushes + voided/unresolvable bets — refunded, not vanished
   const statsBar = `<div class="bet-filter-tabs">
     <span style="color:var(--t2);font-size:13px">${pending.length} Active</span>
     <span style="color:var(--t2);font-size:13px">${won}/${total} Won (${winPct}%)</span>
@@ -3185,6 +3254,7 @@ function renderBets(bets) {
   if (pending.length) html += `<div class="bets-section-hdr bets-grp" data-grp="open,all">Active (${pending.length})</div>${pending.map(b=>`<div class="bets-grp" data-grp="open,all">${rb(b)}</div>`).join('')}`;
   if (wonBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="won,all">Won <span class="bets-pnl pos">+${fmt(wonBets.reduce((a,b)=>a+(b.potential_payout-b.stake),0))}</span></div>${wonBets.map(b=>`<div class="bets-grp" data-grp="won,all">${rb(b)}</div>`).join('')}`;
   if (lostBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="lost,all">Lost <span class="bets-pnl neg">-${fmt(lostBets.reduce((a,b)=>a+b.stake,0))}</span></div>${lostBets.map(b=>`<div class="bets-grp" data-grp="lost,all">${rb(b)}</div>`).join('')}`;
+  if (otherBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="all">Pushed / Voided <span class="bets-pnl" style="color:var(--push)">${fmt(otherBets.reduce((a,b)=>a+b.stake,0))} refunded</span></div>${otherBets.map(b=>`<div class="bets-grp" data-grp="all">${rb(b)}</div>`).join('')}`;
   el.innerHTML = html;
 }
 function filterBetView(filter, btn) {
@@ -3201,44 +3271,117 @@ async function settlePending() {
   const now = new Date().toISOString();
   const { data: pending } = await sb.from('bets').select('*').eq('user_id',user.id).eq('status','pending').lt('commence_time',now);
   if (!pending?.length) return;
-  const bySport = pending.reduce((acc,b)=>{(acc[b.sport]=acc[b.sport]||[]).push(b);return acc},{});
-  for (const [sport, bets] of Object.entries(bySport)) {
-    const espn = SPORTS[sport]?.espn; if (!espn) continue;
+
+  // Parlay/round-robin legs can each belong to a different sport than the bet row's own
+  // top-level `sport` column, so collect every sport actually referenced before fetching —
+  // one shared scoreboard fetch per sport, reused by every single bet AND every parlay leg.
+  const sportsNeeded = new Set();
+  for (const b of pending) {
+    if (b.market === 'parlay') {
+      try { for (const l of (JSON.parse(b.selection).legs||[])) if (l.sport) sportsNeeded.add(l.sport); } catch(e) {}
+    } else if (b.sport) sportsNeeded.add(b.sport);
+  }
+  const eventsBySport = {};
+  await Promise.all([...sportsNeeded].map(async sport => {
+    const espn = SPORTS[sport]?.espn;
+    if (!espn) { eventsBySport[sport] = []; return; } // e.g. 'futures' — no real scoreboard to check against
     try {
       const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espn}/scoreboard`);
-      const { events=[] } = await res.json();
-      for (const bet of bets) {
-        const ev = matchEvent(events, bet.home_team, bet.away_team); if (!ev) continue;
-        if (!ev.status?.type?.completed) continue;
-        const comps = ev.competitions?.[0]?.competitors||[];
-        const hc = comps.find(c=>c.homeAway==='home'), ac = comps.find(c=>c.homeAway==='away');
-        if (!hc||!ac) continue;
-        const hs = parseInt(hc.score)||0, as_ = parseInt(ac.score)||0;
-        const result = settleBet(bet, hs, as_);
-        let newBal = profile.balance;
-        if (result==='won') newBal += bet.potential_payout;
-        else if (result==='push') newBal += bet.stake;
-        await sb.from('bets').update({status:result,settled_at:new Date().toISOString()}).eq('id',bet.id);
-        await sb.from('profiles').update({balance:newBal}).eq('id',user.id);
-        profile.balance = newBal;
-        if (result === 'won') {
-          const profit = bet.potential_payout - bet.stake;
-          showToast(`🏆 ${bet.selection} WON · +${fmt(profit)}`, 'success');
-          launchConfetti();
-          flashBalance('up');
-        } else if (result === 'lost') {
-          showToast(`${bet.selection} lost · -${fmt(bet.stake)}`, 'error');
-          flashBalance('dn');
-        }
-        // Pulse the My Bets badge when a bet settles and user isn't viewing it
-        if (currentView !== 'bets') {
-          const curCount = parseInt(document.getElementById('betsBadge')?.textContent||'0')||0;
-          updateBetsBadge(Math.max(0, curCount - 1), false);
-        }
-      }
-    } catch(e) { console.error('settlement error',e); }
+      const { events = [] } = await res.json();
+      eventsBySport[sport] = events;
+    } catch(e) { console.error('settlement fetch error', sport, e); eventsBySport[sport] = []; }
+  }));
+
+  // If we still can't find a matching real-world event this long after kickoff (futures
+  // markets, or any other bet whose team names never resolve to a real ESPN event), stop
+  // waiting forever and void it out instead — refund the stake rather than leave it stuck.
+  const STALE_MS = 6 * 60 * 60 * 1000;
+  const scoreFor = (sport, homeTeam, awayTeam) => {
+    const ev = matchEvent(eventsBySport[sport] || [], homeTeam, awayTeam);
+    if (!ev) return { found: false };
+    if (!ev.status?.type?.completed) return { found: true, done: false };
+    const comps = ev.competitions?.[0]?.competitors || [];
+    const hc = comps.find(c => c.homeAway === 'home'), ac = comps.find(c => c.homeAway === 'away');
+    if (!hc || !ac) return { found: true, done: false };
+    return { found: true, done: true, hs: parseInt(hc.score) || 0, as: parseInt(ac.score) || 0 };
+  };
+
+  for (const bet of pending) {
+    try {
+      if (bet.market === 'parlay') await settleParlayBet(bet, scoreFor, STALE_MS);
+      else await settleSingleBet(bet, scoreFor, STALE_MS);
+    } catch(e) { console.error('settle bet error', bet.id, e); }
   }
   animateBalance(profile.balance);
+}
+
+async function settleSingleBet(bet, scoreFor, staleMs) {
+  const info = scoreFor(bet.sport, bet.home_team, bet.away_team);
+  let result;
+  if (info.done) {
+    result = gradeLegOutcome(bet.market, bet.selection, bet.line, bet.home_team, bet.away_team, info.hs, info.as);
+  } else if (!info.found && Date.now() - new Date(bet.commence_time).getTime() > staleMs) {
+    result = 'void'; // never found a matching real event to grade against
+  } else {
+    return; // game hasn't finished (or hasn't been posted yet) — stays pending
+  }
+  const payout = result === 'won' ? bet.potential_payout : (result === 'push' || result === 'void') ? bet.stake : 0;
+  await sb.from('bets').update({ status: result, settled_at: new Date().toISOString() }).eq('id', bet.id);
+  await creditAndNotify(bet, result, payout);
+}
+
+async function settleParlayBet(bet, scoreFor, staleMs) {
+  let legs;
+  try { legs = JSON.parse(bet.selection).legs || []; } catch(e) { return; }
+  if (!legs.length) return;
+  const graded = [];
+  for (const leg of legs) {
+    const info = scoreFor(leg.sport, leg.homeTeam, leg.awayTeam);
+    let result;
+    if (info.done) {
+      result = gradeLegOutcome(leg.market, leg.selection, leg.line, leg.homeTeam, leg.awayTeam, info.hs, info.as);
+    } else if (!info.found && Date.now() - new Date(leg.commenceTime).getTime() > staleMs) {
+      result = 'void';
+    } else {
+      return; // at least one leg's game is still in progress (or unresolved) — whole slip waits
+    }
+    graded.push({ ...leg, result });
+  }
+  let outcome, payout;
+  if (graded.some(l => l.result === 'lost')) {
+    outcome = 'lost'; payout = 0;
+  } else {
+    // Standard sportsbook rule: pushed/void legs drop out and odds recombine from what's left.
+    const liveLegs = graded.filter(l => l.result === 'won');
+    if (!liveLegs.length) { outcome = 'push'; payout = bet.stake; }
+    else { outcome = 'won'; payout = calcPayout(bet.stake, calcParlayOdds(liveLegs)); }
+  }
+  // Persist per-leg results back into the same JSON column (no schema change needed) so
+  // My Bets can show a won/lost/void chip on each leg of a settled parlay.
+  await sb.from('bets').update({
+    status: outcome, settled_at: new Date().toISOString(), potential_payout: payout,
+    selection: JSON.stringify({ legs: graded }),
+  }).eq('id', bet.id);
+  await creditAndNotify(bet, outcome, payout);
+}
+
+async function creditAndNotify(bet, result, payout) {
+  if (payout > 0) await applyBalanceDelta(payout);
+  const label = bet.market === 'parlay' ? (JSON.parse(bet.selection||'{}').rr ? 'Round Robin combo' : 'Parlay') : bet.selection;
+  if (result === 'won') {
+    showToast(`🏆 ${label} WON · +${fmt(payout - bet.stake)}`, 'success');
+    launchConfetti(); flashBalance('up');
+  } else if (result === 'lost') {
+    showToast(`${label} lost · -${fmt(bet.stake)}`, 'error');
+    flashBalance('dn');
+  } else if (result === 'void') {
+    showToast(`${label} voided — stake refunded`, 'warn');
+  }
+  // Pulse the My Bets badge when a bet settles and user isn't viewing it
+  if (currentView !== 'bets') {
+    const curCount = parseInt(document.getElementById('betsBadge')?.textContent||'0')||0;
+    updateBetsBadge(Math.max(0, curCount - 1), false);
+  }
 }
 
 function matchEvent(events, homeTeam, awayTeam) {
@@ -3256,24 +3399,28 @@ function matchEvent(events, homeTeam, awayTeam) {
   return null;
 }
 
-function settleBet(bet, homeScore, awayScore) {
-  if (bet.market === 'h2h') {
+// Grade one leg (or a plain single bet) against a final score. Returns 'won' | 'lost' | 'push' | 'void'.
+// 'void' = the market can't be fairly graded from real results — player/game props are
+// procedurally generated demo data with no real box-score behind them, so the stake is
+// refunded rather than silently forfeited (the old behavior here was an automatic loss).
+function gradeLegOutcome(market, selection, line, homeTeam, awayTeam, homeScore, awayScore) {
+  if (market === 'h2h') {
     if (homeScore === awayScore) return 'push';
-    const winner = homeScore > awayScore ? bet.home_team : bet.away_team;
-    return winner === bet.selection ? 'won' : 'lost';
+    const winner = homeScore > awayScore ? homeTeam : awayTeam;
+    return winner === selection ? 'won' : 'lost';
   }
-  if (bet.market === 'spreads') {
-    const line = parseFloat(bet.line), isHome = bet.selection === bet.home_team;
+  if (market === 'spreads') {
+    const l = parseFloat(line), isHome = selection === homeTeam;
     const margin = homeScore - awayScore; // positive = home winning
-    const covered = isHome ? (margin + line) : ((-margin) + (-line));
+    const covered = isHome ? (margin + l) : ((-margin) + (-l));
     if (covered > 0) return 'won'; if (covered < 0) return 'lost'; return 'push';
   }
-  if (bet.market === 'totals') {
-    const total = homeScore + awayScore, line = parseFloat(bet.line);
-    if (bet.selection === 'Over') return total > line ? 'won' : total < line ? 'lost' : 'push';
-    return total < line ? 'won' : total > line ? 'lost' : 'push';
+  if (market === 'totals') {
+    const total = homeScore + awayScore, l = parseFloat(line);
+    if (selection === 'Over') return total > l ? 'won' : total < l ? 'lost' : 'push';
+    return total < l ? 'won' : total > l ? 'lost' : 'push';
   }
-  return 'lost';
+  return 'void';
 }
 
 // ── LEADERBOARD ───────────────────────────────────────────────────
@@ -3343,8 +3490,9 @@ async function loadProfileView() {
   const losses = settled.filter(b=>b.status==='lost').length;
   const total = settled.length;
   const pnl = settled.reduce((acc,b)=>acc+(b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:0),0);
-  const wagered = all.reduce((acc,b)=>acc+Number(b.stake),0);
-  const roi = wagered > 0 ? ((pnl/wagered)*100).toFixed(1) : '0.0';
+  const wagered = all.reduce((acc,b)=>acc+Number(b.stake),0); // includes pending — this is a volume/loyalty figure, feeds the tier below
+  const settledWagered = settled.reduce((acc,b)=>acc+Number(b.stake),0); // ROI should only be measured against money that's actually been decided
+  const roi = settledWagered > 0 ? ((pnl/settledWagered)*100).toFixed(1) : '0.0';
   const winRate = total > 0 ? Math.round(wins/total*100) : 0;
   const bestWin = settled.filter(b=>b.status==='won').reduce((best,b)=>{
     const profit = b.potential_payout - b.stake;
@@ -3427,8 +3575,12 @@ async function loadProfileView() {
       const isPending = b.status==='pending';
       const isWon = b.status==='won';
       const isLost = b.status==='lost';
-      let label = 'Bet';
-      try { const sel = JSON.parse(b.selection); if (sel.legs) label='Parlay'; else label=sel.team||b.market; } catch(e){}
+      // Single bets store selection as a plain string ("Chiefs", "Over"), not JSON — only
+      // parlay/round-robin rows are JSON-encoded, so only try to parse those.
+      let label = b.selection || b.market || 'Bet';
+      if (b.market === 'parlay') {
+        try { const sel = JSON.parse(b.selection); label = `${sel.legs?.length||'?'}-Leg ${sel.rr?'RR Combo':'Parlay'}`; } catch(e) { label = 'Parlay'; }
+      }
       const sport = SPORTS[b.sport]?.label||b.sport||'Bet';
       const icon = isWon ? '✅' : isLost ? '❌' : '⏳';
       const amtClass = isWon ? 'pos' : isLost ? 'neg' : '';
