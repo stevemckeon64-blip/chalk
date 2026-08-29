@@ -133,7 +133,14 @@ function calcPayout(stake, odds) // returns potential payout
 ---
 
 ## Deployment
-Drag `index.html` onto Netlify. No build step. Site is public.
+**Host: Render (static site)**
+**Live URL:** https://chalk-k5jm.onrender.com/
+
+Render is connected to the GitHub repo. Every `git push origin main` auto-deploys in ~60-90 seconds. No drag-and-drop, no build step — push and it's live.
+
+```bash
+git add index.html && git commit -m "Wave N: description" && git push origin main
+```
 
 ---
 
