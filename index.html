@@ -427,7 +427,6 @@ body::after{
 .dg-count{margin-left:auto;font-size:10px;color:var(--t3);font-weight:600;background:var(--bg-ch);padding:1px 7px;border-radius:10px}
 /* ── SOON badge ─────────────────────────────────────────── */
 .soon-badge{font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#FF9F0A;background:rgba(255,159,10,.12);border:1px solid rgba(255,159,10,.3);border-radius:4px;padding:2px 5px}
-.hot-badge{font-size:9px;font-weight:800;letter-spacing:.04em;color:#FF6B00;background:rgba(255,107,0,.1);border:1px solid rgba(255,107,0,.25);border-radius:4px;padding:2px 5px}
 /* ── ODDS FORMAT btn in slip header ────────────────────── */
 .odds-fmt-btn{font-size:9px;font-weight:800;letter-spacing:.1em;padding:3px 8px;border-radius:5px;border:1px solid var(--bdr-h);background:var(--bg);color:var(--t2);cursor:pointer;transition:all .15s;margin-right:6px}
 .odds-fmt-btn:hover{border-color:var(--gold);color:var(--gold)}
@@ -503,21 +502,6 @@ body::after{
 .prop-tab-btn.active{background:var(--bg-ch);color:var(--t1);border-color:var(--bdr-h)}
 .prop-group{transition:opacity .15s}
 .prop-group.hidden{display:none}
-/* ── TRENDING PICKS ───────────────────────────────────────── */
-.trending-section{padding:4px 16px 10px;display:none}
-.trending-lbl{font-size:9px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:var(--win);margin-bottom:7px;display:flex;align-items:center;gap:6px}
-.trending-lbl::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(48,209,88,.3),transparent)}
-.trending-scroll{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
-.trending-scroll::-webkit-scrollbar{display:none}
-.trending-card{flex-shrink:0;background:var(--bg-c);border:1px solid var(--bdr-h);border-radius:var(--r);padding:10px 12px;min-width:148px;max-width:168px;display:flex;flex-direction:column;gap:5px;position:relative;overflow:hidden}
-.trending-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#30D158,rgba(48,209,88,.3))}
-.trend-badge{display:inline-flex;align-items:center;gap:3px;font-size:8px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--win);padding:2px 5px;background:rgba(48,209,88,.1);border-radius:4px;width:fit-content}
-.trend-label{font-size:12px;font-weight:700;color:var(--t1);line-height:1.2}
-.trend-game{font-size:10px;color:var(--t3)}
-.trend-footer{display:flex;align-items:center;justify-content:space-between;margin-top:3px}
-.trend-action{font-size:9px;color:var(--t2);font-weight:700}
-.trend-odds{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums}
-.trend-odds.pos{color:#30D158}.trend-odds:not(.pos){color:var(--gold)}
 /* ── ROUND ROBIN ───────────────────────────────────────────── */
 .rr-combo-list{display:flex;flex-direction:column;gap:5px;margin:4px 0}
 .rr-combo{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--bg-s);border:1px solid var(--bdr);border-radius:7px;font-size:12px}
@@ -525,21 +509,12 @@ body::after{
 .rr-combo-odds{font-weight:900;font-variant-numeric:tabular-nums;flex-shrink:0;margin-left:10px}
 .rr-summary{padding:8px 10px;background:rgba(245,166,35,.07);border-radius:7px;margin-top:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center}
 .rr-combos-count{font-size:9px;color:var(--t2);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
-/* ── TEAM RECORD / LIVE SCORE ─────────────────────────────── */
-.team-record{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.04em;margin-left:5px;flex-shrink:0}
-.team-streak{font-size:8px;font-weight:800;letter-spacing:.04em;margin-left:4px;padding:1px 4px;border-radius:3px;flex-shrink:0}
-.team-streak.streak-w{background:rgba(74,222,128,.18);color:#4ade80}
-.team-streak.streak-l{background:rgba(248,113,113,.18);color:#f87171}
+/* ── LIVE SCORE ──────────────────────────────────────────── */
 .live-score-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:44px}
 .live-score-row{display:flex;align-items:center;gap:5px;justify-content:flex-end}
 .live-score-val{font-size:18px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--t1);min-width:24px;text-align:right}
 .live-score-lead{color:var(--gold)}
 .live-period{font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--live);text-transform:uppercase;text-align:center;margin-top:1px}
-/* ── CONSENSUS % ──────────────────────────────────────────── */
-.consensus-row{display:flex;align-items:center;gap:5px;margin-top:3px;padding:0 2px}
-.con-label{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.04em;white-space:nowrap}
-.con-bar{flex:1;height:3px;background:var(--bdr-h);border-radius:3px;overflow:hidden}
-.con-fill{height:100%;background:linear-gradient(90deg,var(--sport-accent,var(--gold)),rgba(245,166,35,.5));border-radius:3px}
 /* ── WIN PROBABILITY BAR ──────────────────────────────────── */
 .win-prob-bar{display:flex;height:3px;border-radius:3px;overflow:hidden;margin:6px 14px 0;gap:1px}
 .wpb-away{background:var(--sport-accent,var(--gold));opacity:.7;border-radius:3px 0 0 3px;position:relative;min-width:20px;transition:width .4s ease}
@@ -792,10 +767,6 @@ body::after{
         <div class="boosts-lbl">🚀 Boosted Odds</div>
         <div class="boosts-scroll" id="boostsScroll"></div>
       </div>
-      <div id="trendingSection" class="trending-section" style="display:none">
-        <div class="trending-lbl">📈 Trending Tonight</div>
-        <div class="trending-scroll" id="trendingScroll"></div>
-      </div>
       <div class="search-bar-wrap">
         <input class="games-search" id="gamesSearch" type="search" placeholder="Search teams…" oninput="filterGames(this.value)" autocomplete="off">
       </div>
@@ -891,8 +862,15 @@ const SPORT_ACCENTS = {
 let oddsFormat = (()=>{ try { return localStorage.getItem('chalk_odds_fmt')||'american'; } catch(e){return 'american';} })();
 
 // ── PLAYER PROP CONFIG ────────────────────────────────────────────
-const PLAYER_FIRSTS = ['J.','M.','D.','T.','K.','C.','A.','R.','B.','L.','S.','N.','P.','E.','Z.','Ty.','Tre.','De\'','Dak.','Cam.'];
-const PLAYER_LASTS  = ['Williams','Johnson','Davis','Brown','Jones','Miller','Wilson','Moore','Taylor','Anderson','Thomas','Jackson','White','Harris','Martin','Thompson','Garcia','Robinson','Clark','Lewis','Walker','Hall','Allen','Young','Hernandez','King','Wright','Baker','Nelson','Carter','Mitchell','Roberts','Turner','Evans','Edwards','Collins','Stewart','Morris','Rogers','Cook','Morgan','Bell','Rivera','Cooper','Diggs','Adams','Hill','Jefferson','Chase','Andrews','Henry','Kelce','Mahomes','Burrow'];
+// Purely generic filler names for procedurally generated player props — deliberately
+// scrubbed of anything that reads as one specific real, famous pro athlete (this pool used
+// to include real stars' surnames like Mahomes/Kelce/Burrow/Chase/Jefferson/Diggs/Henry and
+// the first-initial "Dak.", which meant a completely fabricated stat line could show up
+// under a real, identifiable player's name — and worse, on the wrong sport entirely, since
+// this same pool feeds NFL/NBA/MLB/NHL/soccer props alike). Every remaining entry is a
+// common surname/initial with no single, obvious real-athlete match.
+const PLAYER_FIRSTS = ['J.','M.','D.','T.','K.','C.','A.','R.','B.','L.','S.','N.','P.','E.','Z.','Ty.','Tre.','De\'','Cam.'];
+const PLAYER_LASTS  = ['Williams','Johnson','Davis','Brown','Jones','Miller','Wilson','Moore','Taylor','Anderson','Thomas','Jackson','White','Harris','Martin','Thompson','Garcia','Robinson','Clark','Lewis','Walker','Hall','Allen','Young','Hernandez','King','Wright','Baker','Nelson','Carter','Mitchell','Roberts','Turner','Evans','Edwards','Collins','Stewart','Morris','Rogers','Cook','Morgan','Bell','Rivera','Cooper','Adams','Hill','Andrews','Perez','Sanders','Price','Bennett','Wood','Ross','Coleman','Jenkins'];
 
 const PROP_SPORTS = {
   americanfootball_nfl: {
@@ -1402,10 +1380,6 @@ function generatePlayerProps(g) {
     </button>`;
   };
 
-  const conBar = (seed, label) => {
-    const pct = 40 + (sh(seed+'con') % 41); // 40–80%
-    return `<div class="consensus-row"><span class="con-label">${pct}% bet ${esc(label)}</span><div class="con-bar"><div class="con-fill" style="width:${pct}%"></div></div></div>`;
-  };
 
   let gPlayers = '', gGame = '', gSGP = '', gAlt = '', gLive = '';
   const awayShort = away.split(' ').pop(), homeShort = home.split(' ').pop();
@@ -1446,12 +1420,12 @@ function generatePlayerProps(g) {
           if (prop.isYN) {
             const yo = propOdds(gid+prop.k+pName+'y', -165);
             const no = propOdds(gid+prop.k+pName+'n', 135);
-            rows += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(prop.lb)}</span><div class="odds-pair">${pBtn(mk,'Yes',yo,null)}${pBtn(mk,'No',no,null)}</div></div>${conBar(gid+prop.k+pName,'Yes')}`;
+            rows += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(prop.lb)}</span><div class="odds-pair">${pBtn(mk,'Yes',yo,null)}${pBtn(mk,'No',no,null)}</div></div>`;
           } else {
             const line = propLine(prop.lo,prop.hi,prop.st,gid+prop.k+pName);
             const oo = propOdds(gid+prop.k+pName+'o');
             const uo = propOdds(gid+prop.k+pName+'u');
-            rows += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(prop.lb)}</span><div class="odds-pair">${pBtn(mk,'Over',oo,'O '+line)}${pBtn(mk,'Under',uo,'U '+line)}</div></div>${conBar(gid+prop.k+pName,'Over')}`;
+            rows += `<div class="prop-market-row"><span class="prop-mkt-lbl">${esc(prop.lb)}</span><div class="odds-pair">${pBtn(mk,'Over',oo,'O '+line)}${pBtn(mk,'Under',uo,'U '+line)}</div></div>`;
           }
         }
         gPlayers += `<div class="player-prop-card">
@@ -2237,7 +2211,6 @@ async function loadGames(sport) {
     document.getElementById('potdWrap').style.display = 'none';
     document.getElementById('liveTickerWrap').style.display = 'none';
     document.getElementById('boostsSection').style.display = 'none';
-    document.getElementById('trendingSection').style.display = 'none';
     return;
   }
   document.getElementById('gamesInner').innerHTML = `<div class="skeleton-wrap">${skeletonCard()}${skeletonCard()}${skeletonCard()}</div>`;
@@ -2247,16 +2220,50 @@ async function loadGames(sport) {
   renderDailyPick(games);
   renderParlayOfDay(games);
   renderBoosts(games);
-  renderTrending(games);
-  renderGames(games);
-  loadLiveTicker(sport);
+  // Load real live scores BEFORE rendering game cards, so a live game's card can show its
+  // actual score (from _liveScoreMap) instead of nothing — cards never fabricate a score.
+  await loadLiveTicker(sport);
+  const pickPcts = await fetchPickPercentages(games);
+  renderGames(games, pickPcts);
+}
+
+// Real "% of bets on each side" per game/market, computed from the bets table — replaces
+// what used to be a seeded fake number shown as if it were real community consensus. Scoped
+// to h2h/spreads/totals only (the gradable core markets) and to single-leg bets on the games
+// currently on screen; parlay legs aren't counted (they're nested in a JSON blob per bet, not
+// individually queryable) — a known undercount, not a fabrication. When there's no real data
+// yet for a market, the bar is omitted rather than defaulting to a fake-looking 50/50.
+async function fetchPickPercentages(games) {
+  const ids = games.map(g => g.id).filter(Boolean);
+  if (!ids.length || !user) return {};
+  try {
+    const { data, error } = await sb.from('bets').select('game_id,market,selection')
+      .in('game_id', ids).in('market', ['h2h','spreads','totals']);
+    if (error || !data) return {};
+    const out = {};
+    for (const b of data) {
+      const g = out[b.game_id] || (out[b.game_id] = {});
+      const m = g[b.market] || (g[b.market] = { counts: {}, total: 0 });
+      m.counts[b.selection] = (m.counts[b.selection] || 0) + 1;
+      m.total++;
+    }
+    return out;
+  } catch(e) { console.error('pick % fetch error', e); return {}; }
 }
 
 function renderFutures() {
   const el = document.getElementById('gamesInner');
   // Filter by active sport tab group (show all if no filter)
   const sportMap = {nfl:'americanfootball_nfl',nba:'basketball_nba',mlb:'baseball_mlb',nhl:'icehockey_nhl',epl:'soccer_epl'};
-  let html = '<div class="futures-grid">';
+  // Futures odds here are a static, point-in-time snapshot (not a live feed like the rest of
+  // the app) and there's no real season-outcome data source to grade them against, so every
+  // futures bet is voided and refunded once it settles rather than resolved won/lost. Said
+  // plainly rather than left for someone to discover — especially with a real prize riding
+  // on the leaderboard.
+  let html = `<div class="empty-state" style="padding:14px 16px;margin-bottom:12px;text-align:left;background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);line-height:1.5">
+    <b style="color:var(--t1)">ℹ️ Futures odds are illustrative, not live.</b><br>
+    <span style="font-size:12px">These are a snapshot, not real-time — and since there's no reliable way to grade a season-long outcome, every futures bet is voided and refunded when it settles rather than won or lost.</span>
+  </div><div class="futures-grid">`;
   for (const mkt of FUTURES_MARKETS) {
     const accentSport = sportMap[mkt.sport] || 'americanfootball_nfl';
     const accent = SPORT_ACCENTS[accentSport] || 'var(--gold)';
@@ -2291,62 +2298,6 @@ function handleFuturesBet(btn) {
     sport: 'futures',
   };
   toggleLeg(leg, btn, null);
-}
-
-function renderTrending(games) {
-  const wrap = document.getElementById('trendingSection');
-  const scroll = document.getElementById('trendingScroll');
-  if (!wrap || !scroll) return;
-  const sh = s => { let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))&0xFFFFFFFF; return h>>>0; };
-  const gms = games.filter(g => getMarket(g,'h2h') || getMarket(g,'spreads') || getMarket(g,'totals'));
-  if (!gms.length) { wrap.style.display='none'; return; }
-  wrap.style.display = 'block';
-  const TREND_LABELS = ['📈 Hot Pick','🌊 Sharp Money','👥 Public Fave','🔥 High Action','💡 Expert Lean','🎯 Value Play'];
-  const ACTION_COUNTS = ['1,247','892','2,031','445','1,618','733','3,204','567'];
-  const HANDLE_PCTS = [63,71,58,82,55,67,74,61]; // seeded handle %
-  const items = [];
-  gms.slice(0,8).forEach((g, i) => {
-    const ml = getMarket(g,'h2h'); const sp = getMarket(g,'spreads'); const tot = getMarket(g,'totals');
-    const awayShort = g.away_team.split(' ').pop(), homeShort = g.home_team.split(' ').pop();
-    const seed = sh(g.id+'trend'+i);
-    if (ml && i % 3 !== 1) {
-      const pick = ml[seed%2===0?0:1]; const odds = pick.price;
-      const label = pick.name.split(' ').pop() + ' ML';
-      const handle = HANDLE_PCTS[seed%8];
-      const isSharp = handle >= 65;
-      items.push({ label, sublabel: awayShort+' @ '+homeShort, odds, badge: TREND_LABELS[seed%6], action: ACTION_COUNTS[seed%8]+' bets', handle, isSharp, g, market:'h2h', sel:pick.name });
-    }
-    if (sp && sp[0] && i % 3 === 1) {
-      const pick = sp[sh(g.id+'tsp'+i)%2===0?0:1]||sp[0];
-      const odds = pick.price; const pts = (pick.point>0?'+':'')+pick.point;
-      const handle2 = HANDLE_PCTS[(seed+3)%8]; const isSharp2 = handle2 >= 65;
-      items.push({ label: pick.name.split(' ').pop()+' '+pts, sublabel: 'Spread', odds, badge: TREND_LABELS[(seed+2)%6], action: ACTION_COUNTS[(seed+3)%8]+' bets', handle:handle2, isSharp:isSharp2, g, market:'spreads', sel:pick.name });
-    }
-    if (tot && tot[0]) {
-      const pick = tot[sh(g.id+'ttot'+i)%2===0?0:1]||tot[0];
-      const odds = pick.price;
-      const handle3 = HANDLE_PCTS[(seed+5)%8]; const isSharp3 = handle3 >= 65;
-      items.push({ label: pick.name+' '+pick.point, sublabel: 'Total Points', odds, badge: TREND_LABELS[(seed+4)%6], action: ACTION_COUNTS[(seed+5)%8]+' bets', handle:handle3, isSharp:isSharp3, g, market:'totals', sel:pick.name });
-    }
-  });
-  scroll.innerHTML = items.slice(0,6).map(b => {
-    const inSlip = betSlipLegs.some(l=>l.gameId===b.g.id&&l.market===b.market&&l.selection===b.sel);
-    return `<div class="trending-card">
-      <div class="trend-badge">${esc(b.badge)}${b.isSharp?'<span style="margin-left:4px;font-size:8px;background:rgba(48,209,88,.2);color:#30D158;padding:1px 4px;border-radius:3px;font-weight:900">⚡ SHARP</span>':''}</div>
-      <div class="trend-label">${esc(b.label)}</div>
-      <div class="trend-game">${esc(b.sublabel)}</div>
-      <div style="height:3px;border-radius:2px;background:rgba(255,255,255,.1);margin:3px 0;overflow:hidden"><div style="height:100%;width:${b.handle}%;background:${b.isSharp?'#30D158':'var(--gold)'};opacity:.7;border-radius:2px"></div></div>
-      <div style="font-size:8px;color:var(--t3);font-weight:700">${b.handle}% of handle</div>
-      <div class="trend-footer">
-        <span class="trend-action">${esc(b.action)}</span>
-        <button class="trend-odds${b.odds>0?' pos':''} odds-btn${inSlip?' in-slip':''}"
-          data-gid="${esc(b.g.id)}" data-market="${esc(b.market)}"
-          data-sel="${esc(b.sel)}" data-odds="${b.odds}" data-line=""
-          data-home="${esc(b.g.home_team)}" data-away="${esc(b.g.away_team)}"
-          data-ct="${esc(b.g.commence_time)}">${fmtOdds(b.odds)}</button>
-      </div>
-    </div>`;
-  }).join('');
 }
 
 function renderBoosts(games) {
@@ -2517,7 +2468,7 @@ function addPotdParlay(legs) {
   updateFab(); openBetSlip();
 }
 
-function renderGames(games) {
+function renderGames(games, pickPcts={}) {
   const el = document.getElementById('gamesInner');
   if (!games.length) {
     let msg = 'No upcoming games. Check back soon.';
@@ -2550,7 +2501,7 @@ function renderGames(games) {
   const accentColor = SPORT_ACCENTS[currentSport] || 'var(--gold)';
   for (const [date, gs] of Object.entries(byDate)) {
     html += `<div class="date-group-hdr"><span class="dg-dot" style="background:${accentColor}"></span>${date} <span class="dg-count">${gs.length}</span></div>`;
-    for (const g of gs) html += renderGameCard(g);
+    for (const g of gs) html += renderGameCard(g, pickPcts[g.id]);
   }
   el.innerHTML = html;
   // staggered entrance — each card fades+slides up with 40ms delay per card
@@ -2560,7 +2511,7 @@ function renderGames(games) {
   });
 }
 
-function renderGameCard(g) {
+function renderGameCard(g, gamePcts={}) {
   const ml = getMarket(g,'h2h'), sp = getMarket(g,'spreads'), tot = getMarket(g,'totals');
   const time = g.isLive ? '' : new Date(g.commence_time).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});
   const away = g.away_team, home = g.home_team;
@@ -2589,22 +2540,25 @@ function renderGameCard(g) {
   const spH = sp ? `${oddsBtn('spreads', sp.find(o=>o.name===away)||sp[0])}${oddsBtn('spreads', sp.find(o=>o.name===home)||sp[1])}` : '<span class="no-odds">TBD</span>';
   const totH = tot ? `${oddsBtn('totals', tot.find(o=>o.name==='Over')||tot[0])}${oddsBtn('totals', tot.find(o=>o.name==='Under')||tot[1])}` : '<span class="no-odds">TBD</span>';
 
-  // Community pick % bars (seeded)
-  const ppHash = s => { let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h; };
-  const mlPct = 38 + ppHash(g.id+'ml') % 25; // 38-62%
-  const spPct = 40 + ppHash(g.id+'sp') % 22; // 40-62%
-  const ovPct = 38 + ppHash(g.id+'tot') % 26; // 38-64%
-  const ppBar = (pct, lA, lB) => `<div class="pick-pct-wrap">
-    <div class="pick-pct-bar"><div class="ppb-a" style="width:${pct}%"></div><div class="ppb-b" style="width:${100-pct}%"></div></div>
-    <div class="pick-pct-labels"><span>${pct}% ${esc(lA)}</span><span>${esc(lB)} ${100-pct}%</span></div>
-  </div>`;
+  // Real "% picked" bars — computed from actual bets placed on this game (via gamePcts,
+  // fetched in loadGames), not simulated. Renders nothing until there's a real, meaningful
+  // sample, rather than defaulting to a fake-looking split.
+  const MIN_PICK_SAMPLE = 3;
+  const ppBar = (data, keyA, keyB, labelA, labelB) => {
+    if (!data || data.total < MIN_PICK_SAMPLE) return '';
+    const pct = Math.round((data.counts[keyA]||0) / data.total * 100);
+    return `<div class="pick-pct-wrap">
+      <div class="pick-pct-bar"><div class="ppb-a" style="width:${pct}%"></div><div class="ppb-b" style="width:${100-pct}%"></div></div>
+      <div class="pick-pct-labels"><span>${pct}% ${esc(labelA)}</span><span>${esc(labelB)} ${100-pct}%</span></div>
+    </div>`;
+  };
   const awayShortP = away.split(' ').pop(), homeShortP = home.split(' ').pop();
 
   const marketsHtml = isVersus
-    ? `<div class="market-col" style="grid-column:1/-1"><div class="market-lbl">Moneyline</div><div class="odds-pair">${mlH}</div>${ppBar(mlPct,awayShortP,homeShortP)}</div>`
-    : `<div class="market-col"><div class="market-lbl">Moneyline</div><div class="odds-pair">${mlH}</div>${ppBar(mlPct,awayShortP,homeShortP)}</div>
-       <div class="market-col"><div class="market-lbl">Spread</div><div class="odds-pair">${spH}</div>${ppBar(spPct,awayShortP,homeShortP)}</div>
-       <div class="market-col"><div class="market-lbl">Total</div><div class="odds-pair">${totH}</div>${ppBar(ovPct,'Over','Under')}</div>`;
+    ? `<div class="market-col" style="grid-column:1/-1"><div class="market-lbl">Moneyline</div><div class="odds-pair">${mlH}</div>${ppBar(gamePcts.h2h,away,home,awayShortP,homeShortP)}</div>`
+    : `<div class="market-col"><div class="market-lbl">Moneyline</div><div class="odds-pair">${mlH}</div>${ppBar(gamePcts.h2h,away,home,awayShortP,homeShortP)}</div>
+       <div class="market-col"><div class="market-lbl">Spread</div><div class="odds-pair">${spH}</div>${ppBar(gamePcts.spreads,away,home,awayShortP,homeShortP)}</div>
+       <div class="market-col"><div class="market-lbl">Total</div><div class="odds-pair">${totH}</div>${ppBar(gamePcts.totals,'Over','Under','Over','Under')}</div>`;
 
   const liveBadge = g.isLive ? `<span class="live-badge"><span class="live-dot"></span>LIVE</span>` : '';
   const accent = SPORT_ACCENTS[currentSport] || 'var(--gold)';
@@ -2634,44 +2588,33 @@ function renderGameCard(g) {
   // Generate seeded game-level props
   const propsHtml = PROP_SPORTS[currentSport] ? generatePlayerProps(g) : '';
 
-  // Hot badge — seeded "activity score" above threshold
-  let _hotHash = 0; for (let i=0;i<g.id.length;i++) _hotHash = (_hotHash*31 + g.id.charCodeAt(i)) >>> 0;
-  const isHot = (_hotHash % 5) === 0; // ~20% of games get the 🔥 badge
-  const hotBadge = isHot ? `<span class="hot-badge">🔥 Hot</span>` : '';
-
-  // Seeded team season records + streak
-  const recHash = n => { let h=0; for(let i=0;i<n.length;i++) h=(h*31+n.charCodeAt(i))>>>0; return h; };
-  const teamRec = n => { const w=4+(recHash(n)%13); return `${w}-${16-w}`; };
-  const teamStreak = n => {
-    const h = recHash(n+'streak');
-    const len = 1+(h%5);
-    const isW = (h>>8)%2===0;
-    const cls = isW ? 'streak-w' : 'streak-l';
-    return `<span class="team-streak ${cls}">${isW?'W':'L'}${len}</span>`;
-  };
-
-  // Live score display (seeded from game ID)
+  // Live score display — pulled from _liveScoreMap (populated from the real ESPN scoreboard
+  // by loadLiveTicker, which runs before this card renders). Never fabricated: if the real
+  // score isn't in the map yet, show the LIVE badge with no score rather than inventing one —
+  // this used to generate a random score/quarter per game, which could (and would) disagree
+  // with the real score shown seconds later in the live ticker above it.
   let liveScoreHtml = '';
   if (g.isLive && !isVersus) {
-    const sh2 = s => { let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h; };
-    const aS = sh2(g.id+'as') % 31, hS = sh2(g.id+'hs') % 35;
-    const qNames = ['Q1','Q2','Q3','Q4','OT']; const qtr = qNames[sh2(g.id+'q') % 5];
-    const aLead = aS > hS, hLead = hS > aS;
-    liveScoreHtml = `<div class="live-score-wrap">
-      <div class="live-score-row"><span class="live-score-val${aLead?' live-score-lead':''}">${aS}</span></div>
-      <div class="live-score-row"><span class="live-score-val${hLead?' live-score-lead':''}">${hS}</span></div>
-      <div class="live-period">${qtr}</div>
-    </div>`;
+    const live = _liveScoreMap[(home||'').toLowerCase()] || _liveScoreMap[(away||'').toLowerCase()];
+    if (live) {
+      const aS = live.awayScore, hS = live.homeScore;
+      const aLead = Number(aS) > Number(hS), hLead = Number(hS) > Number(aS);
+      liveScoreHtml = `<div class="live-score-wrap">
+        <div class="live-score-row"><span class="live-score-val${aLead?' live-score-lead':''}">${esc(aS)}</span></div>
+        <div class="live-score-row"><span class="live-score-val${hLead?' live-score-lead':''}">${esc(hS)}</span></div>
+        <div class="live-period">${esc(live.period||'')}</div>
+      </div>`;
+    }
   }
 
   return `<div class="game-card${g.isLive?' is-live':''}" style="--sport-accent:${accent}">
     <div class="game-card-accent-bar"></div>
     <div class="game-card-top">
       <div class="game-teams">
-        <div class="team-row away">${awayLogoHtml}<span>${esc(away)}</span><span class="team-record">${teamRec(away)}</span>${teamStreak(away)}</div>
-        <div class="team-row home">${homeLogoHtml}<span>${isVersus ? 'vs' : '@'} ${esc(home)}</span><span class="team-record">${teamRec(home)}</span>${teamStreak(home)}</div>
+        <div class="team-row away">${awayLogoHtml}<span>${esc(away)}</span></div>
+        <div class="team-row home">${homeLogoHtml}<span>${isVersus ? 'vs' : '@'} ${esc(home)}</span></div>
       </div>
-      ${liveScoreHtml ? liveScoreHtml : `<div class="game-meta">${liveBadge}${soonLabel}${hotBadge}<div class="game-time">${time}</div></div>`}
+      ${liveScoreHtml ? liveScoreHtml : `<div class="game-meta">${liveBadge}${soonLabel}<div class="game-time">${time}</div></div>`}
     </div>
     ${winProbBar}
     <div class="game-markets">${marketsHtml}</div>
