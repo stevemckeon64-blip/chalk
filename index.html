@@ -695,10 +695,6 @@ body::after{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6A9 9 0 0 1 18.4 18.4M18.4 5.6A9 9 0 0 1 5.6 18.4"/></svg>
       NCAAB
     </button>
-    <button class="sport-tab" data-sport="basketball_ncaaw" onclick="switchSport(this)" aria-label="NCAAW">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6A9 9 0 0 1 18.4 18.4M18.4 5.6A9 9 0 0 1 5.6 18.4"/></svg>
-      NCAAW
-    </button>
     <button class="sport-tab" data-sport="baseball_mlb" onclick="switchSport(this)" aria-label="MLB">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.5 7.5 Q9 12 5.5 16.5"/><path d="M18.5 7.5 Q15 12 18.5 16.5"/></svg>
       MLB
@@ -715,21 +711,9 @@ body::after{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3l2 5H10l2-5zM3.2 10l4 1-2 4-2-5zM20.8 10l-4 1 2 4 2-5zM7 19l1-4 3 2-4 2zM17 19l-1-4-3 2 4 2z"/></svg>
       La Liga
     </button>
-    <button class="sport-tab" data-sport="soccer_germany_bundesliga" onclick="switchSport(this)" aria-label="Bundesliga">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3l2 5H10l2-5zM3.2 10l4 1-2 4-2-5zM20.8 10l-4 1 2 4 2-5zM7 19l1-4 3 2-4 2zM17 19l-1-4-3 2 4 2z"/></svg>
-      BL
-    </button>
     <button class="sport-tab" data-sport="soccer_uefa_champs_league" onclick="switchSport(this)" aria-label="UEFA Champions League">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3l2 5H10l2-5zM3.2 10l4 1-2 4-2-5zM20.8 10l-4 1 2 4 2-5zM7 19l1-4 3 2-4 2zM17 19l-1-4-3 2 4 2z"/></svg>
       UCL
-    </button>
-    <button class="sport-tab" data-sport="soccer_italy_serie_a" onclick="switchSport(this)" aria-label="Serie A">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3l2 5H10l2-5zM3.2 10l4 1-2 4-2-5zM20.8 10l-4 1 2 4 2-5zM7 19l1-4 3 2-4 2zM17 19l-1-4-3 2 4 2z"/></svg>
-      Serie A
-    </button>
-    <button class="sport-tab" data-sport="soccer_usa_mls" onclick="switchSport(this)" aria-label="MLS">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3l2 5H10l2-5zM3.2 10l4 1-2 4-2-5zM20.8 10l-4 1 2 4 2-5zM7 19l1-4 3 2-4 2zM17 19l-1-4-3 2 4 2z"/></svg>
-      MLS
     </button>
     <button class="sport-tab" data-sport="mma_mixed_martial_arts" onclick="switchSport(this)" aria-label="UFC">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v5a6 6 0 0 1-6 6H8a4 4 0 0 1-4-4v-3a2 2 0 0 1 2-2h2V6Z"/><path d="M16 9h2a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-2"/></svg>
@@ -824,15 +808,11 @@ const SPORTS = {
   americanfootball_ncaaf: { label:'NCAAF', icon:'🏈', espn:'football/college-football' },
   basketball_nba:         { label:'NBA',   icon:'🏀', espn:'basketball/nba' },
   basketball_ncaab:       { label:'NCAAB', icon:'🏀', espn:'basketball/mens-college-basketball' },
-  basketball_ncaaw:       { label:'NCAAW', icon:'🏀', espn:'basketball/womens-college-basketball' },
   baseball_mlb:           { label:'MLB',   icon:'⚾', espn:'baseball/mlb' },
   icehockey_nhl:          { label:'NHL',   icon:'🏒', espn:'hockey/nhl' },
   soccer_epl:             { label:'EPL',   icon:'⚽', espn:'soccer/eng.1' },
   soccer_spain_la_liga:   { label:'La Liga',icon:'⚽', espn:'soccer/esp.1' },
-  soccer_germany_bundesliga:{ label:'Bundesliga',icon:'⚽', espn:'soccer/ger.1' },
   soccer_uefa_champs_league:{ label:'UCL',  icon:'⚽', espn:'soccer/uer.1' },
-  soccer_italy_serie_a:   { label:'Serie A',icon:'⚽', espn:'soccer/ita.1' },
-  soccer_usa_mls:         { label:'MLS',   icon:'⚽', espn:'soccer/usa.1' },
   mma_mixed_martial_arts: { label:'UFC',   icon:'🥊', espn:'mma/ufc', versus:true },
   tennis_atp:             { label:'ATP',   icon:'🎾', espn:'tennis/atp', versus:true },
   golf_pga_tour:          { label:'PGA',   icon:'⛳', espn:'golf/pga', versus:false },
@@ -845,15 +825,11 @@ const SPORT_ACCENTS = {
   americanfootball_ncaaf: '#FF6B35',
   basketball_nba:         '#FF8C00',
   basketball_ncaab:       '#FF7700',
-  basketball_ncaaw:       '#FF69B4',
   baseball_mlb:           '#E8294B',
   icehockey_nhl:          '#4A9EFF',
   soccer_epl:             '#38D47A',
   soccer_spain_la_liga:   '#C8102E',
-  soccer_germany_bundesliga:'#D20515',
   soccer_uefa_champs_league:'#1B5FA8',
-  soccer_italy_serie_a:   '#0055A4',
-  soccer_usa_mls:         '#002F6C',
   mma_mixed_martial_arts: '#FF3B30',
   tennis_atp:             '#C8FF57',
   golf_pga_tour:          '#4CAF50',
@@ -958,22 +934,6 @@ const PROP_SPORTS = {
       {k:'home_tot_nca',lb:'Home Team Total',lo:55,hi:78,st:0.5,t:'teamtot',tm:'home',off:4},
     ],
   },
-  basketball_ncaaw: {
-    pos:[
-      {p:'PG',props:[{k:'pts_wpg',lb:'Points',lo:10,hi:24,st:0.5},{k:'ast_wpg',lb:'Assists',lo:2.5,hi:6.5,st:0.5},{k:'stl_wpg',lb:'Steals',lo:0.5,hi:2.5,st:0.5}]},
-      {p:'G', props:[{k:'pts_wg',lb:'Points',lo:8,hi:22,st:0.5},{k:'3pm_wg',lb:'3-Pointers',lo:0.5,hi:3.5,st:0.5}]},
-      {p:'F', props:[{k:'pts_wf',lb:'Points',lo:10,hi:22,st:0.5},{k:'reb_wf',lb:'Rebounds',lo:4.5,hi:10.5,st:0.5},{k:'ast_wf',lb:'Assists',lo:1.5,hi:4.5,st:0.5}]},
-      {p:'C', props:[{k:'pts_wc',lb:'Points',lo:8,hi:20,st:0.5},{k:'reb_wc',lb:'Rebounds',lo:6.5,hi:13.5,st:0.5},{k:'blk_wc',lb:'Blocks',lo:0.5,hi:2.5,st:0.5}]},
-    ],
-    gp:[
-      {k:'1h_wca',lb:'1st Half Total',lo:50,hi:66,st:0.5,t:'total'},
-      {k:'1h_ml_wca',lb:'1st Half Winner',t:'ml'},
-      {k:'lead_10_wca',lb:'First to 10 Points',t:'teams'},
-      {k:'ot_wca',lb:'Game Goes to OT',t:'yesno'},
-      {k:'away_tot_wca',lb:'Away Team Total',lo:45,hi:68,st:0.5,t:'teamtot',tm:'away'},
-      {k:'home_tot_wca',lb:'Home Team Total',lo:45,hi:68,st:0.5,t:'teamtot',tm:'home',off:4},
-    ],
-  },
   baseball_mlb: {
     pos:[
       {p:'SP',props:[{k:'ks',lb:'Strikeouts',lo:3.5,hi:9.5,st:0.5},{k:'ha',lb:'Hits Allowed',lo:3.5,hi:8.5,st:0.5},{k:'ip',lb:'Innings Pitched',lo:4.5,hi:6.5,st:0.5},{k:'er',lb:'Earned Runs',lo:0.5,hi:3.5,st:0.5},{k:'outs',lb:'Outs Recorded',lo:13.5,hi:20.5,st:0.5},{k:'bb_sp',lb:'Walks',lo:0.5,hi:3.5,st:0.5},{k:'k9',lb:'Strikeouts + 1st K',lo:0.5,hi:0.5,st:0,isYN:true}]},
@@ -1055,17 +1015,6 @@ const PROP_SPORTS = {
     {k:'goals_ll',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
     {k:'1h_g_ll',lb:'1st Half Goals',lo:0.5,hi:2.5,st:0.5,t:'total'},
   ]},
-  soccer_germany_bundesliga:{ pos:[
-    {p:'FWD',props:[{k:'sot_bl',lb:'Shots on Target',lo:0.5,hi:2.5,st:0.5},{k:'gs_bl',lb:'Anytime Goalscorer',lo:0.5,hi:0.5,st:0,isYN:true}]},
-    {p:'MID',props:[{k:'kp_bl',lb:'Key Passes',lo:0.5,hi:2.5,st:0.5},{k:'pas_bl',lb:'Passes',lo:30.5,hi:65.5,st:0.5}]},
-  ], gp: [
-    {k:'btts_bl',lb:'Both Teams to Score',t:'yesno'},
-    {k:'cs_bl',lb:'Away Clean Sheet',t:'yesno'},
-    {k:'goals_bl',lb:'Total Goals',lo:1.5,hi:4.5,st:0.5,t:'total'},
-    {k:'corners_bl',lb:'Total Corners',lo:8.5,hi:13.5,st:0.5,t:'total'},
-    {k:'cards_bl',lb:'Total Cards',lo:2.5,hi:5.5,st:0.5,t:'total'},
-    {k:'1h_tot_bl',lb:'1st Half Total',lo:0.5,hi:2.5,st:0.5,t:'total'},
-  ]},
   soccer_uefa_champs_league:{ pos:[
     {p:'FWD',props:[{k:'sot_ucl',lb:'Shots on Target',lo:0.5,hi:2.5,st:0.5},{k:'gs_ucl',lb:'Anytime Goalscorer',lo:0.5,hi:0.5,st:0,isYN:true}]},
     {p:'MID',props:[{k:'kp_ucl',lb:'Key Passes',lo:0.5,hi:2.5,st:0.5},{k:'crosses_ucl',lb:'Crosses',lo:0.5,hi:3.5,st:0.5}]},
@@ -1078,29 +1027,6 @@ const PROP_SPORTS = {
     {k:'pen_ucl',lb:'Penalty Shootout',t:'yesno'},
     {k:'1h_g_ucl',lb:'1st Half Goals',lo:0.5,hi:2.5,st:0.5,t:'total'},
     {k:'cards_ucl',lb:'Total Cards',lo:2.5,hi:6.5,st:0.5,t:'total'},
-  ]},
-  soccer_italy_serie_a: { pos:[
-    {p:'FWD',props:[{k:'sot_sa',lb:'Shots on Target',lo:0.5,hi:2.5,st:0.5},{k:'gs_sa',lb:'Anytime Goalscorer',lo:0.5,hi:0.5,st:0,isYN:true}]},
-    {p:'MID',props:[{k:'kp_sa',lb:'Key Passes',lo:0.5,hi:2.5,st:0.5},{k:'yc_sa',lb:'Yellow Card',lo:0.5,hi:0.5,st:0,isYN:true}]},
-  ], gp: [
-    {k:'btts_sa',lb:'Both Teams to Score',t:'yesno'},
-    {k:'goals_sa',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
-    {k:'cs_sa',lb:'Away Clean Sheet',t:'yesno'},
-    {k:'corners_sa',lb:'Total Corners',lo:7.5,hi:11.5,st:0.5,t:'total'},
-    {k:'cards_sa',lb:'Total Cards',lo:3.5,hi:6.5,st:0.5,t:'total'},
-    {k:'1h_sa',lb:'1st Half Total',lo:0.5,hi:1.5,st:0.5,t:'total'},
-  ]},
-  soccer_usa_mls: { pos:[
-    {p:'FWD',props:[{k:'sot_mls',lb:'Shots on Target',lo:0.5,hi:2.5,st:0.5},{k:'gs_mls',lb:'Anytime Goalscorer',lo:0.5,hi:0.5,st:0,isYN:true}]},
-    {p:'MID',props:[{k:'kp_mls',lb:'Key Passes',lo:0.5,hi:2.5,st:0.5},{k:'crosses_mls',lb:'Crosses',lo:0.5,hi:3.5,st:0.5}]},
-  ], gp: [
-    {k:'btts_mls',lb:'Both Teams to Score',t:'yesno'},
-    {k:'goals_mls',lb:'Total Goals',lo:1.5,hi:3.5,st:0.5,t:'total'},
-    {k:'cs_mls',lb:'Home Clean Sheet',t:'yesno'},
-    {k:'corners_mls',lb:'Total Corners',lo:7.5,hi:12.5,st:0.5,t:'total'},
-    {k:'cards_mls',lb:'Total Cards',lo:2.5,hi:5.5,st:0.5,t:'total'},
-    {k:'1h_mls',lb:'1st Half Total',lo:0.5,hi:2.5,st:0.5,t:'total'},
-    {k:'ot_mls',lb:'Goes to Extra Time',t:'yesno'},
   ]},
   mma_mixed_martial_arts: {
     pos:[
@@ -1398,7 +1324,7 @@ function generatePlayerProps(g) {
   // (only available same-day — see attachMlbLineups), and MMA/tennis where the "player" is
   // simply the real match participant already known from the odds (no lookup needed).
   // Everything else is skipped rather than filled in with a made-up name — a missing prop
-  // market beats a fabricated one attached to a real team. (NBA/NHL/NCAAB/NCAAW/golf need a
+  // market beats a fabricated one attached to a real team. (NBA/NHL/NCAAB/golf need a
   // real-time box-score/roster data source this app doesn't have wired up yet.)
   const realPlayerFor = (posLabel, ti) => {
     if (SPORTS[currentSport]?.versus && (posLabel === 'F1' || posLabel === 'P1')) return { name: away };
