@@ -1970,6 +1970,12 @@ async function fetchOdds(sport) {
       const comp = ev.competitions?.[0];
       if (!comp) return null;
       const cs = comp.competitors || [];
+      // A tournament field (golf) isn't a head-to-head match — ESPN puts the whole field in
+      // one competition's competitors list, which used to get silently misread as "2 arbitrary
+      // golfers playing each other." That's not a parsing bug to patch, it's a different sport
+      // shape this app's game-card model doesn't fit; skip it here rather than fake a matchup —
+      // golf lives in the Futures tab (real tournament-winner odds) instead.
+      if (cs.length > 2) return null;
       // Team sports use homeAway; UFC has no homeAway — fall back to index
       const home = cs.find(c => c.homeAway === 'home') || cs[1];
       const away = cs.find(c => c.homeAway === 'away') || cs[0];
@@ -2633,6 +2639,8 @@ function renderGames(games, pickPcts={}) {
     if (currentSport === 'padel_ppt' && pplNextTourney) {
       const start = new Date(pplNextTourney.start_date).toLocaleDateString('en-US',{month:'long',day:'numeric'});
       msg = `No matches scheduled right now.<br><br>Next up: <b>${esc(pplNextTourney.name)}</b><br>Check back ${start}.`;
+    } else if (currentSport === 'golf_pga_tour') {
+      msg = 'A golf tournament is a full field, not a head-to-head matchup, so it doesn\'t show up here.<br><br>Check the <b>Futures</b> tab for real tournament-winner odds.';
     }
     el.innerHTML = `<div class="empty-state">${msg}</div>`; return;
   }
