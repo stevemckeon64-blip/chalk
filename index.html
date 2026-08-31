@@ -1088,102 +1088,74 @@ const PROP_SPORTS = {
   },
 };
 
-// ── FUTURES DATA ──────────────────────────────────────────────────
-const FUTURES_MARKETS = [
-  { id:'sb', sport:'nfl', title:'🏈 Super Bowl Winner', icon:'🏆', teams:[
-    {n:'Kansas City Chiefs',o:-200},{n:'San Francisco 49ers',o:450},{n:'Philadelphia Eagles',o:600},
-    {n:'Baltimore Ravens',o:700},{n:'Dallas Cowboys',o:900},{n:'Miami Dolphins',o:1200},
-    {n:'Detroit Lions',o:1400},{n:'Cincinnati Bengals',o:1600},{n:'Buffalo Bills',o:1800},
-    {n:'Green Bay Packers',o:2200},{n:'Los Angeles Rams',o:2500},{n:'Seattle Seahawks',o:3000},
-    {n:'Jacksonville Jaguars',o:4000},{n:'Las Vegas Raiders',o:5000},{n:'New England Patriots',o:6000},
-  ]},
-  { id:'nfl_mvp', sport:'nfl', title:'🏈 NFL MVP', icon:'🥇', teams:[
-    {n:'P. Mahomes (KC)',o:-180},{n:'J. Burrow (CIN)',o:350},{n:'L. Jackson (BAL)',o:400},
-    {n:'J. Herbert (LAC)',o:800},{n:'J. Allen (BUF)',o:900},{n:'D. Prescott (DAL)',o:1200},
-    {n:'J. Hurts (PHI)',o:1400},{n:'C. Stroud (HOU)',o:2000},{n:'B. Young (CAR)',o:3000},
-  ]},
-  { id:'nba', sport:'nba', title:'🏀 NBA Champion', icon:'🏆', teams:[
-    {n:'Boston Celtics',o:-150},{n:'Oklahoma City Thunder',o:350},{n:'Denver Nuggets',o:500},
-    {n:'Cleveland Cavaliers',o:600},{n:'New York Knicks',o:800},{n:'Minnesota Timberwolves',o:900},
-    {n:'Dallas Mavericks',o:1200},{n:'Golden State Warriors',o:1500},{n:'Miami Heat',o:1800},
-    {n:'Los Angeles Lakers',o:2000},{n:'Phoenix Suns',o:2500},{n:'Milwaukee Bucks',o:3000},
-  ]},
-  { id:'nba_mvp', sport:'nba', title:'🏀 NBA MVP', icon:'🥇', teams:[
-    {n:'N. Jokić (DEN)',o:-130},{n:'S. Gilgeous-Alexander (OKC)',o:300},{n:'J. Tatum (BOS)',o:500},
-    {n:'G. Antetokounmpo (MIL)',o:700},{n:'L. Dončić (DAL)',o:900},{n:'A. Edwards (MIN)',o:1200},
-    {n:'D. Mitchell (CLE)',o:1500},{n:'K. Durant (PHX)',o:2000},{n:'L. James (LAL)',o:2500},
-  ]},
-  { id:'ws', sport:'mlb', title:'⚾ World Series Winner', icon:'🏆', teams:[
-    {n:'Los Angeles Dodgers',o:-130},{n:'New York Yankees',o:400},{n:'Atlanta Braves',o:600},
-    {n:'Houston Astros',o:700},{n:'Philadelphia Phillies',o:900},{n:'Baltimore Orioles',o:1000},
-    {n:'Cleveland Guardians',o:1200},{n:'Texas Rangers',o:1400},{n:'San Diego Padres',o:1600},
-    {n:'Seattle Mariners',o:2000},{n:'Chicago Cubs',o:2500},{n:'Toronto Blue Jays',o:3000},
-  ]},
-  { id:'sc', sport:'nhl', title:'🏒 Stanley Cup Winner', icon:'🏆', teams:[
-    {n:'Florida Panthers',o:-110},{n:'Colorado Avalanche',o:500},{n:'Vancouver Canucks',o:600},
-    {n:'New York Rangers',o:700},{n:'Dallas Stars',o:800},{n:'Boston Bruins',o:900},
-    {n:'Edmonton Oilers',o:1200},{n:'Carolina Hurricanes',o:1400},{n:'Vegas Golden Knights',o:1600},
-    {n:'Toronto Maple Leafs',o:2000},{n:'Tampa Bay Lightning',o:2500},
-  ]},
-  { id:'epl', sport:'epl', title:'⚽ EPL Title', icon:'🏆', teams:[
-    {n:'Manchester City',o:-200},{n:'Arsenal',o:350},{n:'Liverpool',o:450},
-    {n:'Chelsea',o:900},{n:'Manchester United',o:1200},{n:'Tottenham Hotspur',o:1500},
-    {n:'Newcastle United',o:2000},{n:'Aston Villa',o:2500},{n:'Brighton',o:4000},
-  ]},
-  { id:'epl_scorer', sport:'epl', title:'⚽ EPL Top Scorer', icon:'🥇', teams:[
-    {n:'E. Haaland (MCI)',o:-180},{n:'H. Kane (BAY)',o:350},{n:'M. Salah (LIV)',o:500},
-    {n:'O. Watkins (AVL)',o:800},{n:'C. Palmer (CHE)',o:900},{n:'D. Núñez (LIV)',o:1200},
-    {n:'A. Isak (NEW)',o:1500},{n:'A. Saka (ARS)',o:2000},
-  ]},
-  { id:'ncaab', sport:'nba', title:'🏀 March Madness Champion', icon:'🏆', teams:[
-    {n:'Kansas Jayhawks',o:450},{n:'Duke Blue Devils',o:500},{n:'Kentucky Wildcats',o:600},
-    {n:'Gonzaga Bulldogs',o:700},{n:'Houston Cougars',o:800},{n:'Auburn Tigers',o:1000},
-    {n:'Arizona Wildcats',o:1200},{n:'Baylor Bears',o:1400},{n:'UConn Huskies',o:1600},
-    {n:'Tennessee Volunteers',o:1800},{n:'Purdue Boilermakers',o:2000},{n:'Michigan State',o:2500},
-    {n:'Alabama Crimson Tide',o:3000},{n:'Indiana Hoosiers',o:4000},{n:'Illinois Fighting Illini',o:5000},
-  ]},
-  { id:'nhl_hart', sport:'nhl', title:'🏒 NHL Hart Trophy (MVP)', icon:'🥇', teams:[
-    {n:'N. MacKinnon (COL)',o:-160},{n:'C. McDavid (EDM)',o:280},{n:'L. Draisaitl (EDM)',o:500},
-    {n:'M. Matthews (TOR)',o:700},{n:'A. Ovechkin (WSH)',o:900},{n:'D. Pastrnak (BOS)',o:1200},
-    {n:'C. Makar (COL)',o:1500},{n:'J. Hughes (NJD)',o:2000},{n:'K. Kaprizov (MIN)',o:2500},
-  ]},
-  { id:'ufc_lhc', sport:'mma', title:'🥊 UFC Lightweight Champion', icon:'🏆', teams:[
-    {n:'Islam Makhachev',o:-400},{n:'Dustin Poirier',o:280},{n:'Justin Gaethje',o:450},
-    {n:'Charles Oliveira',o:600},{n:'Beneil Dariush',o:900},{n:'Arman Tsarukyan',o:1200},
-    {n:'Rafael Fiziev',o:1800},{n:'Michael Chandler',o:2500},
-  ]},
-  { id:'ufc_mw', sport:'mma', title:'🥊 UFC Middleweight Champion', icon:'🏆', teams:[
-    {n:'Dricus Du Plessis',o:-350},{n:'Sean Strickland',o:275},{n:'Israel Adesanya',o:600},
-    {n:'Robert Whittaker',o:800},{n:'Marvin Vettori',o:1400},{n:'Jared Cannonier',o:2000},
-  ]},
-  { id:'wimbledon_m', sport:'tennis', title:'🎾 Wimbledon Men\'s Champion', icon:'🏆', teams:[
-    {n:'Carlos Alcaraz',o:-150},{n:'Novak Djokovic',o:280},{n:'Jannik Sinner',o:400},
-    {n:'Daniil Medvedev',o:800},{n:'Alexander Zverev',o:1000},{n:'Casper Ruud',o:1500},
-    {n:'Stefanos Tsitsipas',o:2000},{n:'Taylor Fritz',o:2500},{n:'Tommy Paul',o:3500},
-  ]},
-  { id:'pga_major', sport:'golf', title:'⛳ PGA Championship Winner', icon:'🏆', teams:[
-    {n:'Scottie Scheffler',o:450},{n:'Rory McIlroy',o:600},{n:'Jon Rahm',o:800},
-    {n:'Viktor Hovland',o:1000},{n:'Xander Schauffele',o:1200},{n:'Collin Morikawa',o:1400},
-    {n:'Brooks Koepka',o:1600},{n:'Jordan Spieth',o:2000},{n:'Justin Thomas',o:2500},
-    {n:'Patrick Cantlay',o:3000},{n:'Tommy Fleetwood',o:3500},{n:'Shane Lowry',o:4000},
-  ]},
-  { id:'heisman', sport:'nfl', title:'🏈 Heisman Trophy', icon:'🥇', teams:[
-    {n:'Quinn Ewers (TEX)',o:250},{n:'Dillon Gabriel (ORE)',o:350},{n:'Will Howard (OSU)',o:500},
-    {n:'Garrett Nussmeier (LSU)',o:700},{n:'Jalen Milroe (ALA)',o:900},{n:'Conner Weigman (TAMU)',o:1400},
-    {n:'DJ Uiagalelei (FSU)',o:1800},{n:'Sam Leavitt (MICH)',o:2500},
-  ]},
-  { id:'mls_cup', sport:'epl', title:'⚽ MLS Cup Winner', icon:'🏆', teams:[
-    {n:'Inter Miami CF',o:250},{n:'Columbus Crew',o:500},{n:'LAFC',o:600},
-    {n:'Philadelphia Union',o:800},{n:'FC Cincinnati',o:1000},{n:'Seattle Sounders',o:1200},
-    {n:'New England Revolution',o:1500},{n:'Atlanta United',o:2000},{n:'Portland Timbers',o:2500},
-    {n:'Sporting Kansas City',o:3000},
-  ]},
-  { id:'nfl_dpoy', sport:'nfl', title:'🏈 NFL Defensive POY', icon:'🥇', teams:[
-    {n:'Micah Parsons (DAL)',o:-130},{n:'Myles Garrett (CLE)',o:350},{n:'Nick Bosa (SF)',o:500},
-    {n:'T.J. Watt (PIT)',o:700},{n:'Maxx Crosby (LV)',o:900},{n:'Trevon Diggs (DAL)',o:1400},
-    {n:'Fred Warner (SF)',o:1800},{n:'Darius Leonard (IND)',o:2500},
-  ]},
+// ── FUTURES DATA (real, live) ───────────────────────────────────────
+// Unlike everything else so far, futures used to be a hand-written, frozen-in-time list —
+// exactly what Steve flagged. ESPN does carry real futures, sourced from an actual
+// sportsbook (DraftKings) with a season-current price, but not on the site.api.espn.com
+// domain used everywhere else in this file — it lives on a separate ESPN API
+// (sports.core.api.espn.com), confirmed CORS-open the same way. Checked every sport this
+// app supports directly against that endpoint: only NFL, NCAAF, NBA, NCAAB, MLB, and NHL
+// actually have futures markets there (soccer, UFC, tennis, and golf all come back with zero
+// futures — not a fetch bug, ESPN just doesn't carry them), so those are the only sports with
+// a Futures list. Market IDs below were found by listing each league's real futures catalog,
+// not guessed.
+const FUTURES_CONFIG = [
+  { sport:'football', league:'nfl', marketId:1561, title:'🏈 Super Bowl Winner', sportKey:'americanfootball_nfl' },
+  { sport:'football', league:'nfl', marketId:1208, title:'🏈 NFL MVP', sportKey:'americanfootball_nfl' },
+  { sport:'football', league:'nfl', marketId:1210, title:'🏈 NFL Defensive Player of the Year', sportKey:'americanfootball_nfl' },
+  { sport:'football', league:'college-football', marketId:2758, title:'🏈 College Football Playoff Champion', sportKey:'americanfootball_ncaaf' },
+  { sport:'football', league:'college-football', marketId:15234, title:'🏈 Heisman Trophy', sportKey:'americanfootball_ncaaf' },
+  { sport:'basketball', league:'nba', marketId:2564, title:'🏀 NBA Champion', sportKey:'basketball_nba' },
+  { sport:'basketball', league:'nba', marketId:2581, title:'🏀 NBA MVP', sportKey:'basketball_nba' },
+  { sport:'basketball', league:'mens-college-basketball', marketId:232692, title:'🏀 March Madness Champion', sportKey:'basketball_ncaab' },
+  { sport:'baseball', league:'mlb', marketId:2761, title:'⚾ World Series Winner', sportKey:'baseball_mlb' },
+  { sport:'hockey', league:'nhl', marketId:2118, title:'🏒 Stanley Cup Winner', sportKey:'icehockey_nhl' },
+  { sport:'hockey', league:'nhl', marketId:14495, title:'🏒 Hart Trophy (MVP)', sportKey:'icehockey_nhl' },
 ];
+const FUTURES_SEASON = 2026;
+
+// Each futures pick is itself a $ref link to an athlete/team resource (no name inline) —
+// resolved once and cached, since the same players/teams recur across markets.
+let _refNameCache = {};
+async function resolveRefName(url) {
+  if (_refNameCache[url] !== undefined) return _refNameCache[url];
+  try {
+    const res = await fetch(url);
+    const json = await res.json();
+    const name = json.displayName || json.fullName || null;
+    _refNameCache[url] = name;
+    return name;
+  } catch(e) { _refNameCache[url] = null; return null; }
+}
+
+let _futuresMarketCache = {};
+async function fetchFuturesMarket(cfg) {
+  const cacheKey = `${cfg.sport}_${cfg.league}_${cfg.marketId}`;
+  const cached = _futuresMarketCache[cacheKey];
+  if (cached && Date.now() - cached.ts < 3 * 60 * 60 * 1000) return cached.data;
+  try {
+    const res = await fetch(`https://sports.core.api.espn.com/v2/sports/${cfg.sport}/leagues/${cfg.league}/seasons/${FUTURES_SEASON}/futures/${cfg.marketId}?lang=en&region=us`);
+    const json = await res.json();
+    const books = json.futures?.[0]?.books || [];
+    // Defensive: sort by real implied probability rather than trusting the API's own order.
+    const withProb = books.map(b => {
+      const ref = (b.athlete || b.team)?.$ref;
+      const odds = parseInt(String(b.value).replace(/[^\d+-]/g,''), 10);
+      if (!ref || isNaN(odds)) return null;
+      const prob = odds < 0 ? Math.abs(odds)/(Math.abs(odds)+100) : 100/(odds+100);
+      return { ref, odds, prob };
+    }).filter(Boolean).sort((a,b) => b.prob - a.prob).slice(0, 10);
+    const resolved = await Promise.all(withProb.map(async b => ({ n: await resolveRefName(b.ref), o: b.odds })));
+    const teams = resolved.filter(t => t.n);
+    const data = { id: cacheKey, sport: cfg.sportKey, title: cfg.title, teams };
+    _futuresMarketCache[cacheKey] = { data, ts: Date.now() };
+    return data;
+  } catch(e) { console.error('futures market fetch error', cfg, e); return null; }
+}
+async function fetchAllFutures() {
+  const results = await Promise.all(FUTURES_CONFIG.map(fetchFuturesMarket));
+  return results.filter(m => m && m.teams.length);
+}
 
 // ── SGP COMBO ─────────────────────────────────────────────────────
 function addSGPCombo(btn) {
@@ -2415,22 +2387,23 @@ async function fetchPickPercentages(games) {
   } catch(e) { console.error('pick % fetch error', e); return {}; }
 }
 
-function renderFutures() {
+async function renderFutures() {
   const el = document.getElementById('gamesInner');
-  // Filter by active sport tab group (show all if no filter)
-  const sportMap = {nfl:'americanfootball_nfl',nba:'basketball_nba',mlb:'baseball_mlb',nhl:'icehockey_nhl',epl:'soccer_epl'};
-  // Futures odds here are a static, point-in-time snapshot (not a live feed like the rest of
-  // the app) and there's no real season-outcome data source to grade them against, so every
-  // futures bet is voided and refunded once it settles rather than resolved won/lost. Said
-  // plainly rather than left for someone to discover — especially with a real prize riding
-  // on the leaderboard.
+  el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading real futures odds…</span></div>`;
+  const markets = await fetchAllFutures();
+  if (currentSport !== 'futures') return; // user navigated away while this was loading
+  // There's still no reliable way to grade a season-long outcome day to day, so every
+  // futures bet is voided and refunded once it settles rather than resolved won/lost — said
+  // plainly rather than left for someone to discover, especially with a real prize riding on
+  // the leaderboard. The odds themselves, though, are real — DraftKings-sourced, fetched live
+  // from ESPN just now, not a hand-written snapshot.
   let html = `<div class="empty-state" style="padding:14px 16px;margin-bottom:12px;text-align:left;background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);line-height:1.5">
-    <b style="color:var(--t1)">ℹ️ Futures odds are illustrative, not live.</b><br>
-    <span style="font-size:12px">These are a snapshot, not real-time — and since there's no reliable way to grade a season-long outcome, every futures bet is voided and refunded when it settles rather than won or lost.</span>
+    <b style="color:var(--t1)">ℹ️ Real, live futures odds — voided at settlement.</b><br>
+    <span style="font-size:12px">These prices are fetched live from ESPN (DraftKings-sourced), not a snapshot. But there's no reliable way to grade a season-long outcome day to day, so every futures bet is voided and refunded when it settles rather than won or lost.</span>
   </div><div class="futures-grid">`;
-  for (const mkt of FUTURES_MARKETS) {
-    const accentSport = sportMap[mkt.sport] || 'americanfootball_nfl';
-    const accent = SPORT_ACCENTS[accentSport] || 'var(--gold)';
+  if (!markets.length) html += `<div class="empty-state">Couldn't load futures odds right now — try again in a bit.</div>`;
+  for (const mkt of markets) {
+    const accent = SPORT_ACCENTS[mkt.sport] || 'var(--gold)';
     const rows = mkt.teams.map(t => {
       const inSlip = betSlipLegs.some(l=>l.gameId==='futures_'+mkt.id&&l.selection===t.n);
       return `<div class="futures-row${inSlip?' futures-row-active':''}">
