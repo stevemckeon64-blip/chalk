@@ -1100,19 +1100,33 @@ const PROP_SPORTS = {
 // a Futures list. Market IDs below were found by listing each league's real futures catalog,
 // not guessed.
 const FUTURES_CONFIG = [
-  { sport:'football', league:'nfl', marketId:1561, title:'🏈 Super Bowl Winner', sportKey:'americanfootball_nfl' },
-  { sport:'football', league:'nfl', marketId:1208, title:'🏈 NFL MVP', sportKey:'americanfootball_nfl' },
-  { sport:'football', league:'nfl', marketId:1210, title:'🏈 NFL Defensive Player of the Year', sportKey:'americanfootball_nfl' },
-  { sport:'football', league:'college-football', marketId:2758, title:'🏈 College Football Playoff Champion', sportKey:'americanfootball_ncaaf' },
-  { sport:'football', league:'college-football', marketId:15234, title:'🏈 Heisman Trophy', sportKey:'americanfootball_ncaaf' },
-  { sport:'basketball', league:'nba', marketId:2564, title:'🏀 NBA Champion', sportKey:'basketball_nba' },
-  { sport:'basketball', league:'nba', marketId:2581, title:'🏀 NBA MVP', sportKey:'basketball_nba' },
-  { sport:'basketball', league:'mens-college-basketball', marketId:232692, title:'🏀 March Madness Champion', sportKey:'basketball_ncaab' },
-  { sport:'baseball', league:'mlb', marketId:2761, title:'⚾ World Series Winner', sportKey:'baseball_mlb' },
-  { sport:'hockey', league:'nhl', marketId:2118, title:'🏒 Stanley Cup Winner', sportKey:'icehockey_nhl' },
-  { sport:'hockey', league:'nhl', marketId:14495, title:'🏒 Hart Trophy (MVP)', sportKey:'icehockey_nhl' },
+  { sport:'football', league:'nfl', marketId:1561, title:'🏈 Super Bowl Winner', sportKey:'americanfootball_nfl', type:'championship' },
+  { sport:'football', league:'nfl', marketId:1208, title:'🏈 NFL MVP', sportKey:'americanfootball_nfl', type:'award', awardId:477 },
+  { sport:'football', league:'nfl', marketId:1210, title:'🏈 NFL Defensive Player of the Year', sportKey:'americanfootball_nfl', type:'award', awardId:479 },
+  { sport:'football', league:'college-football', marketId:2758, title:'🏈 College Football Playoff Champion', sportKey:'americanfootball_ncaaf', type:'championship' },
+  { sport:'football', league:'college-football', marketId:15234, title:'🏈 Heisman Trophy', sportKey:'americanfootball_ncaaf', type:'award', awardId:9 },
+  { sport:'basketball', league:'nba', marketId:2564, title:'🏀 NBA Champion', sportKey:'basketball_nba', type:'championship' },
+  { sport:'basketball', league:'nba', marketId:2581, title:'🏀 NBA MVP', sportKey:'basketball_nba', type:'award', awardId:33 },
+  { sport:'basketball', league:'mens-college-basketball', marketId:232692, title:'🏀 March Madness Champion', sportKey:'basketball_ncaab', type:'championship' },
+  { sport:'baseball', league:'mlb', marketId:2761, title:'⚾ World Series Winner', sportKey:'baseball_mlb', type:'championship' },
+  { sport:'hockey', league:'nhl', marketId:2118, title:'🏒 Stanley Cup Winner', sportKey:'icehockey_nhl', type:'championship' },
+  { sport:'hockey', league:'nhl', marketId:14495, title:'🏒 Hart Trophy (MVP)', sportKey:'icehockey_nhl', type:'award', awardId:112 },
 ];
 const FUTURES_SEASON = 2026;
+// Real per-league window to look for the postseason's final/clinching game — generous on
+// both ends since missing part of the postseason risks the worse mistake (declaring a
+// champion prematurely from an earlier round's game); a too-early check just means "not
+// resolved yet" and gets picked up on a later pass, which is always safe. season year `y` is
+// the same convention ESPN uses (the year the season started, e.g. 2026 for the 2026-27 NBA
+// season whose Finals are played in 2027).
+const CHAMPIONSHIP_SOURCES = {
+  americanfootball_nfl:   { espn:'football/nfl', range: y => `${y}1101-${y+1}0301` },
+  americanfootball_ncaaf: { espn:'football/college-football', range: y => `${y}1101-${y+1}0201` },
+  basketball_nba:         { espn:'basketball/nba', range: y => `${y+1}0301-${y+1}0715` },
+  basketball_ncaab:       { espn:'basketball/mens-college-basketball', range: y => `${y+1}0201-${y+1}0430` },
+  baseball_mlb:           { espn:'baseball/mlb', range: y => `${y}0801-${y}1201` },
+  icehockey_nhl:          { espn:'hockey/nhl', range: y => `${y+1}0301-${y+1}0715` },
+};
 
 // Each futures pick is itself a $ref link to an athlete/team resource (no name inline) —
 // resolved once and cached, since the same players/teams recur across markets.
@@ -1155,6 +1169,74 @@ async function fetchFuturesMarket(cfg) {
 async function fetchAllFutures() {
   const results = await Promise.all(FUTURES_CONFIG.map(fetchFuturesMarket));
   return results.filter(m => m && m.teams.length);
+}
+
+// ── FUTURES SETTLEMENT (real outcomes, not a permanent void) ───────────────────────
+// A championship future resolves for real once its postseason bracket has actually finished:
+// find every completed postseason game in a generous date window, exclude exhibition/all-star
+// games (Pro Bowl etc. are tagged postseason too but aren't the championship), and only
+// declare a winner once there are zero still-unfinished postseason games left in that window —
+// otherwise an early round's result could get mistaken for the title game while the bracket is
+// still being played. Returns null (stay pending) rather than guess.
+let _championCache = {};
+async function fetchLeagueChampion(sportKey) {
+  const src = CHAMPIONSHIP_SOURCES[sportKey];
+  if (!src) return null;
+  const cached = _championCache[sportKey];
+  if (cached && Date.now() - cached.ts < 60 * 60 * 1000) return cached.data;
+  let data = null;
+  try {
+    const range = src.range(FUTURES_SEASON);
+    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${src.espn}/scoreboard?dates=${range}&limit=1000`);
+    const json = await res.json();
+    const exclude = /pro bowl|all-star|all star/i;
+    const postseason = (json.events || []).filter(e => e.season?.type === 3 && !exclude.test(e.name || ''));
+    const unfinished = postseason.some(e => !e.status?.type?.completed);
+    const finished = postseason.filter(e => e.status?.type?.completed);
+    if (!unfinished && finished.length) {
+      finished.sort((a,b) => new Date(b.date) - new Date(a.date));
+      const champGame = finished[0];
+      const winner = (champGame.competitions?.[0]?.competitors || []).find(c => c.winner === true);
+      const winnerName = winner?.team?.displayName || null;
+      if (winnerName) data = { winnerName };
+    }
+  } catch(e) { console.error('champion fetch error', sportKey, e); }
+  _championCache[sportKey] = { data, ts: Date.now() };
+  return data;
+}
+
+let _awardCache = {};
+async function fetchAwardWinner(cfg) {
+  const cacheKey = `${cfg.sport}_${cfg.league}_${cfg.awardId}`;
+  const cached = _awardCache[cacheKey];
+  if (cached && Date.now() - cached.ts < 60 * 60 * 1000) return cached.data;
+  let name = null;
+  try {
+    const res = await fetch(`https://sports.core.api.espn.com/v2/sports/${cfg.sport}/leagues/${cfg.league}/seasons/${FUTURES_SEASON}/awards/${cfg.awardId}?lang=en&region=us`);
+    if (res.ok) {
+      const json = await res.json();
+      const ref = json.winners?.[0]?.athlete?.$ref;
+      if (ref) name = await resolveRefName(ref);
+    }
+  } catch(e) { console.error('award fetch error', cfg, e); }
+  _awardCache[cacheKey] = { data: name, ts: Date.now() };
+  return name;
+}
+
+// Resolves a single standalone futures bet against the real outcome above. Returns true if it
+// settled (won or lost), false if it's genuinely not resolved yet (stays pending).
+async function settleFuturesBet(bet) {
+  const cfg = FUTURES_CONFIG.find(c => c.title === bet.market);
+  if (!cfg) return false; // market no longer configured (app changed since the bet was placed) — leave pending rather than guess
+  const resultName = cfg.type === 'championship'
+    ? (await fetchLeagueChampion(cfg.sportKey))?.winnerName
+    : await fetchAwardWinner(cfg);
+  if (!resultName) return false;
+  const result = resultName === bet.selection ? 'won' : 'lost';
+  const payout = result === 'won' ? bet.potential_payout : 0;
+  await sb.from('bets').update({ status: result, settled_at: new Date().toISOString() }).eq('id', bet.id);
+  await creditAndNotify(bet, result, payout);
+  return true;
 }
 
 // ── SGP COMBO ─────────────────────────────────────────────────────
@@ -2392,14 +2474,15 @@ async function renderFutures() {
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading real futures odds…</span></div>`;
   const markets = await fetchAllFutures();
   if (currentSport !== 'futures') return; // user navigated away while this was loading
-  // There's still no reliable way to grade a season-long outcome day to day, so every
-  // futures bet is voided and refunded once it settles rather than resolved won/lost — said
-  // plainly rather than left for someone to discover, especially with a real prize riding on
-  // the leaderboard. The odds themselves, though, are real — DraftKings-sourced, fetched live
-  // from ESPN just now, not a hand-written snapshot.
+  // Prices are fetched live from ESPN (DraftKings-sourced), not a snapshot, and these bets now
+  // actually settle for real once the real season resolves — a championship future grades off
+  // the real postseason's final game, an award future off ESPN's real awards record. Both are
+  // checked periodically and simply stay pending until the real result exists (a season can
+  // take months), never a guess. Said plainly since it can otherwise look like nothing's
+  // happening for a long time — especially with a real prize riding on the leaderboard.
   let html = `<div class="empty-state" style="padding:14px 16px;margin-bottom:12px;text-align:left;background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);line-height:1.5">
-    <b style="color:var(--t1)">ℹ️ Real, live futures odds — voided at settlement.</b><br>
-    <span style="font-size:12px">These prices are fetched live from ESPN (DraftKings-sourced), not a snapshot. But there's no reliable way to grade a season-long outcome day to day, so every futures bet is voided and refunded when it settles rather than won or lost.</span>
+    <b style="color:var(--t1)">ℹ️ Real, live futures odds — and they really settle.</b><br>
+    <span style="font-size:12px">These prices are fetched live from ESPN (DraftKings-sourced), not a snapshot. Once the real season resolves — the actual champion is crowned, the real award is announced — your bet grades for real. Until then it just stays pending; a season can take months.</span>
   </div><div class="futures-grid">`;
   if (!markets.length) html += `<div class="empty-state">Couldn't load futures odds right now — try again in a bit.</div>`;
   for (const mkt of markets) {
@@ -2411,7 +2494,7 @@ async function renderFutures() {
         <button class="futures-odds-btn${inSlip?' in-slip':''}"
           data-gid="futures_${esc(mkt.id)}" data-market="${esc(mkt.title)}"
           data-sel="${esc(t.n)}" data-odds="${t.o}" data-line=""
-          data-home="Futures" data-away="${esc(mkt.title)}" data-ct="${new Date(Date.now()+30*24*3600*1000).toISOString()}"
+          data-home="Futures" data-away="${esc(mkt.title)}" data-ct="${new Date().toISOString()}"
           onclick="handleFuturesBet(this)">${fmtOdds(t.o)}</button>
       </div>`;
     }).join('');
@@ -3372,6 +3455,10 @@ async function settlePending() {
 }
 
 async function settleSingleBet(bet, scoreFor, staleMs) {
+  // Futures resolve against a real season outcome (championship bracket / awards), checked
+  // on its own — not the score-based per-game pipeline below, and never voided just because
+  // time has passed (a season can take months; only genuinely unresolvable markets void).
+  if (bet.sport === 'futures') { await settleFuturesBet(bet); return; }
   const info = scoreFor(bet.sport, bet.home_team, bet.away_team);
   let result;
   if (info.done) {
