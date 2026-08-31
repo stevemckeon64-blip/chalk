@@ -509,8 +509,11 @@ body::after{
 .rr-combo-odds{font-weight:900;font-variant-numeric:tabular-nums;flex-shrink:0;margin-left:10px}
 .rr-summary{padding:8px 10px;background:rgba(245,166,35,.07);border-radius:7px;margin-top:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center}
 .rr-combos-count{font-size:9px;color:var(--t2);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
-/* ── TEAM RECORD (real, from ESPN) ─────────────────────────── */
+/* ── TEAM RECORD / STREAK (real, from ESPN) ────────────────── */
 .team-record{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.04em;margin-left:5px;flex-shrink:0}
+.team-streak{font-size:8px;font-weight:800;letter-spacing:.04em;margin-left:4px;padding:1px 4px;border-radius:3px;flex-shrink:0}
+.team-streak.streak-w{background:rgba(74,222,128,.18);color:#4ade80}
+.team-streak.streak-l{background:rgba(248,113,113,.18);color:#f87171}
 /* ── LIVE SCORE ──────────────────────────────────────────── */
 .live-score-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:44px}
 .live-score-row{display:flex;align-items:center;gap:5px;justify-content:flex-end}
@@ -2190,6 +2193,42 @@ async function attachMlbLineups(games) {
   }));
 }
 
+// Real win/loss streak per team, from ESPN's standings endpoint (site.api.espn.com/apis/v2/
+// sports/{sport}/{league}/standings) — same domain/CORS as everything else already fetched,
+// no new provider needed. The "entries" list sits at a varying nesting depth depending on
+// the sport (conference → division for most leagues, an extra level for college football),
+// so this walks `children` recursively rather than assuming a fixed depth. Off-season, this
+// naturally returns each team's most recent real streak from the end of last season (there's
+// nothing more current until games are actually played) — never fabricated to fill the gap.
+let _standingsCache = {};
+async function fetchStandings(sport) {
+  const cached = _standingsCache[sport];
+  if (cached && Date.now() - cached.ts < 30 * 60 * 1000) return cached.data;
+  const espnPath = SPORTS[sport]?.espn;
+  if (!espnPath) return {};
+  const flattenEntries = node => {
+    if (Array.isArray(node)) return node.flatMap(flattenEntries);
+    if (node && typeof node === 'object') {
+      if (Array.isArray(node.standings?.entries)) return node.standings.entries;
+      if (node.children) return flattenEntries(node.children);
+    }
+    return [];
+  };
+  try {
+    const res = await fetch(`https://site.api.espn.com/apis/v2/sports/${espnPath}/standings`);
+    const json = await res.json();
+    const entries = flattenEntries(json.children || []);
+    const byTeam = {};
+    for (const e of entries) {
+      const name = e.team?.displayName;
+      const streak = (e.stats || []).find(s => s.name === 'streak')?.displayValue;
+      if (name && streak) byTeam[name] = streak;
+    }
+    _standingsCache[sport] = { data: byTeam, ts: Date.now() };
+    return byTeam;
+  } catch(e) { console.error('standings fetch error', sport, e); return {}; }
+}
+
 function getMock(sport) {
   const d0 = new Date(), d1 = new Date(d0), d2 = new Date(d0);
   d1.setDate(d1.getDate()+1); d2.setDate(d2.getDate()+2);
@@ -2310,6 +2349,13 @@ async function loadGames(sport) {
   document.getElementById('gamesInner').innerHTML = `<div class="skeleton-wrap">${skeletonCard()}${skeletonCard()}${skeletonCard()}</div>`;
   const games = SPORTS[sport]?.ppl ? await fetchPPL() : await fetchOdds(sport);
   if (sport === 'baseball_mlb') await attachMlbLineups(games);
+  if (SPORTS[sport]?.espn) {
+    const streaks = await fetchStandings(sport);
+    for (const g of games) {
+      g.away_streak = streaks[g.away_team] || null;
+      g.home_streak = streaks[g.home_team] || null;
+    }
+  }
   _allGames = games;
   renderFeatured(games);
   renderDailyPick(games);
@@ -2606,6 +2652,15 @@ function renderGames(games, pickPcts={}) {
   });
 }
 
+// Real win/loss streak badge (e.g. "W4"/"L2") from ESPN's standings endpoint — renders
+// nothing when there's no real streak data for that team (a sport standings doesn't cover,
+// or a brand-new franchise/season with nothing to report yet).
+function streakBadge(streak) {
+  if (!streak) return '';
+  const isW = streak[0] === 'W';
+  return `<span class="team-streak ${isW?'streak-w':'streak-l'}">${esc(streak)}</span>`;
+}
+
 function renderGameCard(g, gamePcts={}) {
   const ml = getMarket(g,'h2h'), sp = getMarket(g,'spreads'), tot = getMarket(g,'totals');
   const time = g.isLive ? '' : new Date(g.commence_time).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});
@@ -2705,8 +2760,8 @@ function renderGameCard(g, gamePcts={}) {
     <div class="game-card-accent-bar"></div>
     <div class="game-card-top">
       <div class="game-teams">
-        <div class="team-row away">${awayLogoHtml}<span>${esc(away)}</span>${g.away_record?`<span class="team-record">${esc(g.away_record)}</span>`:''}</div>
-        <div class="team-row home">${homeLogoHtml}<span>${isVersus ? 'vs' : '@'} ${esc(home)}</span>${g.home_record?`<span class="team-record">${esc(g.home_record)}</span>`:''}</div>
+        <div class="team-row away">${awayLogoHtml}<span>${esc(away)}</span>${g.away_record?`<span class="team-record">${esc(g.away_record)}</span>`:''}${streakBadge(g.away_streak)}</div>
+        <div class="team-row home">${homeLogoHtml}<span>${isVersus ? 'vs' : '@'} ${esc(home)}</span>${g.home_record?`<span class="team-record">${esc(g.home_record)}</span>`:''}${streakBadge(g.home_streak)}</div>
       </div>
       ${liveScoreHtml ? liveScoreHtml : `<div class="game-meta">${liveBadge}${soonLabel}<div class="game-time">${time}</div></div>`}
     </div>
