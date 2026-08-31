@@ -1925,7 +1925,6 @@ async function fetchOdds(sport) {
   const espnPath = SPORTS[sport]?.espn;
   if (!espnPath) return [];
   const isUFC = sport === 'mma_mixed_martial_arts';
-  const isTennis = sport.startsWith('tennis_');
   try {
     const fmtDate = d => d.toISOString().slice(0,10).replace(/-/g,'');
     const today = new Date();
@@ -1937,18 +1936,12 @@ async function fetchOdds(sport) {
       return res?.ok ? (await res.json()).events || [] : [];
     };
 
-    let events;
-    if (isTennis) {
-      // Tennis scoreboard doesn't support ?dates= filtering — fetch base URL only
-      events = await fetchDay(null);
-    } else {
-      // Fetch today + next 6 days in parallel (covers full NFL week + MLB daily slate)
-      const lookAheadDays = Array.from({length: 7}, (_, i) => {
-        if (i === 0) return null;
-        const d = new Date(today); d.setDate(today.getDate() + i); return d;
-      });
-      events = (await Promise.all(lookAheadDays.map(fetchDay))).flat();
-    }
+    // Fetch today + next 6 days in parallel (covers full NFL week + MLB daily slate)
+    const lookAheadDays = Array.from({length: 7}, (_, i) => {
+      if (i === 0) return null;
+      const d = new Date(today); d.setDate(today.getDate() + i); return d;
+    });
+    let events = (await Promise.all(lookAheadDays.map(fetchDay))).flat();
 
     // UFC events are weekly — if still nothing, scan further (up to 14 days)
     if (isUFC && !events.some(e => e.status?.type?.state === 'pre')) {
@@ -1964,11 +1957,7 @@ async function fetchOdds(sport) {
     const seen = new Set();
     events = events.filter(ev => { if (seen.has(ev.id)) return false; seen.add(ev.id); return true; });
 
-    // Tennis: include 'in' (live) matches too — tournaments run round-by-round
-    let upcoming = events.filter(ev => {
-      const state = ev.status?.type?.state;
-      return state === 'pre' || (isTennis && state === 'in');
-    });
+    let upcoming = events.filter(ev => ev.status?.type?.state === 'pre');
 
     // UFC main card: limit to first 5 fights of the soonest event day
     if (isUFC && upcoming.length) {
@@ -2249,6 +2238,108 @@ async function fetchPPL() {
   }
 }
 
+// ── TENNIS (ATP) ────────────────────────────────────────────────────
+// ESPN's tennis scoreboard is structured completely differently from every other sport here:
+// the top-level "event" is the TOURNAMENT, and individual matches live nested under
+// event.groupings[].competitions[] (grouped by draw — "Men's Singles" etc.) rather than
+// directly on event.competitions[] like every team sport. The old code looked for
+// ev.competitions[0], which doesn't exist on a tennis event, so every match was silently
+// filtered out — tennis never had a parsing bug in the odds math, it never found any matches
+// to parse in the first place. ESPN also doesn't publish tennis moneylines at all (no `odds`
+// field on a tennis competition, confirmed by inspecting the raw response), so prices here
+// are derived from each player's real current ATP ranking (rankings ARE real and free from
+// ESPN) rather than a random number — same principle as the Premier Padel integration above.
+let _atpRankCache = null, _atpRankTs = 0;
+async function fetchAtpRankings() {
+  if (_atpRankCache && Date.now() - _atpRankTs < 6 * 60 * 60 * 1000) return _atpRankCache;
+  try {
+    const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/tennis/atp/rankings');
+    const json = await res.json();
+    const ranks = json.rankings?.[0]?.ranks || [];
+    const map = {};
+    for (const r of ranks) if (r.athlete?.id && r.current) map[r.athlete.id] = r.current;
+    _atpRankCache = map; _atpRankTs = Date.now();
+    return map;
+  } catch(e) { console.error('ATP rankings fetch error', e); return _atpRankCache || {}; }
+}
+async function fetchTennisOdds(sport) {
+  const cached = oddsCache[sport];
+  if (cached && Date.now() - cached.ts < ODDS_TTL) return cached.data;
+  const espnPath = SPORTS[sport]?.espn;
+  if (!espnPath) return [];
+  try {
+    const fmtDate = d => d.toISOString().slice(0,10).replace(/-/g,'');
+    const today = new Date();
+    const fetchDay = async d => {
+      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard?dates=${fmtDate(d)}`).catch(() => null);
+      return res?.ok ? (await res.json()).events || [] : [];
+    };
+    // Tournaments run over ~1-2 weeks — look ahead further than the team-sport 7-day window.
+    const days = Array.from({length: 10}, (_, i) => { const d = new Date(today); d.setDate(today.getDate()+i); return d; });
+    const tourneyEvents = (await Promise.all(days.map(fetchDay))).flat();
+    const seen = new Set();
+    const tourneys = tourneyEvents.filter(ev => { if (seen.has(ev.id)) return false; seen.add(ev.id); return true; });
+
+    const rankMap = await fetchAtpRankings();
+    const matches = [];
+    for (const tev of tourneys) {
+      const grouping = (tev.groupings || []).find(g => g.grouping?.slug === 'mens-singles') || tev.groupings?.[0];
+      for (const comp of (grouping?.competitions || [])) {
+        if (comp.status?.type?.state !== 'pre') continue; // only unstarted matches — no real live scores wired up for tennis yet
+        const cs = comp.competitors || [];
+        const home = cs.find(c => c.homeAway === 'home') || cs[1];
+        const away = cs.find(c => c.homeAway === 'away') || cs[0];
+        const homeName = home?.athlete?.displayName, awayName = away?.athlete?.displayName;
+        if (!homeName || !awayName) continue;
+        const homeRank = rankMap[home.athlete?.id], awayRank = rankMap[away.athlete?.id];
+        let homeOdds = -110, awayOdds = -110;
+        if (homeRank && awayRank) {
+          const pHome = Math.round(awayRank / (homeRank + awayRank) * 100); // lower rank number = better
+          homeOdds = probToAmericanOdds(Math.min(95, Math.max(5, pHome)));
+          awayOdds = probToAmericanOdds(Math.min(95, Math.max(5, 100 - pHome)));
+        }
+        matches.push({
+          id: comp.id, home_team: homeName, away_team: awayName,
+          commence_time: comp.date, isLive: false,
+          bookmakers: [{ key:'espn_atp_rank', markets:[{ key:'h2h', outcomes:[
+            { name: awayName, price: awayOdds }, { name: homeName, price: homeOdds },
+          ]}]}],
+        });
+      }
+    }
+    oddsCache[sport] = { data: matches, ts: Date.now() };
+    return matches;
+  } catch(e) {
+    console.error('ATP fetch error:', e);
+    showToast('Could not load ATP matches', 'warn');
+    return [];
+  }
+}
+// For settlement only: flattens the last few days of real ATP results into pseudo-events
+// shaped like every other sport's scoreboard events (top-level `.competitions`), so the
+// shared matchEvent()/scoreFor() settlement code can grade a tennis bet without needing a
+// tennis-specific branch there too.
+async function fetchTennisPseudoEvents() {
+  const fmtDate = d => d.toISOString().slice(0,10).replace(/-/g,'');
+  const today = new Date();
+  const days = Array.from({length: 4}, (_, i) => { const d = new Date(today); d.setDate(today.getDate()-i); return d; });
+  const perDay = await Promise.all(days.map(async d => {
+    try {
+      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=${fmtDate(d)}`);
+      const json = await res.json();
+      return json.events || [];
+    } catch(e) { return []; }
+  }));
+  const pseudoEvents = [];
+  for (const tev of perDay.flat()) {
+    const grouping = (tev.groupings || []).find(g => g.grouping?.slug === 'mens-singles') || tev.groupings?.[0];
+    for (const comp of (grouping?.competitions || [])) {
+      pseudoEvents.push({ status: comp.status, competitions: [comp] });
+    }
+  }
+  return pseudoEvents;
+}
+
 // ── GAMES VIEW ────────────────────────────────────────────────────
 function skeletonCard() {
   return `<div class="skeleton-card">
@@ -2273,7 +2364,7 @@ async function loadGames(sport) {
     return;
   }
   document.getElementById('gamesInner').innerHTML = `<div class="skeleton-wrap">${skeletonCard()}${skeletonCard()}${skeletonCard()}</div>`;
-  const games = SPORTS[sport]?.ppl ? await fetchPPL() : await fetchOdds(sport);
+  const games = SPORTS[sport]?.ppl ? await fetchPPL() : sport.startsWith('tennis_') ? await fetchTennisOdds(sport) : await fetchOdds(sport);
   if (sport === 'baseball_mlb') await attachMlbLineups(games);
   if (SPORTS[sport]?.espn) {
     const streaks = await fetchStandings(sport);
@@ -3249,6 +3340,15 @@ async function settlePending() {
   await Promise.all([...sportsNeeded].map(async sport => {
     const espn = SPORTS[sport]?.espn;
     if (!espn) { eventsBySport[sport] = []; return; } // e.g. 'futures' — no real scoreboard to check against
+    // Tennis needs its own fetch: matches live nested under event.groupings[].competitions[]
+    // (see fetchTennisOdds), not on event.competitions[] like every other sport, and a bet's
+    // match may have started a day or two ago — the single dateless scoreboard call other
+    // sports use here only ever returns the current/most-recent tournament, not the match
+    // history a pending bet needs to be graded against.
+    if (sport.startsWith('tennis_')) {
+      eventsBySport[sport] = await fetchTennisPseudoEvents();
+      return;
+    }
     try {
       const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espn}/scoreboard`);
       const { events = [] } = await res.json();
@@ -3267,7 +3367,18 @@ async function settlePending() {
     const comps = ev.competitions?.[0]?.competitors || [];
     const hc = comps.find(c => c.homeAway === 'home'), ac = comps.find(c => c.homeAway === 'away');
     if (!hc || !ac) return { found: true, done: false };
-    return { found: true, done: true, hs: parseInt(hc.score) || 0, as: parseInt(ac.score) || 0 };
+    // Team sports report a numeric score; individual-athlete sports (UFC, tennis) don't —
+    // MMA has no "score" at all (decision/KO/submission, not points) and ESPN's tennis
+    // competitions don't carry one either, but both mark the real winner with a boolean flag.
+    // Encode that as a 1/0 "score" so gradeLegOutcome's h2h comparison (already just
+    // `homeScore > awayScore`) works unmodified — without this, both sides fall back to 0-0
+    // and every UFC/tennis bet would incorrectly grade as a push instead of a real win/loss.
+    const hasNumericScore = hc.score != null && ac.score != null;
+    if (hasNumericScore) return { found: true, done: true, hs: parseInt(hc.score) || 0, as: parseInt(ac.score) || 0 };
+    if (typeof hc.winner === 'boolean' || typeof ac.winner === 'boolean') {
+      return { found: true, done: true, hs: hc.winner ? 1 : 0, as: ac.winner ? 1 : 0 };
+    }
+    return { found: true, done: false };
   };
 
   for (const bet of pending) {
@@ -3355,7 +3466,10 @@ function matchEvent(events, homeTeam, awayTeam) {
     const cs = ev.competitions?.[0]?.competitors||[];
     const hc = cs.find(c=>c.homeAway==='home'), ac = cs.find(c=>c.homeAway==='away');
     if (!hc||!ac) continue;
-    const hn = norm(hc.team?.displayName||''), an = norm(ac.team?.displayName||'');
+    // Team sports name their competitors via c.team; individual-athlete sports (UFC, tennis)
+    // via c.athlete — without this fallback, matchEvent could never find a fighter/player
+    // event, and every UFC/tennis bet would silently sit unmatched until it voided out.
+    const hn = norm(hc.team?.displayName||hc.athlete?.displayName||''), an = norm(ac.team?.displayName||ac.athlete?.displayName||'');
     const htMatch = htW.some(w=>hn.includes(w))||hn.some(w=>htW.includes(w));
     const atMatch = atW.some(w=>an.includes(w))||an.some(w=>atW.includes(w));
     if (htMatch&&atMatch) return ev;
