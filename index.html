@@ -3341,8 +3341,16 @@ function renderBets(bets) {
       ? `<div class="bet-matchup">${sportIcon} ${isRR?'Round Robin':'Parlay'} · ${fmtOdds(b.odds)}</div>`
       : `<div class="bet-matchup">${sportIcon ? sportIcon+' ' : ''}${esc(b.away_team)} @ ${esc(b.home_team)}</div>`;
 
-    // Cash-out value = stake + 45% of potential profit (like real apps, slightly unfair)
-    const coValue = b.status==='pending' ? Math.round((b.stake + (b.potential_payout - b.stake)*0.45)*100)/100 : null;
+    // Cash-out value = stake + 45% of potential profit (like real apps, slightly unfair) — but
+    // only once the game has actually started. A flat 45%-of-profit payable the instant a bet
+    // is placed is a real-money-printing exploit: stake $10 on a +2000 longshot, cash out
+    // immediately for +45% of that payout, guaranteed, before a single second of real
+    // uncertainty has resolved — repeatable without limit. It's strictly worse on a futures
+    // bet (months of "nothing has happened yet" to exploit), so those can't be cashed out at
+    // all; a normal game at least requires waiting for kickoff before there's anything to cash
+    // out of.
+    const gameStarted = new Date(b.commence_time).getTime() <= Date.now();
+    const coValue = (b.status==='pending' && b.sport!=='futures' && gameStarted) ? Math.round((b.stake + (b.potential_payout - b.stake)*0.45)*100)/100 : null;
     const cashOutBtn = coValue ? `<button class="cashout-btn" onclick="cashOut('${b.id}',${coValue},${b.stake})">Cash Out ${fmt(coValue)}</button>` : '';
 
     // Live score overlay
