@@ -1352,7 +1352,8 @@ function generatePlayerProps(g) {
 
   // ── LIVE MARKETS (only when game is in progress) ──────────
   if (g.isLive) {
-    gLive += `<div class="props-sec-hdr">🔴 Live Markets</div>`;
+    gLive += `<div class="props-sec-hdr">🔴 Live Markets</div>
+      <div class="props-disclaimer">No real live-odds feed for these — lines are illustrative, and they void/refund at settlement rather than resolve.</div>`;
     gLive += `<div class="prop-market-row"><span class="prop-mkt-lbl">Next Team to Score</span><div class="odds-pair">${pBtn('live_nts',awayShort,propOdds(gid+'lnts_a',-120),null)}${pBtn('live_nts',homeShort,propOdds(gid+'lnts_h',100),null)}</div></div>`;
     const sportKey = currentSport;
     if (sportKey.includes('football')) {
@@ -1441,7 +1442,8 @@ function generatePlayerProps(g) {
   }
 
   // ── GAME PROPS ────────────────────────────────────────────
-  gGame += `<div class="props-sec-hdr">🎯 Game Props</div>`;
+  gGame += `<div class="props-sec-hdr">🎯 Game Props</div>
+    <div class="props-disclaimer">No real market for these either — lines are illustrative, and they void/refund at settlement rather than resolve.</div>`;
 
   for (const gp of cfg.gp) {
     const mk = `gp_${gp.k}`;
