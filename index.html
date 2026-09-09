@@ -3492,7 +3492,9 @@ function renderBets(bets) {
 
   const rb = b => {
     const isParlay = b.market === 'parlay';
+    const isPickem = b.market === 'pickem';
     let parlayMeta = {}; if (isParlay) { try { parlayMeta = JSON.parse(b.selection||'{}'); } catch(e) {} }
+    let pickemMeta = {}; if (isPickem) { try { pickemMeta = JSON.parse(b.selection||'{}'); } catch(e) {} }
     const isRR = !!parlayMeta.rr;
     const mktL = isParlay ? `${parlayMeta.legs?.length||'?'}-Leg ${isRR?'Round Robin Combo':'Parlay'}` : (MARKET_LABELS[b.market]||b.market);
     const isSpread = b.market==='spreads'||b.market.startsWith('alt_sp_'), isTotal = b.market==='totals'||b.market.startsWith('alt_tot_');
@@ -3501,9 +3503,9 @@ function renderBets(bets) {
     const pnlVal = b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:(b.status==='push'||b.status==='void')?0:null;
     const d = new Date(b.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
 
-    // Per-leg result chips — populated once a parlay/round-robin settles (settlement writes
-    // each leg's graded outcome back into this same JSON column).
-    const legResultDot = { won:'#30D158', lost:'var(--loss)', void:'var(--push)' };
+    // Per-leg / per-pick result chips — populated once settlement writes each one's graded
+    // outcome back into this same JSON column (same pattern for parlays and Pick'em slates).
+    const legResultDot = { won:'#30D158', lost:'var(--loss)', void:'var(--push)', push:'var(--push)' };
     let legsList = '';
     if (isParlay) {
       const legs = parlayMeta.legs || [];
@@ -3511,11 +3513,19 @@ function renderBets(bets) {
         const dot = l.result ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${legResultDot[l.result]||'var(--t3)'};margin-right:4px"></span>` : '';
         return `<span>${dot}${esc(l.selection)} ${fmtOdds(l.odds)}</span>`;
       }).join(' · ')}</div>`;
+    } else if (isPickem) {
+      const picks = pickemMeta.picks || [];
+      legsList = `<div class="parlay-legs-count">${picks.map(p=>{
+        const dot = p.result ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${legResultDot[p.result]||'var(--t3)'};margin-right:4px"></span>` : '';
+        return `<span>${dot}${esc((p.pick||'').split(' ').pop())}</span>`;
+      }).join(' · ')}</div>`;
     }
 
     const sportIcon = SPORTS[b.sport]?.icon || '';
     const matchupLine = isParlay
       ? `<div class="bet-matchup">${sportIcon} ${isRR?'Round Robin':'Parlay'} · ${fmtOdds(b.odds)}</div>`
+      : isPickem
+      ? `<div class="bet-matchup">🏆 Pick'em · ${pickemMeta.total||pickemMeta.picks?.length||'?'} games${pickemMeta.correct!=null?` · ${pickemMeta.correct}/${pickemMeta.total} correct`:''}</div>`
       : `<div class="bet-matchup">${sportIcon ? sportIcon+' ' : ''}${esc(b.away_team)} @ ${esc(b.home_team)}</div>`;
 
     // Cash-out value = stake + 45% of potential profit (like real apps, slightly unfair) — but
@@ -3526,8 +3536,12 @@ function renderBets(bets) {
     // bet (months of "nothing has happened yet" to exploit), so those can't be cashed out at
     // all; a normal game at least requires waiting for kickoff before there's anything to cash
     // out of.
+    // Pick'em isn't offered a cash-out at all — fairly pricing a "current value" mid-slate,
+    // with some of 10 games decided and others not, isn't something a flat formula can do
+    // honestly, and this is a brand-new feature that shouldn't ship its own version of the
+    // exploit above just fixed for single games/parlays.
     const gameStarted = new Date(b.commence_time).getTime() <= Date.now();
-    const coValue = (b.status==='pending' && b.sport!=='futures' && gameStarted) ? Math.round((b.stake + (b.potential_payout - b.stake)*0.45)*100)/100 : null;
+    const coValue = (b.status==='pending' && b.sport!=='futures' && !isPickem && gameStarted) ? Math.round((b.stake + (b.potential_payout - b.stake)*0.45)*100)/100 : null;
     const cashOutBtn = coValue ? `<button class="cashout-btn" onclick="cashOut('${b.id}',${coValue},${b.stake})">Cash Out ${fmt(coValue)}</button>` : '';
 
     // Live score overlay
@@ -3538,7 +3552,7 @@ function renderBets(bets) {
     return `<div class="bet-card ${b.status}">
       <div class="bet-card-top">${matchupLine}<span class="bet-status-badge ${b.status}">${statusLabels[b.status]||b.status}</span></div>
       ${liveLine}
-      ${isParlay ? legsList : `<div class="bet-pick">${esc(mktL)}: <b>${esc(selL)}</b> <span class="bet-odds">${fmtOdds(b.odds)}</span></div>`}
+      ${(isParlay||isPickem) ? legsList : `<div class="bet-pick">${esc(mktL)}: <b>${esc(selL)}</b> <span class="bet-odds">${fmtOdds(b.odds)}</span></div>`}
       <div class="bet-footer">
         <span>Stake: <b>${fmt(b.stake)}</b></span>
         ${pnlVal!==null?`<span class="${pnlVal>=0?'pos':'neg'}">${pnlVal>=0?'+':''}${fmt(pnlVal)}</span>`:`<span>To win: <b>${fmt(b.potential_payout-b.stake)}</b></span>`}
@@ -3646,6 +3660,7 @@ async function settlePending() {
   for (const bet of pending) {
     try {
       if (bet.market === 'parlay') await settleParlayBet(bet, scoreFor, STALE_MS);
+      else if (bet.market === 'pickem') await settlePickemBet(bet);
       else await settleSingleBet(bet, scoreFor, STALE_MS);
     } catch(e) { console.error('settle bet error', bet.id, e); }
   }
@@ -3706,9 +3721,67 @@ async function settleParlayBet(bet, scoreFor, staleMs) {
   await creditAndNotify(bet, outcome, payout);
 }
 
-async function creditAndNotify(bet, result, payout) {
+// Pick'em settlement is self-contained (doesn't reuse settlePending's shared eventsBySport)
+// because a weekly slate can span games from several different days (Thu/Sun/Mon for NFL),
+// unlike a parlay whose legs are usually all near-term — the single dateless scoreboard fetch
+// everything else uses would miss games outside "today". Fetches a date range covering the
+// whole slate instead, same lesson learned building tennis settlement.
+let _pickemEventsCache = {};
+async function fetchEventsForRange(espnPath, startMs, endMs) {
+  const key = `${espnPath}_${Math.floor(startMs/3600000)}_${Math.floor(endMs/3600000)}`;
+  const cached = _pickemEventsCache[key];
+  if (cached && Date.now() - cached.ts < 30 * 60 * 1000) return cached.data;
+  const fmt = ms => new Date(ms).toISOString().slice(0,10).replace(/-/g,'');
+  let data = [];
+  try {
+    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard?dates=${fmt(startMs)}-${fmt(endMs)}&limit=1000`);
+    const json = await res.json();
+    data = json.events || [];
+  } catch(e) { console.error('pickem range fetch error', espnPath, e); }
+  _pickemEventsCache[key] = { data, ts: Date.now() };
+  return data;
+}
+async function settlePickemBet(bet) {
+  let data;
+  try { data = JSON.parse(bet.selection); } catch(e) { return; }
+  const picks = data.picks || [];
+  if (!picks.length) return;
+  const times = picks.map(p => new Date(p.commenceTime).getTime());
+  const startMs = Math.min(...times) - 24*3600*1000, endMs = Math.max(...times) + 24*3600*1000;
+  const sportsNeeded = [...new Set(picks.map(p => p.sport).filter(Boolean))];
+  const eventsBySport = {};
+  await Promise.all(sportsNeeded.map(async sport => {
+    const espn = SPORTS[sport]?.espn;
+    eventsBySport[sport] = espn ? await fetchEventsForRange(espn, startMs, endMs) : [];
+  }));
+  const graded = [];
+  for (const p of picks) {
+    const ev = matchEvent(eventsBySport[p.sport] || [], p.homeTeam, p.awayTeam);
+    if (!ev || !ev.status?.type?.completed) return; // at least one game not final yet — whole slate waits
+    const comps = ev.competitions?.[0]?.competitors || [];
+    const hc = comps.find(c => c.homeAway === 'home'), ac = comps.find(c => c.homeAway === 'away');
+    if (!hc || !ac) return;
+    const hs = parseInt(hc.score) || 0, as_ = parseInt(ac.score) || 0;
+    const result = gradeLegOutcome('h2h', p.pick, null, p.homeTeam, p.awayTeam, hs, as_);
+    graded.push({ ...p, result }); // 'won' | 'lost' | 'push' (a tied game — counts as a miss below, same as a real pick'em would)
+  }
+  const total = data.total || picks.length;
+  const correct = graded.filter(g => g.result === 'won').length;
+  const mult = pickemMultiplier(correct, total);
+  const payout = Math.round(bet.stake * mult * 100) / 100;
+  const outcome = payout > 0 ? 'won' : 'lost';
+  await sb.from('bets').update({
+    status: outcome, settled_at: new Date().toISOString(), potential_payout: payout,
+    selection: JSON.stringify({ picks: graded, total, correct }),
+  }).eq('id', bet.id);
+  await creditAndNotify(bet, outcome, payout, `${correct}/${total} correct`);
+}
+
+async function creditAndNotify(bet, result, payout, pickemNote) {
   if (payout > 0) await applyBalanceDelta(payout);
-  const label = bet.market === 'parlay' ? (JSON.parse(bet.selection||'{}').rr ? 'Round Robin combo' : 'Parlay') : bet.selection;
+  const label = bet.market === 'parlay' ? (JSON.parse(bet.selection||'{}').rr ? 'Round Robin combo' : 'Parlay')
+    : bet.market === 'pickem' ? `Pick'em (${pickemNote})`
+    : bet.selection;
   if (result === 'won') {
     showToast(`🏆 ${label} WON · +${fmt(payout - bet.stake)}`, 'success');
     launchConfetti(); flashBalance('up');
@@ -3923,10 +3996,12 @@ async function loadProfileView() {
       const isWon = b.status==='won';
       const isLost = b.status==='lost';
       // Single bets store selection as a plain string ("Chiefs", "Over"), not JSON — only
-      // parlay/round-robin rows are JSON-encoded, so only try to parse those.
+      // parlay/round-robin/pick'em rows are JSON-encoded, so only try to parse those.
       let label = b.selection || b.market || 'Bet';
       if (b.market === 'parlay') {
         try { const sel = JSON.parse(b.selection); label = `${sel.legs?.length||'?'}-Leg ${sel.rr?'RR Combo':'Parlay'}`; } catch(e) { label = 'Parlay'; }
+      } else if (b.market === 'pickem') {
+        try { const sel = JSON.parse(b.selection); label = `Pick'em (${sel.total||sel.picks?.length||'?'} games)`; } catch(e) { label = "Pick'em"; }
       }
       const sport = SPORTS[b.sport]?.label||b.sport||'Bet';
       const icon = isWon ? '✅' : isLost ? '❌' : '⏳';
