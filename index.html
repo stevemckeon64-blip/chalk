@@ -464,6 +464,27 @@ body::after{
 .futures-odds-btn{background:var(--bg);border:1px solid var(--bdr);border-radius:6px;padding:5px 14px;font-size:12px;font-weight:800;color:var(--gold-b);cursor:pointer;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
 .futures-odds-btn:hover,.futures-odds-btn.in-slip{background:var(--gold);color:#000;border-color:var(--gold)}
 .futures-tab{background:linear-gradient(135deg,rgba(245,166,35,.08),transparent)!important;border-color:rgba(245,166,35,.3)!important}
+/* ── PICK'EM ──────────────────────────────────────────────── */
+.pickem-inner{max-width:520px;margin:0 auto;padding:16px}
+.pickem-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.pickem-title{font-size:15px;font-weight:800}
+.pickem-progress{font-size:12px;font-weight:700;color:var(--t2)}
+.pickem-games{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.pickem-game-row{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--r);padding:10px 12px}
+.pickem-game-time{font-size:10px;color:var(--t3);font-weight:700;letter-spacing:.04em;margin-bottom:6px;text-align:center}
+.pickem-vs{display:flex;align-items:center;gap:8px}
+.pickem-at{font-size:10px;color:var(--t3);font-weight:700;flex-shrink:0}
+.pickem-team-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 6px;background:var(--bg);border:1px solid var(--bdr);border-radius:8px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.pickem-team-btn:hover{border-color:var(--gold)}
+.pickem-team-btn.picked{background:var(--gold-bg);border-color:var(--gold)}
+.pickem-team-name{font-size:12px;font-weight:700}
+.pickem-team-odds{font-size:10px;color:var(--t3);font-variant-numeric:tabular-nums}
+.pickem-submit-bar{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);padding:14px;margin-bottom:14px}
+.pickem-preview{text-align:center;font-size:12px;color:var(--t2);margin-bottom:10px}
+.pickem-payout-table{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);padding:12px 14px}
+.pickem-payout-hdr{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:6px}
+.pickem-payout-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--bdr)}
+.pickem-payout-row:last-child{border-bottom:none}
 /* ── BET BOOSTS ───────────────────────────────────────────── */
 .boosts-section{padding:4px 16px 10px;display:none}
 .boosts-lbl{font-size:9px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#FF6B35;margin-bottom:7px;display:flex;align-items:center;gap:6px}
@@ -674,6 +695,7 @@ body::after{
   </header>
   <nav class="app-nav">
     <button class="nav-tab active" data-view="games" onclick="showView('games')">Games</button>
+    <button class="nav-tab" data-view="pickem" onclick="showView('pickem')">Pick'em</button>
     <button class="nav-tab" data-view="bets" onclick="showView('bets')">My Bets<span class="nav-badge" id="betsBadge" style="display:none"></span></button>
     <button class="nav-tab" data-view="leaderboard" onclick="showView('leaderboard')">Leaderboard</button>
     <button class="nav-tab" data-view="profile" onclick="showView('profile')">Profile</button>
@@ -757,6 +779,7 @@ body::after{
       </div>
       <div class="games-inner" id="gamesInner"></div>
     </div>
+    <div class="view" id="view-pickem"><div class="pickem-inner" id="pickemInner"></div></div>
     <div class="view" id="view-bets"><div class="bets-inner" id="betsInner"></div></div>
     <div class="view" id="view-leaderboard"><div class="lb-inner" id="lbInner"></div></div>
     <div class="view" id="view-profile"><div class="profile-inner" id="profileInner"></div></div>
@@ -2888,6 +2911,142 @@ function renderGameCard(g, gamePcts={}) {
   </div>`;
 }
 
+// ── PICK'EM CHALLENGE ────────────────────────────────────────────────
+// Straight-up winner picks across a real slate of games — the ESPN/Yahoo "confidence pool"
+// format: no spread, no juice, just pick who wins each real game. Reuses the same real odds
+// fetch as the Games tab (only for an informational favorite/underdog hint, never for
+// grading) and the same settlement primitives (matchEvent/gradeLegOutcome) already built for
+// parlays, so a slate only pays out once every real game in it has actually finished.
+const PICKEM_SPORTS = ['americanfootball_nfl', 'americanfootball_ncaaf']; // the two real weekly-slate sports
+let _pickemSport = 'americanfootball_nfl', _pickemGames = [], _pickemPicks = {};
+
+// Payout multiplier by how many of the slate you got right. Illustrative pricing (there's no
+// real market to source a pick'em payout table from — the games and winners are real, the
+// payout curve is a designed game mechanic, same category as every other odds calculation in
+// this app), but built to feel like a real product: need at least 60% right to win anything,
+// and it compounds the closer you get to a perfect slate rather than being all-or-nothing.
+function pickemMultiplier(correct, total) {
+  if (!total) return 0;
+  const missed = total - correct;
+  if (correct / total < 0.6) return 0;
+  const perfect = Math.min(40, total * 3);
+  const mult = missed === 0 ? perfect : perfect / Math.pow(2.2, missed);
+  return Math.round(mult * 10) / 10;
+}
+
+async function loadPickem() {
+  const el = document.getElementById('pickemInner');
+  el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading this week's slate…</span></div>`;
+  const games = await fetchOdds(_pickemSport);
+  const now = Date.now();
+  _pickemGames = games
+    .filter(g => getMarket(g,'h2h') && new Date(g.commence_time).getTime() > now)
+    .sort((a,b) => new Date(a.commence_time)-new Date(b.commence_time))
+    .slice(0, 10);
+  if (currentView !== 'pickem') return;
+  renderPickemBuilder();
+}
+
+function renderPickemBuilder() {
+  const el = document.getElementById('pickemInner');
+  const sportPicker = `<div class="slip-mode-row" style="max-width:280px;margin:0 auto 14px">
+    ${PICKEM_SPORTS.map(s => `<button class="slip-mode-btn ${_pickemSport===s?'active':''}" onclick="setPickemSport('${s}')">${esc(SPORTS[s]?.label||s)}</button>`).join('')}
+  </div>`;
+  if (!_pickemGames.length) {
+    el.innerHTML = sportPicker + `<div class="empty-state">No upcoming ${esc(SPORTS[_pickemSport]?.label||'')} games to build a slate from right now.</div>`;
+    return;
+  }
+  const picked = Object.keys(_pickemPicks).filter(gid => _pickemGames.some(g=>g.id===gid)).length;
+  const total = _pickemGames.length;
+  const rows = _pickemGames.map(g => {
+    const ml = getMarket(g,'h2h');
+    const aOdds = ml?.find(o=>o.name===g.away_team), hOdds = ml?.find(o=>o.name===g.home_team);
+    const pick = _pickemPicks[g.id];
+    const row = (team, odds, isHome) => `<button class="pickem-team-btn${pick===team?' picked':''}" onclick="togglePickemPick('${esc(g.id)}',${isHome})">
+      <span class="pickem-team-name">${esc(team.split(' ').pop())}</span>
+      ${odds?`<span class="pickem-team-odds">${fmtOdds(odds.price)}</span>`:''}
+    </button>`;
+    return `<div class="pickem-game-row">
+      <div class="pickem-game-time">${new Date(g.commence_time).toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'})}</div>
+      <div class="pickem-vs">${row(g.away_team, aOdds, false)}<span class="pickem-at">@</span>${row(g.home_team, hOdds, true)}</div>
+    </div>`;
+  }).join('');
+  const stakeInput = `<div class="bs-amount-row" style="max-width:280px;margin:0 auto 8px"><span class="bs-dollar">$</span><input class="bs-input" id="pickemStake" type="number" inputmode="numeric" min="1" value="25" oninput="updatePickemPreview()"></div>`;
+  el.innerHTML = `${sportPicker}
+    <div class="pickem-header">
+      <div class="pickem-title">Pick the winner of all ${total} games</div>
+      <div class="pickem-progress">${picked}/${total} picked</div>
+    </div>
+    <div class="props-disclaimer" style="text-align:center;margin-bottom:10px">Real games, real teams — the payout table below is this app's own pricing, not a real sportsbook's.</div>
+    <div class="pickem-games">${rows}</div>
+    <div class="pickem-submit-bar">
+      ${stakeInput}
+      <div id="pickemPreview" class="pickem-preview"></div>
+      <button class="bs-place-btn" id="pickemSubmitBtn" onclick="submitPickem()" ${picked<total?'disabled':''}>Submit Slate</button>
+    </div>
+    <div class="pickem-payout-table" id="pickemPayoutTable"></div>`;
+  updatePickemPreview();
+}
+function setPickemSport(sport) { _pickemSport = sport; _pickemPicks = {}; loadPickem(); }
+function togglePickemPick(gameId, isHome) {
+  const g = _pickemGames.find(x => x.id === gameId); if (!g) return;
+  _pickemPicks[gameId] = isHome ? g.home_team : g.away_team;
+  renderPickemBuilder();
+}
+function updatePickemPreview() {
+  const total = _pickemGames.length;
+  const stake = parseFloat(document.getElementById('pickemStake')?.value) || 0;
+  const preview = document.getElementById('pickemPreview');
+  if (preview) {
+    const perfectMult = pickemMultiplier(total, total);
+    preview.innerHTML = `Perfect slate pays <b style="color:var(--gold)">${perfectMult}x</b> — ${fmt(stake*perfectMult)}`;
+  }
+  const table = document.getElementById('pickemPayoutTable');
+  if (table) {
+    const rows = [];
+    for (let c = total; c >= Math.ceil(total*0.6); c--) {
+      const m = pickemMultiplier(c, total);
+      if (m > 0) rows.push(`<div class="pickem-payout-row"><span>${c}/${total} correct</span><span>${m}x</span></div>`);
+    }
+    table.innerHTML = `<div class="pickem-payout-hdr">Payout Table</div>${rows.join('')}`;
+  }
+}
+async function submitPickem() {
+  const total = _pickemGames.length;
+  const picks = _pickemGames.map(g => ({
+    gameId: g.id, sport: _pickemSport, homeTeam: g.home_team, awayTeam: g.away_team,
+    commenceTime: g.commence_time, pick: _pickemPicks[g.id],
+  }));
+  if (picks.some(p => !p.pick)) { showToast('Pick a winner for every game first', 'error'); return; }
+  const earliest = picks.reduce((min,p) => Math.min(min, new Date(p.commenceTime).getTime()), Infinity);
+  if (Date.now() >= earliest) { showToast('One of these games already started — refresh your slate', 'error'); loadPickem(); return; }
+  const stake = parseFloat(document.getElementById('pickemStake')?.value) || 0;
+  if (stake <= 0) { showToast('Enter a valid stake', 'error'); return; }
+  if (stake > profile.balance) { showToast('Insufficient balance', 'error'); return; }
+  const btn = document.getElementById('pickemSubmitBtn');
+  btn.textContent = 'Submitting…'; btn.disabled = true;
+  const newBal = await applyBalanceDelta(-stake);
+  if (newBal < 0) { await applyBalanceDelta(stake); btn.textContent='Submit Slate'; btn.disabled=false; showToast('Insufficient balance','error'); return; }
+  const perfectPayout = stake * pickemMultiplier(total, total);
+  const { error } = await sb.from('bets').insert({
+    user_id: user.id, sport: _pickemSport, game_id: 'pickem',
+    home_team: `${total}-Game Pick'em`, away_team: SPORTS[_pickemSport]?.label || '',
+    commence_time: new Date(earliest).toISOString(), market: 'pickem',
+    selection: JSON.stringify({ picks, total }), line: null, odds: null,
+    stake, potential_payout: perfectPayout,
+  });
+  if (error) {
+    await applyBalanceDelta(stake);
+    btn.textContent='Submit Slate'; btn.disabled=false;
+    showToast('Error submitting slate', 'error'); return;
+  }
+  animateBalance(profile.balance);
+  flashBalance('dn');
+  showToast(`Slate submitted — ${fmt(stake)} on ${total} games 🏆`, 'success');
+  _pickemPicks = {};
+  loadPickem();
+}
+
 // ── BET SLIP ──────────────────────────────────────────────────────
 document.addEventListener('click', e => {
   const btn = e.target.closest('.odds-btn');
@@ -3795,6 +3954,7 @@ function showView(view) {
   document.querySelector(`.nav-tab[data-view="${view}"]`)?.classList.add('active');
   document.getElementById('sportTabs').style.display = view==='games'?'flex':'none';
   if (view==='games') loadGames(currentSport);
+  else if (view==='pickem') loadPickem();
   else if (view==='bets') loadMyBets();
   else if (view==='leaderboard') loadLeaderboard();
   else if (view==='profile') loadProfileView();
