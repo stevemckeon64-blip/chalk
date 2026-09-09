@@ -3007,17 +3007,15 @@ function openBetSlip() {
     }).join('')}</div>`;
   }
 
-  // Parlay Insurance promo (3+ legs parlay)
-  const parlayInsurance = (slipMode === 'parlay' && betSlipLegs.length >= 3)
-    ? `<div style="background:rgba(48,209,88,.06);border:1px solid rgba(48,209,88,.2);border-radius:8px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-        <span style="font-size:14px">🛡️</span>
-        <div style="font-size:10px;color:var(--t2);line-height:1.4"><b style="color:#30D158">Parlay Insurance Active</b> — If 1 leg loses, get your stake back as bonus chips.</div>
-       </div>` : '';
-
+  // NOTE: there used to be a "Parlay Insurance Active — if 1 leg loses, get your stake back
+  // as bonus chips" banner here. It was purely decorative — settlement never had any such
+  // carve-out, a losing leg has always just lost the parlay — so it was telling users their
+  // stake was protected when it never was. Same problem as the free-money mechanics removed
+  // earlier (Add Funds, referral bonus): even if it had been real, refunding losers is exactly
+  // the kind of free-balance injection that breaks a leaderboard a real prize depends on.
   document.getElementById('bsBody').innerHTML = `
     ${modeToggle}
     <div class="parlay-legs-list">${legsHtml}</div>
-    ${parlayInsurance}
     ${summaryBar}
     ${rrHtml}
     <div class="bs-stake-lbl">${slipMode==='rr'?'Stake Per Combo':'Bet Amount'}</div>
