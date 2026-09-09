@@ -479,6 +479,7 @@ body::after{
 .pickem-team-btn.picked{background:var(--gold-bg);border-color:var(--gold)}
 .pickem-team-name{font-size:12px;font-weight:700}
 .pickem-team-odds{font-size:10px;color:var(--t3);font-variant-numeric:tabular-nums}
+.pickem-team-pct{font-size:9px;color:var(--gold-b);font-weight:700;margin-top:1px}
 .pickem-submit-bar{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);padding:14px;margin-bottom:14px}
 .pickem-preview{text-align:center;font-size:12px;color:var(--t2);margin-bottom:10px}
 .pickem-payout-table{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);padding:12px 14px}
@@ -1277,6 +1278,16 @@ function addSGPCombo(btn) {
 // ── PARLAY MATH ───────────────────────────────────────────────────
 function toDecimal(american) {
   return american >= 0 ? (american/100)+1 : (100/Math.abs(american))+1;
+}
+// De-vigged ("fair") win probability for a two-way market — takes each side's raw implied
+// probability (which sums to >100% because of the sportsbook's built-in edge) and normalizes
+// so they sum to exactly 100%, giving the market's true estimate of who actually wins. Real
+// math on real odds, not a guess.
+function fairWinPct(priceA, priceB) {
+  const implP = odds => odds < 0 ? Math.abs(odds)/(Math.abs(odds)+100) : 100/(odds+100);
+  const pA = implP(priceA), pB = implP(priceB);
+  const pctA = Math.round(pA/(pA+pB)*100);
+  return { a: pctA, b: 100 - pctA };
 }
 function calcParlayOdds(legs) {
   if (!legs.length) return 0;
@@ -2859,10 +2870,7 @@ function renderGameCard(g, gamePcts={}) {
   if (ml && ml.length >= 2 && !isVersus) {
     const aO = ml.find(o=>o.name===away) || ml[0];
     const hO = ml.find(o=>o.name===home) || ml[1];
-    const implP = odds => odds < 0 ? Math.abs(odds)/(Math.abs(odds)+100) : 100/(odds+100);
-    const pA = implP(aO.price), pH = implP(hO.price);
-    const awayPct = Math.round(pA/(pA+pH)*100);
-    const homePct = 100 - awayPct;
+    const { a: awayPct, b: homePct } = fairWinPct(aO.price, hO.price);
     winProbBar = `<div class="win-prob-bar" title="${esc(away)}: ${awayPct}% | ${esc(home)}: ${homePct}%">
       <div class="wpb-away" style="width:${awayPct}%"></div>
       <div class="wpb-home" style="width:${homePct}%"></div>
@@ -2961,10 +2969,12 @@ function renderPickemBuilder() {
   const rows = _pickemGames.map(g => {
     const ml = getMarket(g,'h2h');
     const aOdds = ml?.find(o=>o.name===g.away_team), hOdds = ml?.find(o=>o.name===g.home_team);
+    const fairPct = (aOdds && hOdds) ? fairWinPct(aOdds.price, hOdds.price) : null;
     const pick = _pickemPicks[g.id];
     const row = (team, odds, isHome) => `<button class="pickem-team-btn${pick===team?' picked':''}" onclick="togglePickemPick('${esc(g.id)}',${isHome})">
       <span class="pickem-team-name">${esc(team.split(' ').pop())}</span>
       ${odds?`<span class="pickem-team-odds">${fmtOdds(odds.price)}</span>`:''}
+      ${fairPct?`<span class="pickem-team-pct">${isHome?fairPct.b:fairPct.a}% to win</span>`:''}
     </button>`;
     return `<div class="pickem-game-row">
       <div class="pickem-game-time">${new Date(g.commence_time).toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'})}</div>
