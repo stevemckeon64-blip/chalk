@@ -1592,6 +1592,18 @@ function oddsMovement(gameId, market, selection, price) {
   if (prev === undefined || prev === price || price == null) return { dir:'flat', label:'', cls:'' };
   return price > prev ? { dir:'up', label:'▲', cls:'move-up' } : { dir:'dn', label:'▼', cls:'move-dn' };
 }
+// Real market movement — ESPN gives the real opening price alongside the current one, so this
+// shows how far the line has actually moved before you ever opened the app, not just whatever
+// this browser session happened to observe across its own polls (which is usually nothing,
+// since a page open for a few minutes rarely spans a real line move). Falls back to the
+// session-based oddsMovement() above for markets ESPN doesn't give an open price for (props,
+// alt lines, boosts — all synthetic anyway).
+function realOrSessionMovement(gameId, market, outcome) {
+  if (outcome.openPrice != null && outcome.openPrice !== outcome.price) {
+    return outcome.price > outcome.openPrice ? { label:'▲', cls:'move-up' } : { label:'▼', cls:'move-dn' };
+  }
+  return oddsMovement(gameId, market, outcome.name, outcome.price);
+}
 
 // ── STATE ─────────────────────────────────────────────────────────
 let sb, user=null, profile=null, currentRoom=null, myRooms=[];
@@ -2094,14 +2106,18 @@ async function fetchOdds(sport) {
 
       const o = comp.odds?.[0];
       const markets = [];
+      // Real open price per side, where ESPN has it — lets the odds-movement arrow show how
+      // far the real market has actually moved (open vs. now) the moment the page loads,
+      // instead of only being able to notice movement across this browser session's own polls.
+      const openInt = v => { const n = parseInt(v); return isNaN(n) ? null : n; };
       if (o) {
         // Moneyline — ESPN stores as o.moneyline.home/away.close.odds (strings like "-118")
         const hML = parseInt(o.moneyline?.home?.close?.odds);
         const aML = parseInt(o.moneyline?.away?.close?.odds);
         if (!isNaN(hML) && !isNaN(aML)) {
           markets.push({ key:'h2h', outcomes:[
-            { name:awayName, price:aML },
-            { name:homeName, price:hML },
+            { name:awayName, price:aML, openPrice:openInt(o.moneyline?.away?.open?.odds) },
+            { name:homeName, price:hML, openPrice:openInt(o.moneyline?.home?.open?.odds) },
           ]});
         }
         // Spread — o.spread is already SIGNED (negative = home gives points, e.g. -1.5)
@@ -2111,8 +2127,8 @@ async function fetchOdds(sport) {
           const hSpOdds = parseInt(o.pointSpread?.home?.close?.odds ?? '-110');
           const aSpOdds = parseInt(o.pointSpread?.away?.close?.odds ?? '-110');
           markets.push({ key:'spreads', outcomes:[
-            { name:awayName, price:isNaN(aSpOdds) ? -110 : aSpOdds, point:-homePt },
-            { name:homeName, price:isNaN(hSpOdds) ? -110 : hSpOdds, point:homePt },
+            { name:awayName, price:isNaN(aSpOdds) ? -110 : aSpOdds, point:-homePt, openPrice:openInt(o.pointSpread?.away?.open?.odds) },
+            { name:homeName, price:isNaN(hSpOdds) ? -110 : hSpOdds, point:homePt, openPrice:openInt(o.pointSpread?.home?.open?.odds) },
           ]});
         }
         // Total — line at o.overUnder, juice at o.total.over/under.close.odds (strings)
@@ -2120,8 +2136,8 @@ async function fetchOdds(sport) {
           const ovOdds = parseInt(o.total?.over?.close?.odds  ?? '-110');
           const unOdds = parseInt(o.total?.under?.close?.odds ?? '-110');
           markets.push({ key:'totals', outcomes:[
-            { name:'Over',  price:isNaN(ovOdds) ? -110 : ovOdds, point:o.overUnder },
-            { name:'Under', price:isNaN(unOdds) ? -110 : unOdds, point:o.overUnder },
+            { name:'Over',  price:isNaN(ovOdds) ? -110 : ovOdds, point:o.overUnder, openPrice:openInt(o.total?.over?.open?.odds) },
+            { name:'Under', price:isNaN(unOdds) ? -110 : unOdds, point:o.overUnder, openPrice:openInt(o.total?.under?.open?.odds) },
           ]});
         }
       }
@@ -2769,7 +2785,7 @@ function renderGameCard(g, gamePcts={}) {
     const sub = (market==='spreads' && outcome.point!=null) ? ((outcome.point>0?'+':'')+outcome.point) : market==='totals' ? (outcome.name==='Over'?'O ':'U ')+outcome.point : '';
     const o = outcome.price; const oStr = fmtOdds(o);
     const inSlip = betSlipLegs.some(l => l.gameId===g.id && l.market===market && l.selection===outcome.name);
-    const mv = oddsMovement(g.id, market, outcome.name, o);
+    const mv = realOrSessionMovement(g.id, market, outcome);
     return `<button class="odds-btn${inSlip?' in-slip':''}" data-gid="${esc(g.id)}" data-market="${market}"
       data-sel="${esc(outcome.name)}" data-odds="${o}" data-line="${outcome.point??''}"
       data-home="${esc(home)}" data-away="${esc(away)}" data-ct="${esc(g.commence_time)}">
@@ -2777,7 +2793,7 @@ function renderGameCard(g, gamePcts={}) {
       ${sub?`<span class="ob-line">${esc(sub)}</span>`:''}
       <span class="ob-odds-row">
         <span class="ob-odds ${o>0?'pos':'neg'}">${oStr}</span>
-        ${mv.label?`<span class="ob-move ${mv.cls}">${mv.label}</span>`:''}
+        ${mv.label?`<span class="ob-move ${mv.cls}" title="Line has moved since open">${mv.label}</span>`:''}
       </span>
     </button>`;
   };
