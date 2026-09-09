@@ -1513,20 +1513,33 @@ function generatePlayerProps(g) {
   }
 
   // ── ALTERNATE SPREADS & TOTALS ────────────────────────────
+  // Fixed three real bugs here: (1) the spread base used Math.abs(), which threw away which
+  // side was actually favored — every alt-spread line assumed home was favorite even when the
+  // real market said otherwise; (2) the selection stored for a spread pick was the short team
+  // name ("Rams"), which never matches homeTeam/awayTeam ("Los Angeles Rams") at settlement,
+  // so a spread pick would always grade as if the away side had been picked; (3) alt-totals
+  // passed a display string like "O 44.5" as the line value, which fails parseFloat and grades
+  // as null. All three meant alt-lines could never be graded correctly — they'd already been
+  // set to void at settlement as a stopgap. Now that the real signed line and real selection
+  // are both stored correctly, gradeLegOutcome() (below) grades them exactly like a mainline
+  // spread/total instead.
   const altSp = getMarket(g, 'spreads');
   const altTot = getMarket(g, 'totals');
   if (altSp || altTot) {
-    if (altSp && altSp[0]) {
-      const base = Math.abs(altSp[0].point || 3.5);
+    if (altSp && altSp.length >= 2) {
+      const homePoint = (altSp.find(o=>o.name===home) || altSp[1])?.point ?? 3.5;
+      const favIsHome = homePoint < 0;
+      const base = Math.abs(homePoint);
       gAlt += `<div class="props-sec-hdr">📐 Alternate Spreads</div>`;
       const adjs = [-3, -1.5, 0, 1.5, 3];
       for (const adj of adjs) {
         const line = Math.round((base + adj) * 2) / 2;
         if (line < 0.5) continue;
-        const awayO = Math.round(-110 + adj * 22);
-        const homeO = Math.round(-110 - adj * 22);
+        const favO = Math.round(-110 - adj * 22), dogO = Math.round(-110 + adj * 22);
+        const homeLine = favIsHome ? -line : line, awayLine = favIsHome ? line : -line;
+        const homeO = favIsHome ? favO : dogO, awayO = favIsHome ? dogO : favO;
         const mk = `alt_sp_${line}`;
-        gAlt += `<div class="prop-market-row alt-line-row"><span class="prop-mkt-lbl">${line}</span><div class="odds-pair">${pBtn(mk,awayShort,awayO,'+'+line)}${pBtn(mk,homeShort,homeO,'-'+line)}</div></div>`;
+        gAlt += `<div class="prop-market-row alt-line-row"><span class="prop-mkt-lbl">${line}</span><div class="odds-pair">${pBtn(mk,away,awayO,(awayLine>0?'+':'')+awayLine)}${pBtn(mk,home,homeO,(homeLine>0?'+':'')+homeLine)}</div></div>`;
       }
     }
     if (altTot && altTot[0]) {
@@ -1534,11 +1547,12 @@ function generatePlayerProps(g) {
       gAlt += `<div class="props-sec-hdr">📐 Alternate Totals</div>`;
       const adjs = [-7.5, -4, 0, 4, 7.5];
       for (const adj of adjs) {
-        const line = (Math.round((base + adj) * 2) / 2).toFixed(1);
+        const line = Math.round((base + adj) * 2) / 2;
+        if (line <= 0) continue;
         const overO = Math.round(-110 - adj * 13);
         const underO = Math.round(-110 + adj * 13);
         const mk = `alt_tot_${line}`;
-        gAlt += `<div class="prop-market-row alt-line-row"><span class="prop-mkt-lbl">${line}</span><div class="odds-pair">${pBtn(mk,'Over',overO,'O '+line)}${pBtn(mk,'Under',underO,'U '+line)}</div></div>`;
+        gAlt += `<div class="prop-market-row alt-line-row"><span class="prop-mkt-lbl">${line}</span><div class="odds-pair">${pBtn(mk,'Over',overO,line)}${pBtn(mk,'Under',underO,line)}</div></div>`;
       }
     }
   }
@@ -3304,7 +3318,8 @@ function renderBets(bets) {
     let parlayMeta = {}; if (isParlay) { try { parlayMeta = JSON.parse(b.selection||'{}'); } catch(e) {} }
     const isRR = !!parlayMeta.rr;
     const mktL = isParlay ? `${parlayMeta.legs?.length||'?'}-Leg ${isRR?'Round Robin Combo':'Parlay'}` : (MARKET_LABELS[b.market]||b.market);
-    const selL = isParlay ? '' : (b.market==='spreads'&&b.line!=null?`${b.selection} ${b.line>0?'+':''}${b.line}`:b.market==='totals'&&b.line!=null?`${b.selection} ${b.line}`:b.selection);
+    const isSpread = b.market==='spreads'||b.market.startsWith('alt_sp_'), isTotal = b.market==='totals'||b.market.startsWith('alt_tot_');
+    const selL = isParlay ? '' : (isSpread&&b.line!=null?`${b.selection} ${b.line>0?'+':''}${b.line}`:isTotal&&b.line!=null?`${b.selection} ${b.line}`:b.selection);
     const statusLabels = {won:'✓ WON',lost:'✗ LOST',push:'~ PUSH',void:'○ VOID',pending:'⏳ PENDING'};
     const pnlVal = b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:(b.status==='push'||b.status==='void')?0:null;
     const d = new Date(b.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
@@ -3553,13 +3568,16 @@ function gradeLegOutcome(market, selection, line, homeTeam, awayTeam, homeScore,
     const winner = homeScore > awayScore ? homeTeam : awayTeam;
     return winner === selection ? 'won' : 'lost';
   }
-  if (market === 'spreads') {
+  // Alternate lines (alt_sp_<line>/alt_tot_<line>) are graded exactly like the mainline
+  // versions — same math, they just carry their specific line in the market key instead of
+  // a fixed 'spreads'/'totals' key, since each alternate line is its own distinct pick.
+  if (market === 'spreads' || market.startsWith('alt_sp_')) {
     const l = parseFloat(line), isHome = selection === homeTeam;
     const margin = homeScore - awayScore; // positive = home winning
     const covered = isHome ? (margin + l) : ((-margin) + (-l));
     if (covered > 0) return 'won'; if (covered < 0) return 'lost'; return 'push';
   }
-  if (market === 'totals') {
+  if (market === 'totals' || market.startsWith('alt_tot_')) {
     const total = homeScore + awayScore, l = parseFloat(line);
     if (selection === 'Over') return total > l ? 'won' : total < l ? 'lost' : 'push';
     return total < l ? 'won' : total > l ? 'lost' : 'push';
