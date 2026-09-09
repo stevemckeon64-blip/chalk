@@ -1641,6 +1641,7 @@ function realOrSessionMovement(gameId, market, outcome) {
 
 // ── STATE ─────────────────────────────────────────────────────────
 let sb, user=null, profile=null, currentRoom=null, myRooms=[];
+let lbMode='balance', _lbRows=[], _lbStats={};
 let currentView='games', currentSport='americanfootball_nfl';
 let oddsCache={}, betSlipLegs=[], slipMode='parlay', pplCache=null, pplCacheTs=0, pplNextTourney=null;
 let totalWagered=0; // updated after bets load — drives loyalty tier
@@ -3868,24 +3869,68 @@ async function loadLeaderboard() {
   if (!rows?.length) { renderLeaderboard([]); return; }
   // Fetch settled bet stats for all players
   const userIds = rows.map(r=>r.id);
-  const { data: betStats } = await sb.from('bets').select('user_id,status,stake,potential_payout').in('user_id', userIds).neq('status','pending');
+  const { data: betStats } = await sb.from('bets').select('user_id,market,status,stake,potential_payout,selection').in('user_id', userIds).neq('status','pending');
   const statsByUser = {};
   for (const b of (betStats||[])) {
-    if (!statsByUser[b.user_id]) statsByUser[b.user_id] = {wins:0,total:0,wagered:0,pnl:0};
+    if (!statsByUser[b.user_id]) statsByUser[b.user_id] = {wins:0,total:0,wagered:0,pnl:0,pickemPnl:0,pickemCount:0,pickemCorrect:0,pickemPicks:0};
     const s = statsByUser[b.user_id];
     s.total++;
     s.wagered += Number(b.stake);
     if (b.status==='won') { s.wins++; s.pnl += b.potential_payout - b.stake; }
     else if (b.status==='lost') { s.pnl -= b.stake; }
+    // Pick'em Challenge leaderboard — same real settled results, scoped to just this contest
+    // type, since it's a bounded weekly slate rather than an open-ended balance race.
+    if (b.market === 'pickem') {
+      s.pickemCount++;
+      s.pickemPnl += b.status==='won' ? b.potential_payout - b.stake : -b.stake;
+      try {
+        const meta = JSON.parse(b.selection||'{}');
+        s.pickemCorrect += meta.correct || 0;
+        s.pickemPicks += meta.total || meta.picks?.length || 0;
+      } catch(e) {}
+    }
   }
-  renderLeaderboard(rows||[], statsByUser);
+  _lbRows = rows || []; _lbStats = statsByUser;
+  renderLeaderboard(_lbRows, _lbStats);
 }
+function setLbMode(mode) { lbMode = mode; renderLeaderboard(_lbRows, _lbStats); }
 
 function renderLeaderboard(rows, statsByUser={}) {
   const medals = ['🥇','🥈','🥉'];
   const title = currentRoom ? `🏠 ${esc(currentRoom.name)}` : '🌐 Global Leaderboard';
   const roomCode = currentRoom ? `<div class="lb-room-info"><span class="lb-code">Code: <b>${currentRoom.code}</b></span><button class="copy-code-btn" onclick="navigator.clipboard.writeText('${currentRoom.code}');showToast('Code copied!')">Copy</button></div>` : '';
-  if (!rows.length) { document.getElementById('lbInner').innerHTML = '<div class="empty-state">No players yet.</div>'; return; }
+  // Balance mode ranks the open-ended running balance; Pick'em mode ranks only real, settled
+  // Pick'em Challenge results — a bounded, repeating contest rather than an ever-open race,
+  // which is a fairer shape for a leaderboard a real prize might actually key off of.
+  const modeToggle = `<div class="slip-mode-row" style="max-width:280px;margin:0 auto 14px">
+    <button class="slip-mode-btn ${lbMode==='balance'?'active':''}" onclick="setLbMode('balance')">Balance</button>
+    <button class="slip-mode-btn ${lbMode==='pickem'?'active':''}" onclick="setLbMode('pickem')">🏆 Pick'em</button>
+  </div>`;
+  if (!rows.length) { document.getElementById('lbInner').innerHTML = `<div class="lb-hdr"><h2 class="lb-title">${title}</h2>${roomCode}</div>${modeToggle}<div class="empty-state">No players yet.</div>`; return; }
+
+  if (lbMode === 'pickem') {
+    const ranked = [...rows].filter(p => (statsByUser[p.id]?.pickemCount||0) > 0)
+      .sort((a,b) => (statsByUser[b.id]?.pickemPnl||0) - (statsByUser[a.id]?.pickemPnl||0));
+    const rowsHtml = ranked.length ? ranked.map((p,i) => {
+      const isMe = p.id === user.id;
+      const stats = statsByUser[p.id];
+      const rankDisplay = i < 3 ? medals[i] : `${i+1}`;
+      return `<div class="lb-row ${isMe?'me':''}">
+        <div class="lb-rank-num">${rankDisplay}</div>
+        <div class="lb-avatar" style="background:${usernameGradient(p.username)}">${p.username[0].toUpperCase()}</div>
+        <div class="lb-info">
+          <div class="lb-name">${esc(p.username)}${isMe?'<span class="lb-you">you</span>':''}</div>
+          <div class="lb-record">${stats.pickemCorrect}/${stats.pickemPicks} picks correct · ${stats.pickemCount} slate${stats.pickemCount===1?'':'s'}</div>
+        </div>
+        <div class="lb-right">
+          <div class="lb-pnl ${stats.pickemPnl>=0?'pos':'neg'}" style="font-size:15px">${stats.pickemPnl>=0?'+':''}${fmt(stats.pickemPnl)}</div>
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty-state">No settled Pick\'em slates yet — submit one from the Pick\'em tab.</div>';
+    document.getElementById('lbInner').innerHTML = `<div class="lb-hdr"><h2 class="lb-title">${title}</h2>${roomCode}</div>${modeToggle}<div class="lb-list">${rowsHtml}</div>`;
+    return;
+  }
+
   const rowsHtml = rows.map((p,i) => {
     const isMe = p.id === user.id;
     const pnl = p.balance - STARTING_BALANCE;
@@ -3907,7 +3952,7 @@ function renderLeaderboard(rows, statsByUser={}) {
       </div>
     </div>`;
   }).join('');
-  document.getElementById('lbInner').innerHTML = `<div class="lb-hdr"><h2 class="lb-title">${title}</h2>${roomCode}</div><div class="lb-list">${rowsHtml}</div>`;
+  document.getElementById('lbInner').innerHTML = `<div class="lb-hdr"><h2 class="lb-title">${title}</h2>${roomCode}</div>${modeToggle}<div class="lb-list">${rowsHtml}</div>`;
 }
 
 // ── PROFILE VIEW ──────────────────────────────────────────────────
