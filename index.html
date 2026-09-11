@@ -2929,8 +2929,14 @@ function renderGameCard(g, gamePcts={}) {
     }
   }
 
+  // Real per-team brand colors (same ESPN field used for the Pick'em tiles) make the accent
+  // bar reflect this specific matchup instead of one flat color for every game in the sport;
+  // falls back to the sport-wide accent for sports with no team color (UFC, tennis, padel).
+  const accentBarStyle = (g.away_color && g.home_color)
+    ? `background:linear-gradient(90deg,${g.away_color} 0%,${g.away_color} 49%,${g.home_color} 51%,${g.home_color} 100%)`
+    : `background:${accent}`;
   return `<div class="game-card${g.isLive?' is-live':''}" style="--sport-accent:${accent}">
-    <div class="game-card-accent-bar"></div>
+    <div class="game-card-accent-bar" style="${accentBarStyle}"></div>
     <div class="game-card-top">
       <div class="game-teams">
         <div class="team-row away">${awayLogoHtml}<span>${esc(away)}</span>${g.away_record?`<span class="team-record">${esc(g.away_record)}</span>`:''}${streakBadge(g.away_streak)}</div>
