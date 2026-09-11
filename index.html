@@ -1389,7 +1389,7 @@ function generatePlayerProps(g) {
 
 
   let gPlayers = '', gGame = '', gSGP = '', gAlt = '', gLive = '';
-  const awayShort = away.split(' ').pop(), homeShort = home.split(' ').pop();
+  const awayShort = teamShort(away, currentSport), homeShort = teamShort(home, currentSport);
 
   // ── LIVE MARKETS (only when game is in progress) ──────────
   if (g.isLive) {
@@ -1453,7 +1453,7 @@ function generatePlayerProps(g) {
         const real = realPlayerFor(posDef.p, ti);
         if (!real) continue; // no real ESPN data for this position/sport yet — skip rather than invent one
         const pName = real.name;
-        const teamShort = teams[ti].split(' ').pop();
+        const propTeamShort = teamShort(teams[ti], currentSport);
         let rows = '';
         for (const prop of posDef.props) {
           const mk = `pp_${prop.k}_${pName.replace(/\W/g,'')}`;
@@ -1472,7 +1472,7 @@ function generatePlayerProps(g) {
           <div class="player-prop-hdr">
             <span class="pos-badge">${esc(posDef.p)}</span>
             <span class="player-name">${esc(pName)}</span>
-            <span class="player-team-tag">${esc(teamShort)}</span>
+            <span class="player-team-tag">${esc(propTeamShort)}</span>
           </div>${rows}</div>`;
       }
     }
@@ -1525,8 +1525,8 @@ function generatePlayerProps(g) {
         gameId:gid, market, selection:sel, odds:Math.round(odds), line:line||null,
         homeTeam:home, awayTeam:away, commenceTime:ct, sport:currentSport
       });
-      const favShort = favTeam.name.split(' ').pop();
-      const dogShort = dogTeam.name.split(' ').pop();
+      const favShort = teamShort(favTeam.name, currentSport);
+      const dogShort = teamShort(dogTeam.name, currentSport);
       const combos = [];
       const c1 = [mkLeg('h2h',favTeam.name,favTeam.price,null), mkLeg('totals','Over',overO.price,overO.point)];
       combos.push({ desc:`<b>${favShort} ML</b> + <b>Over ${overO.point}</b>`, legs:c1 });
@@ -1534,7 +1534,7 @@ function generatePlayerProps(g) {
       combos.push({ desc:`<b>${dogShort} ML</b> + <b>Under ${underO.point}</b>`, legs:c2 });
       if (sp2 && sp2[0]) {
         const spFav = sp2.find(o=>o.name===favTeam.name) || sp2[0];
-        const spSel = spFav.name.split(' ').pop();
+        const spSel = teamShort(spFav.name, currentSport);
         const c3 = [mkLeg('h2h',favTeam.name,favTeam.price,null), mkLeg('totals','Over',overO.price,overO.point), mkLeg('spreads',spFav.name,spFav.price,spFav.point)];
         combos.push({ desc:`<b>${favShort} ML</b> + <b>Over ${overO.point}</b> + <b>${spSel} ${spFav.point>0?'+':''}${spFav.point}</b>`, legs:c3 });
       }
@@ -1731,6 +1731,17 @@ const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 // for the actual participant — found this live on an ATP Grand Slam final. Filtering these out
 // is what keeps the app from ever showing a "TBD vs TBD" match as if it were a real game.
 const isPlaceholderName = n => !n || /^(tbd|tba|winner of|to be determined|to be announced)/i.test(String(n).trim());
+// Short team display label — mascot alone for pro leagues (already unique within their own
+// league: there's only one "Chiefs"), but full "School Mascot" for college sports, where many
+// different schools share the same mascot (Tigers: Auburn/LSU/Clemson/Missouri/Memphis;
+// Wildcats: Kentucky/Arizona/Kansas State/Northwestern/Villanova; Bulldogs: Georgia/Mississippi
+// State/Fresno State...). Truncating to just the mascot there can show two completely different
+// real teams as if they were the same matchup — "Tigers @ Tigers" instead of "Auburn @ LSU".
+const COLLEGE_SPORTS = ['americanfootball_ncaaf', 'basketball_ncaab'];
+function teamShort(fullName, sportKey) {
+  if (!fullName) return fullName;
+  return COLLEGE_SPORTS.includes(sportKey) ? fullName : fullName.split(' ').pop();
+}
 const fmt = n => '$' + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtOdds = o => {
   if (oddsFormat === 'decimal') return toDecimal(o).toFixed(2);
@@ -2621,8 +2632,8 @@ function renderBoosts(games) {
     const ml = getMarket(g,'h2h');
     const sp = getMarket(g,'spreads');
     const tot = getMarket(g,'totals');
-    const awayShort = g.away_team.split(' ').pop();
-    const homeShort = g.home_team.split(' ').pop();
+    const awayShort = teamShort(g.away_team, currentSport);
+    const homeShort = teamShort(g.home_team, currentSport);
     // ML boost — pick favorite or underdog based on seed
     const fav = ml[0].price <= ml[1].price ? ml[0] : ml[1];
     const dog = ml[0].price > ml[1].price ? ml[0] : ml[1];
@@ -2632,7 +2643,7 @@ function renderBoosts(games) {
     const boost = orig > 0 ? Math.min(Math.round((orig * 1.18)/5)*5, 800)
                            : Math.max(Math.round((orig * 0.85)/5)*5, -130);
     items.push({ g, market:'h2h', sel:pick.name, orig, boost, point:null,
-      label: pick.name.split(' ').slice(-1)[0] + ' Moneyline',
+      label: teamShort(pick.name, currentSport) + ' Moneyline',
       sublabel: awayShort + ' @ ' + homeShort });
     // Spread boost
     if (sp && sp[0] && i < 4) {
@@ -2640,7 +2651,7 @@ function renderBoosts(games) {
       const spBoost = spO.price > 0 ? Math.min(Math.round(spO.price*1.2/5)*5, 600)
                                     : Math.max(Math.round(spO.price*0.83/5)*5, -115);
       items.push({ g, market:'spreads', sel:spO.name, orig:spO.price, boost:spBoost, point:spO.point,
-        label: spO.name.split(' ').pop() + ' ' + (spO.point>0?'+':'') + spO.point,
+        label: teamShort(spO.name, currentSport) + ' ' + (spO.point>0?'+':'') + spO.point,
         sublabel: 'Spread Boost' });
     }
     // Total boost
@@ -2690,9 +2701,9 @@ function renderFeatured(games) {
     return `<div class="featured-card" onclick="" ${fcAccent?`style="--fc-accent:${fcAccent}"`:''}>
       <div class="fc-sport">${esc(sport?.label||'')}</div>
       <div class="fc-teams">
-        <span>${esc(away.split(' ').slice(-1)[0])}</span>
+        <span>${esc(teamShort(away, currentSport))}</span>
         <span class="fc-vs">${sport?.versus?'vs':'@'}</span>
-        <span>${esc(home.split(' ').slice(-1)[0])}</span>
+        <span>${esc(teamShort(home, currentSport))}</span>
       </div>
       <div class="fc-odds">
         ${aOdds?`<span class="${aOdds.price>0?'pos':'neg'}">${fmtOdds(aOdds.price)}</span>`:''}
@@ -2747,15 +2758,15 @@ function renderParlayOfDay(games) {
   // Leg 1: Moneyline pick (favorite)
   const ml1 = getMarket(g1,'h2h'); const fav1 = ml1[0].price <= ml1[1].price ? ml1[0] : ml1[1];
   legs.push({gameId:g1.id,market:'h2h',selection:fav1.name,odds:fav1.price,line:null,homeTeam:g1.home_team,awayTeam:g1.away_team,commenceTime:g1.commence_time,sport:currentSport,
-    desc:`${fav1.name.split(' ').pop()} ML · ${g1.away_team.split(' ').pop()} @ ${g1.home_team.split(' ').pop()}`});
+    desc:`${teamShort(fav1.name,currentSport)} ML · ${teamShort(g1.away_team,currentSport)} @ ${teamShort(g1.home_team,currentSport)}`});
   // Leg 2: Spread cover
   const sp2 = getMarket(g2,'spreads'); const spPick2 = sh(g2.id+'potd') % 2 === 0 ? sp2[0] : sp2[1];
   legs.push({gameId:g2.id,market:'spreads',selection:spPick2.name,odds:spPick2.price,line:spPick2.point||null,homeTeam:g2.home_team,awayTeam:g2.away_team,commenceTime:g2.commence_time,sport:currentSport,
-    desc:`${spPick2.name.split(' ').pop()} ${(spPick2.point>0?'+':'')}${spPick2.point} · ${g2.away_team.split(' ').pop()} @ ${g2.home_team.split(' ').pop()}`});
+    desc:`${teamShort(spPick2.name,currentSport)} ${(spPick2.point>0?'+':'')}${spPick2.point} · ${teamShort(g2.away_team,currentSport)} @ ${teamShort(g2.home_team,currentSport)}`});
   // Leg 3: Over on total
   const tot3 = getMarket(g3,'totals'); const ov3 = tot3.find(o=>o.name==='Over') || tot3[0];
   legs.push({gameId:g3.id,market:'totals',selection:ov3.name,odds:ov3.price,line:ov3.point||null,homeTeam:g3.home_team,awayTeam:g3.away_team,commenceTime:g3.commence_time,sport:currentSport,
-    desc:`Over ${ov3.point} · ${g3.away_team.split(' ').pop()} @ ${g3.home_team.split(' ').pop()}`});
+    desc:`Over ${ov3.point} · ${teamShort(g3.away_team,currentSport)} @ ${teamShort(g3.home_team,currentSport)}`});
   const combined = calcParlayOdds(legs);
   wrap.style.display = 'block';
   const legsHtml = legs.map(l => `<div class="potd-leg">
@@ -2846,7 +2857,7 @@ function renderGameCard(g, gamePcts={}) {
   const isVersus = SPORTS[currentSport]?.versus;
 
   const oddsBtn = (market, outcome) => {
-    const label = market==='totals' ? outcome.name : outcome.name.split(' ').slice(-1)[0];
+    const label = market==='totals' ? outcome.name : teamShort(outcome.name, currentSport);
     const sub = (market==='spreads' && outcome.point!=null) ? ((outcome.point>0?'+':'')+outcome.point) : market==='totals' ? (outcome.name==='Over'?'O ':'U ')+outcome.point : '';
     const o = outcome.price; const oStr = fmtOdds(o);
     const inSlip = betSlipLegs.some(l => l.gameId===g.id && l.market===market && l.selection===outcome.name);
@@ -2879,7 +2890,7 @@ function renderGameCard(g, gamePcts={}) {
       <div class="pick-pct-labels"><span>${pct}% ${esc(labelA)}</span><span>${esc(labelB)} ${100-pct}%</span></div>
     </div>`;
   };
-  const awayShortP = away.split(' ').pop(), homeShortP = home.split(' ').pop();
+  const awayShortP = teamShort(away, currentSport), homeShortP = teamShort(home, currentSport);
 
   const marketsHtml = isVersus
     ? `<div class="market-col" style="grid-column:1/-1"><div class="market-lbl">Moneyline</div><div class="odds-pair">${mlH}</div>${ppBar(gamePcts.h2h,away,home,awayShortP,homeShortP)}</div>`
@@ -3048,7 +3059,7 @@ function renderPickemBuilder() {
       const entryPct = (gamePickPcts && gamePickPcts.total >= 3) ? Math.round((gamePickPcts.counts[team]||0)/gamePickPcts.total*100) : null;
       return `<button class="pickem-tile${picked?' picked':''}" style="--team-color:${color||'var(--gold)'}" onclick="togglePickemPick('${esc(g.id)}',${isHome})">
         <div class="pickem-tile-logo">${logo?`<img src="${esc(logo)}" alt="" loading="lazy">`:`<span class="pickem-tile-initial">${esc(team[0])}</span>`}</div>
-        <div class="pickem-tile-name">${esc(team.split(' ').pop())}</div>
+        <div class="pickem-tile-name">${esc(teamShort(team, _pickemSport))}</div>
         <div class="pickem-tile-meta">${record?esc(record):''}${pct!=null?`<span class="pickem-tile-pct">${pct}%</span>`:''}</div>
         ${entryPct!=null?`<div class="pickem-tile-entries">${entryPct}% of entries</div>`:''}
         ${picked?'<div class="pickem-tile-check">✓</div>':''}
@@ -3249,7 +3260,7 @@ function openBetSlip() {
     return `<div class="slip-leg" style="${legColor?`border-left-color:${legColor}`:''}">
       <div class="sl-header">
         <span class="sl-sport">${sportIcon()}</span>
-        <span class="sl-game">${esc(leg.awayTeam?.split(' ').pop()||leg.awayTeam||'')} @ ${esc(leg.homeTeam?.split(' ').pop()||leg.homeTeam||'')}</span>
+        <span class="sl-game">${esc(teamShort(leg.awayTeam, leg.sport||currentSport)||'')} @ ${esc(teamShort(leg.homeTeam, leg.sport||currentSport)||'')}</span>
         <button class="sl-remove" onclick="removeLeg(${i})" title="Remove">✕</button>
       </div>
       <div class="sl-pick">
@@ -3615,7 +3626,7 @@ function renderBets(bets) {
       const picks = pickemMeta.picks || [];
       legsList = `<div class="parlay-legs-count">${picks.map(p=>{
         const dot = p.result ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${legResultDot[p.result]||'var(--t3)'};margin-right:4px"></span>` : '';
-        return `<span>${dot}${esc((p.pick||'').split(' ').pop())}</span>`;
+        return `<span>${dot}${esc(teamShort(p.pick, p.sport))}</span>`;
       }).join(' · ')}</div>`;
     }
 
