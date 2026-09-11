@@ -613,6 +613,7 @@ body::after{
 .potd-leg{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:11px;color:var(--t1)}
 .potd-leg:last-child{border-bottom:none}
 .potd-leg-dot{width:5px;height:5px;border-radius:50%;background:#30D158;flex-shrink:0}
+.potd-leg-logo{width:16px;height:16px;object-fit:contain;flex-shrink:0;border-radius:50%;background:rgba(255,255,255,.9);padding:1px}
 .potd-leg-text{flex:1}
 .potd-leg-odds{font-weight:800;color:#30D158;font-variant-numeric:tabular-nums;font-size:11px}
 .potd-footer{display:flex;align-items:center;justify-content:space-between}
@@ -624,6 +625,8 @@ body::after{
 .pick-badge{background:var(--gold);color:#000;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:20px}
 .pick-label{font-size:10px;color:var(--t2);letter-spacing:.06em}
 .pick-body{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pick-logo{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pick-logo img{width:26px;height:26px;object-fit:contain}
 .pick-teams{font-size:13px;font-weight:700;color:var(--txt)}
 .pick-sub{font-size:11px;color:var(--t2);margin-top:3px}
 .pick-odds-chip{background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.3);border-radius:8px;padding:6px 14px;font-size:15px;font-weight:800;color:var(--gold);cursor:pointer;transition:all .15s;flex-shrink:0}
@@ -2742,12 +2745,14 @@ function renderDailyPick(games) {
   if (!ml || ml.length < 2) { wrap.style.display='none'; return; }
   // Pick the underdog (higher odds)
   const pick = ml[0].price > ml[1].price ? ml[0] : ml[1];
+  const pickLogo = pick.name === g.home_team ? g.home_logo : g.away_logo;
   const inSlip = betSlipLegs.some(l => l.gameId===g.id && l.market==='h2h' && l.selection===pick.name);
   const sport = SPORTS[currentSport]?.label || currentSport;
   wrap.style.display = 'block';
   wrap.innerHTML = `<div class="pick-of-day">
     <div class="pick-header"><span class="pick-badge">⚡ Pick of the Day</span><span class="pick-label">${sport} · Moneyline</span></div>
     <div class="pick-body">
+      ${pickLogo?`<div class="pick-logo"><img src="${esc(pickLogo)}" alt="" loading="lazy"></div>`:''}
       <div>
         <div class="pick-teams">${esc(pick.name)}</div>
         <div class="pick-sub">${esc(g.away_team)} vs ${esc(g.home_team)}</div>
@@ -2775,19 +2780,22 @@ function renderParlayOfDay(games) {
   // Leg 1: Moneyline pick (favorite)
   const ml1 = getMarket(g1,'h2h'); const fav1 = ml1[0].price <= ml1[1].price ? ml1[0] : ml1[1];
   legs.push({gameId:g1.id,market:'h2h',selection:fav1.name,odds:fav1.price,line:null,homeTeam:g1.home_team,awayTeam:g1.away_team,commenceTime:g1.commence_time,sport:currentSport,
+    logo: fav1.name===g1.home_team ? g1.home_logo : g1.away_logo,
     desc:`${teamShort(fav1.name,currentSport)} ML · ${teamShort(g1.away_team,currentSport)} @ ${teamShort(g1.home_team,currentSport)}`});
   // Leg 2: Spread cover
   const sp2 = getMarket(g2,'spreads'); const spPick2 = sh(g2.id+'potd') % 2 === 0 ? sp2[0] : sp2[1];
   legs.push({gameId:g2.id,market:'spreads',selection:spPick2.name,odds:spPick2.price,line:spPick2.point||null,homeTeam:g2.home_team,awayTeam:g2.away_team,commenceTime:g2.commence_time,sport:currentSport,
+    logo: spPick2.name===g2.home_team ? g2.home_logo : g2.away_logo,
     desc:`${teamShort(spPick2.name,currentSport)} ${(spPick2.point>0?'+':'')}${spPick2.point} · ${teamShort(g2.away_team,currentSport)} @ ${teamShort(g2.home_team,currentSport)}`});
   // Leg 3: Over on total
   const tot3 = getMarket(g3,'totals'); const ov3 = tot3.find(o=>o.name==='Over') || tot3[0];
   legs.push({gameId:g3.id,market:'totals',selection:ov3.name,odds:ov3.price,line:ov3.point||null,homeTeam:g3.home_team,awayTeam:g3.away_team,commenceTime:g3.commence_time,sport:currentSport,
+    logo: null,
     desc:`Over ${ov3.point} · ${teamShort(g3.away_team,currentSport)} @ ${teamShort(g3.home_team,currentSport)}`});
   const combined = calcParlayOdds(legs);
   wrap.style.display = 'block';
   const legsHtml = legs.map(l => `<div class="potd-leg">
-    <div class="potd-leg-dot"></div>
+    ${l.logo?`<img class="potd-leg-logo" src="${esc(l.logo)}" alt="" loading="lazy">`:'<div class="potd-leg-dot"></div>'}
     <div class="potd-leg-text">${esc(l.desc)}</div>
     <div class="potd-leg-odds">${fmtOdds(l.odds)}</div>
   </div>`).join('');
