@@ -483,6 +483,7 @@ body::after{
 .pickem-tile-logo img{width:30px;height:30px;object-fit:contain}
 .pickem-tile-initial{font-size:16px;font-weight:900;color:#111}
 .pickem-tile-name{font-size:12px;font-weight:800;z-index:1}
+.pickem-tile-line{font-size:11px;font-weight:900;color:var(--team-color);font-variant-numeric:tabular-nums;z-index:1}
 .pickem-tile-meta{font-size:9px;color:var(--t3);font-weight:700;display:flex;align-items:center;gap:4px;z-index:1}
 .pickem-tile-pct{color:var(--gold-b)}
 .pickem-tile-entries{font-size:8px;color:var(--t3);margin-top:2px;z-index:1}
@@ -2979,6 +2980,7 @@ function renderGameCard(g, gamePcts={}) {
 // once those seasons are actually underway (see the CHALK App vault note for real start dates).
 const PICKEM_SPORTS = ['americanfootball_nfl', 'americanfootball_ncaaf', 'baseball_mlb'];
 let _pickemSport = 'americanfootball_nfl', _pickemGames = [], _pickemPicks = {};
+let _pickemMode = 'su'; // 'su' = straight-up winner, 'ats' = against the real spread
 
 // Payout multiplier by how many of the slate you got right. Illustrative pricing (there's no
 // real market to source a pick'em payout table from — the games and winners are real, the
@@ -3006,6 +3008,7 @@ async function fetchPickemPercentages(sport, gameIds) {
     const byGame = {};
     for (const row of data) {
       let meta; try { meta = JSON.parse(row.selection); } catch(e) { continue; }
+      if ((meta.mode||'su') !== _pickemMode) continue; // SU and ATS picks aren't comparable — separate pools
       for (const p of (meta.picks || [])) {
         if (!gameIds.includes(p.gameId) || !p.pick) continue;
         const c = byGame[p.gameId] || (byGame[p.gameId] = { counts:{}, total:0 });
@@ -3022,8 +3025,12 @@ async function loadPickem() {
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading this week's slate…</span></div>`;
   const games = await fetchOdds(_pickemSport);
   const now = Date.now();
+  // Against-the-spread mode needs a real spread on the game — not every market has one
+  // (totals-only markets, some smaller games), so those simply don't show up in ATS mode
+  // rather than offering a pick with nothing real to grade it against.
   _pickemGames = games
     .filter(g => getMarket(g,'h2h') && new Date(g.commence_time).getTime() > now)
+    .filter(g => _pickemMode !== 'ats' || getMarket(g,'spreads'))
     .sort((a,b) => new Date(a.commence_time)-new Date(b.commence_time))
     .slice(0, 10);
   _pickemPickPcts = await fetchPickemPercentages(_pickemSport, _pickemGames.map(g=>g.id));
@@ -3033,33 +3040,44 @@ async function loadPickem() {
 
 function renderPickemBuilder() {
   const el = document.getElementById('pickemInner');
-  const sportPicker = `<div class="slip-mode-row" style="max-width:280px;margin:0 auto 14px">
+  const sportPicker = `<div class="slip-mode-row" style="max-width:280px;margin:0 auto 10px">
     ${PICKEM_SPORTS.map(s => `<button class="slip-mode-btn ${_pickemSport===s?'active':''}" onclick="setPickemSport('${s}')">${esc(SPORTS[s]?.label||s)}</button>`).join('')}
   </div>`;
+  const modePicker = `<div class="slip-mode-row" style="max-width:280px;margin:0 auto 14px">
+    <button class="slip-mode-btn ${_pickemMode==='su'?'active':''}" onclick="setPickemMode('su')">Straight Up</button>
+    <button class="slip-mode-btn ${_pickemMode==='ats'?'active':''}" onclick="setPickemMode('ats')">Against the Spread</button>
+  </div>`;
   if (!_pickemGames.length) {
-    el.innerHTML = sportPicker + `<div class="empty-state">No upcoming ${esc(SPORTS[_pickemSport]?.label||'')} games to build a slate from right now.</div>`;
+    el.innerHTML = sportPicker + modePicker + `<div class="empty-state">No upcoming ${esc(SPORTS[_pickemSport]?.label||'')} games${_pickemMode==='ats'?' with a real spread posted':''} to build a slate from right now.</div>`;
     return;
   }
   const picked = Object.keys(_pickemPicks).filter(gid => _pickemGames.some(g=>g.id===gid)).length;
   const total = _pickemGames.length;
+  const isAts = _pickemMode === 'ats';
   // ESPN-style matchup tiles: real logo, real team color as the picked-state accent, real
-  // record and real (de-vigged) win probability — every visual element here is real data,
-  // nothing themed or invented per team.
+  // record, and a real (de-vigged) probability — moneyline win% in Straight Up mode, cover%
+  // (from the real spread juice) in Against the Spread mode — every visual element here is
+  // real data, nothing themed or invented per team.
   const rows = _pickemGames.map(g => {
-    const ml = getMarket(g,'h2h');
+    const ml = getMarket(g,'h2h'), sp = getMarket(g,'spreads');
     const aOdds = ml?.find(o=>o.name===g.away_team), hOdds = ml?.find(o=>o.name===g.home_team);
-    const fairPct = (aOdds && hOdds) ? fairWinPct(aOdds.price, hOdds.price) : null;
+    const aSp = sp?.find(o=>o.name===g.away_team), hSp = sp?.find(o=>o.name===g.home_team);
+    const fairPct = isAts
+      ? ((aSp && hSp) ? fairWinPct(aSp.price, hSp.price) : null)
+      : ((aOdds && hOdds) ? fairWinPct(aOdds.price, hOdds.price) : null);
     const gamePickPcts = _pickemPickPcts[g.id];
     const pick = _pickemPicks[g.id];
-    const tile = (team, odds, isHome, logo, color, record) => {
+    const tile = (team, odds, spOdds, isHome, logo, color, record) => {
       const picked = pick === team;
       const pct = fairPct ? (isHome?fairPct.b:fairPct.a) : null;
       // Real "% of entries" — only shown once at least 3 real slates have been submitted for
-      // this game, same honesty threshold used for the Games tab's pick-% bars.
+      // this game in this same mode, same honesty threshold used for the Games tab's pick-%.
       const entryPct = (gamePickPcts && gamePickPcts.total >= 3) ? Math.round((gamePickPcts.counts[team]||0)/gamePickPcts.total*100) : null;
+      const lineStr = isAts && spOdds?.point!=null ? `${spOdds.point>0?'+':''}${spOdds.point}` : null;
       return `<button class="pickem-tile${picked?' picked':''}" style="--team-color:${color||'var(--gold)'}" onclick="togglePickemPick('${esc(g.id)}',${isHome})">
         <div class="pickem-tile-logo">${logo?`<img src="${esc(logo)}" alt="" loading="lazy">`:`<span class="pickem-tile-initial">${esc(team[0])}</span>`}</div>
         <div class="pickem-tile-name">${esc(teamShort(team, _pickemSport))}</div>
+        ${lineStr?`<div class="pickem-tile-line">${lineStr}</div>`:''}
         <div class="pickem-tile-meta">${record?esc(record):''}${pct!=null?`<span class="pickem-tile-pct">${pct}%</span>`:''}</div>
         ${entryPct!=null?`<div class="pickem-tile-entries">${entryPct}% of entries</div>`:''}
         ${picked?'<div class="pickem-tile-check">✓</div>':''}
@@ -3068,19 +3086,19 @@ function renderPickemBuilder() {
     return `<div class="pickem-game-card">
       <div class="pickem-game-time">${new Date(g.commence_time).toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'})}</div>
       <div class="pickem-matchup">
-        ${tile(g.away_team, aOdds, false, g.away_logo, g.away_color, g.away_record)}
+        ${tile(g.away_team, aOdds, aSp, false, g.away_logo, g.away_color, g.away_record)}
         <div class="pickem-at">@</div>
-        ${tile(g.home_team, hOdds, true, g.home_logo, g.home_color, g.home_record)}
+        ${tile(g.home_team, hOdds, hSp, true, g.home_logo, g.home_color, g.home_record)}
       </div>
     </div>`;
   }).join('');
   const stakeInput = `<div class="bs-amount-row" style="max-width:280px;margin:0 auto 8px"><span class="bs-dollar">$</span><input class="bs-input" id="pickemStake" type="number" inputmode="numeric" min="1" value="25" oninput="updatePickemPreview()"></div>`;
-  el.innerHTML = `${sportPicker}
+  el.innerHTML = `${sportPicker}${modePicker}
     <div class="pickem-header">
-      <div class="pickem-title">Pick the winner of all ${total} games</div>
+      <div class="pickem-title">Pick the ${isAts?'spread cover':'winner'} of all ${total} games</div>
       <div class="pickem-progress">${picked}/${total} picked</div>
     </div>
-    <div class="props-disclaimer" style="text-align:center;margin-bottom:10px">Real games, real teams — the payout table below is this app's own pricing, not a real sportsbook's.</div>
+    <div class="props-disclaimer" style="text-align:center;margin-bottom:10px">Real games, real teams${isAts?', real spreads':''} — the payout table below is this app's own pricing, not a real sportsbook's.</div>
     <div class="pickem-games">${rows}</div>
     <div class="pickem-submit-bar">
       ${stakeInput}
@@ -3091,6 +3109,7 @@ function renderPickemBuilder() {
   updatePickemPreview();
 }
 function setPickemSport(sport) { _pickemSport = sport; _pickemPicks = {}; loadPickem(); }
+function setPickemMode(mode) { _pickemMode = mode; _pickemPicks = {}; loadPickem(); }
 function togglePickemPick(gameId, isHome) {
   const g = _pickemGames.find(x => x.id === gameId); if (!g) return;
   _pickemPicks[gameId] = isHome ? g.home_team : g.away_team;
@@ -3116,11 +3135,22 @@ function updatePickemPreview() {
 }
 async function submitPickem() {
   const total = _pickemGames.length;
-  const picks = _pickemGames.map(g => ({
-    gameId: g.id, sport: _pickemSport, homeTeam: g.home_team, awayTeam: g.away_team,
-    commenceTime: g.commence_time, pick: _pickemPicks[g.id],
-  }));
-  if (picks.some(p => !p.pick)) { showToast('Pick a winner for every game first', 'error'); return; }
+  const isAts = _pickemMode === 'ats';
+  const picks = _pickemGames.map(g => {
+    const pick = _pickemPicks[g.id];
+    // Lock in the real spread line at submission time, same principle as placing a real bet —
+    // the line you saw when you picked is the line you're graded against, not whatever it
+    // drifts to later.
+    let line = null;
+    if (isAts && pick) {
+      const spOutcome = getMarket(g,'spreads')?.find(o => o.name === pick);
+      line = spOutcome?.point ?? null;
+    }
+    return { gameId: g.id, sport: _pickemSport, homeTeam: g.home_team, awayTeam: g.away_team,
+      commenceTime: g.commence_time, pick, line };
+  });
+  if (picks.some(p => !p.pick)) { showToast(`Pick a ${isAts?'spread cover':'winner'} for every game first`, 'error'); return; }
+  if (isAts && picks.some(p => p.line == null)) { showToast('Lost the real spread for one of these games — refresh your slate', 'error'); loadPickem(); return; }
   const earliest = picks.reduce((min,p) => Math.min(min, new Date(p.commenceTime).getTime()), Infinity);
   if (Date.now() >= earliest) { showToast('One of these games already started — refresh your slate', 'error'); loadPickem(); return; }
   const stake = parseFloat(document.getElementById('pickemStake')?.value) || 0;
@@ -3133,9 +3163,9 @@ async function submitPickem() {
   const perfectPayout = stake * pickemMultiplier(total, total);
   const { error } = await sb.from('bets').insert({
     user_id: user.id, sport: _pickemSport, game_id: 'pickem',
-    home_team: `${total}-Game Pick'em`, away_team: SPORTS[_pickemSport]?.label || '',
+    home_team: `${total}-Game Pick'em${isAts?' (ATS)':''}`, away_team: SPORTS[_pickemSport]?.label || '',
     commence_time: new Date(earliest).toISOString(), market: 'pickem',
-    selection: JSON.stringify({ picks, total }), line: null, odds: null,
+    selection: JSON.stringify({ picks, total, mode: _pickemMode }), line: null, odds: null,
     stake, potential_payout: perfectPayout,
   });
   if (error) {
@@ -3145,7 +3175,7 @@ async function submitPickem() {
   }
   animateBalance(profile.balance);
   flashBalance('dn');
-  showToast(`Slate submitted — ${fmt(stake)} on ${total} games 🏆`, 'success');
+  showToast(`Slate submitted — ${fmt(stake)} on ${total} games${isAts?' (ATS)':''} 🏆`, 'success');
   _pickemPicks = {};
   loadPickem();
 }
@@ -3634,7 +3664,7 @@ function renderBets(bets) {
     const matchupLine = isParlay
       ? `<div class="bet-matchup">${sportIcon} ${isRR?'Round Robin':'Parlay'} · ${fmtOdds(b.odds)}</div>`
       : isPickem
-      ? `<div class="bet-matchup">🏆 Pick'em · ${pickemMeta.total||pickemMeta.picks?.length||'?'} games${pickemMeta.correct!=null?` · ${pickemMeta.correct}/${pickemMeta.total} correct`:''}</div>`
+      ? `<div class="bet-matchup">🏆 Pick'em${pickemMeta.mode==='ats'?' (ATS)':''} · ${pickemMeta.total||pickemMeta.picks?.length||'?'} games${pickemMeta.correct!=null?` · ${pickemMeta.correct}/${pickemMeta.total-(pickemMeta.pushes||0)} correct${pickemMeta.pushes?` · ${pickemMeta.pushes} push`:''}`:''}</div>`
       : `<div class="bet-matchup">${sportIcon ? sportIcon+' ' : ''}${esc(b.away_team)} @ ${esc(b.home_team)}</div>`;
 
     // Cash-out value = stake + 45% of potential profit (like real apps, slightly unfair) — but
@@ -3871,19 +3901,28 @@ async function settlePickemBet(bet) {
     const hc = comps.find(c => c.homeAway === 'home'), ac = comps.find(c => c.homeAway === 'away');
     if (!hc || !ac) return;
     const hs = parseInt(hc.score) || 0, as_ = parseInt(ac.score) || 0;
-    const result = gradeLegOutcome('h2h', p.pick, null, p.homeTeam, p.awayTeam, hs, as_);
-    graded.push({ ...p, result }); // 'won' | 'lost' | 'push' (a tied game — counts as a miss below, same as a real pick'em would)
+    // Straight Up grades on who actually won; Against the Spread grades on the real spread
+    // line locked in at submission — same gradeLegOutcome() logic the main betting flow
+    // already uses for both markets, just applied per pick instead of per bet.
+    const result = (data.mode === 'ats')
+      ? gradeLegOutcome('spreads', p.pick, p.line, p.homeTeam, p.awayTeam, hs, as_)
+      : gradeLegOutcome('h2h', p.pick, null, p.homeTeam, p.awayTeam, hs, as_);
+    graded.push({ ...p, result }); // 'won' | 'lost' | 'push'
   }
   const total = data.total || picks.length;
+  const pushes = graded.filter(g => g.result === 'push').length;
   const correct = graded.filter(g => g.result === 'won').length;
-  const mult = pickemMultiplier(correct, total);
+  // A push (exact tie against the spread) doesn't count against you, same as a real ATS
+  // pick'em — it's excluded from both sides of the ratio rather than counted as a miss.
+  const effectiveTotal = total - pushes;
+  const mult = effectiveTotal > 0 ? pickemMultiplier(correct, effectiveTotal) : 0;
   const payout = Math.round(bet.stake * mult * 100) / 100;
   const outcome = payout > 0 ? 'won' : 'lost';
   await sb.from('bets').update({
     status: outcome, settled_at: new Date().toISOString(), potential_payout: payout,
-    selection: JSON.stringify({ picks: graded, total, correct }),
+    selection: JSON.stringify({ picks: graded, total, correct, pushes }),
   }).eq('id', bet.id);
-  await creditAndNotify(bet, outcome, payout, `${correct}/${total} correct`);
+  await creditAndNotify(bet, outcome, payout, `${correct}/${effectiveTotal} correct${pushes?` · ${pushes} push`:''}`);
 }
 
 async function creditAndNotify(bet, result, payout, pickemNote) {
