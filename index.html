@@ -485,6 +485,7 @@ body::after{
 .pickem-tile-name{font-size:12px;font-weight:800;z-index:1}
 .pickem-tile-meta{font-size:9px;color:var(--t3);font-weight:700;display:flex;align-items:center;gap:4px;z-index:1}
 .pickem-tile-pct{color:var(--gold-b)}
+.pickem-tile-entries{font-size:8px;color:var(--t3);margin-top:2px;z-index:1}
 .pickem-tile-check{position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;background:var(--team-color);color:#fff;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:1}
 .pickem-submit-bar{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);padding:14px;margin-bottom:14px}
 .pickem-preview{text-align:center;font-size:12px;color:var(--t2);margin-bottom:10px}
@@ -2981,6 +2982,29 @@ function pickemMultiplier(correct, total) {
   return Math.round(mult * 10) / 10;
 }
 
+// Real "% of entries picked this team" per game — same principle as the Games tab's pick-%
+// bars (Wave 38): computed from actual submitted Pick'em entries, not simulated, and hidden
+// until there's a real sample rather than defaulting to a fake-looking split.
+let _pickemPickPcts = {};
+async function fetchPickemPercentages(sport, gameIds) {
+  if (!gameIds.length || !user) return {};
+  try {
+    const { data, error } = await sb.from('bets').select('selection').eq('market','pickem').eq('sport', sport);
+    if (error || !data) return {};
+    const byGame = {};
+    for (const row of data) {
+      let meta; try { meta = JSON.parse(row.selection); } catch(e) { continue; }
+      for (const p of (meta.picks || [])) {
+        if (!gameIds.includes(p.gameId) || !p.pick) continue;
+        const c = byGame[p.gameId] || (byGame[p.gameId] = { counts:{}, total:0 });
+        c.counts[p.pick] = (c.counts[p.pick] || 0) + 1;
+        c.total++;
+      }
+    }
+    return byGame;
+  } catch(e) { console.error('pickem pct fetch error', e); return {}; }
+}
+
 async function loadPickem() {
   const el = document.getElementById('pickemInner');
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading this week's slate…</span></div>`;
@@ -2990,6 +3014,7 @@ async function loadPickem() {
     .filter(g => getMarket(g,'h2h') && new Date(g.commence_time).getTime() > now)
     .sort((a,b) => new Date(a.commence_time)-new Date(b.commence_time))
     .slice(0, 10);
+  _pickemPickPcts = await fetchPickemPercentages(_pickemSport, _pickemGames.map(g=>g.id));
   if (currentView !== 'pickem') return;
   renderPickemBuilder();
 }
@@ -3012,14 +3037,19 @@ function renderPickemBuilder() {
     const ml = getMarket(g,'h2h');
     const aOdds = ml?.find(o=>o.name===g.away_team), hOdds = ml?.find(o=>o.name===g.home_team);
     const fairPct = (aOdds && hOdds) ? fairWinPct(aOdds.price, hOdds.price) : null;
+    const gamePickPcts = _pickemPickPcts[g.id];
     const pick = _pickemPicks[g.id];
     const tile = (team, odds, isHome, logo, color, record) => {
       const picked = pick === team;
       const pct = fairPct ? (isHome?fairPct.b:fairPct.a) : null;
+      // Real "% of entries" — only shown once at least 3 real slates have been submitted for
+      // this game, same honesty threshold used for the Games tab's pick-% bars.
+      const entryPct = (gamePickPcts && gamePickPcts.total >= 3) ? Math.round((gamePickPcts.counts[team]||0)/gamePickPcts.total*100) : null;
       return `<button class="pickem-tile${picked?' picked':''}" style="--team-color:${color||'var(--gold)'}" onclick="togglePickemPick('${esc(g.id)}',${isHome})">
         <div class="pickem-tile-logo">${logo?`<img src="${esc(logo)}" alt="" loading="lazy">`:`<span class="pickem-tile-initial">${esc(team[0])}</span>`}</div>
         <div class="pickem-tile-name">${esc(team.split(' ').pop())}</div>
         <div class="pickem-tile-meta">${record?esc(record):''}${pct!=null?`<span class="pickem-tile-pct">${pct}%</span>`:''}</div>
+        ${entryPct!=null?`<div class="pickem-tile-entries">${entryPct}% of entries</div>`:''}
         ${picked?'<div class="pickem-tile-check">✓</div>':''}
       </button>`;
     };
