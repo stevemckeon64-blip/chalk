@@ -2960,7 +2960,11 @@ function renderGameCard(g, gamePcts={}) {
 // fetch as the Games tab (only for an informational favorite/underdog hint, never for
 // grading) and the same settlement primitives (matchEvent/gradeLegOutcome) already built for
 // parlays, so a slate only pays out once every real game in it has actually finished.
-const PICKEM_SPORTS = ['americanfootball_nfl', 'americanfootball_ncaaf']; // the two real weekly-slate sports
+// NFL/NCAAF are real weekly slates; MLB is a real daily one (in season right now) — added
+// because it actually has games to pick today, unlike NBA/NCAAB/NHL, which are all off-season
+// as of this build and would just show an honest "no games" empty state if added now. Revisit
+// once those seasons are actually underway (see the CHALK App vault note for real start dates).
+const PICKEM_SPORTS = ['americanfootball_nfl', 'americanfootball_ncaaf', 'baseball_mlb'];
 let _pickemSport = 'americanfootball_nfl', _pickemGames = [], _pickemPicks = {};
 
 // Payout multiplier by how many of the slate you got right. Illustrative pricing (there's no
