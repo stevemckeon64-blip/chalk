@@ -3239,7 +3239,13 @@ function openBetSlip() {
       : leg.market.startsWith('live_') ? '🔴 Live'
       : leg.market.startsWith('futures_') ? '🏆 Future'
       : MARKET_LABELS[leg.market] || leg.market;
-    return `<div class="slip-leg">
+    // Real accent color for the specific team this leg is actually on, when the game it came
+    // from is still loaded (it usually is — legs come from the sport currently on screen).
+    // Falls back to the existing gold accent for props/totals/futures, which aren't "a team".
+    const legGame = _allGames.find(g => g.id === leg.gameId);
+    const legColor = legGame && leg.selection === legGame.home_team ? legGame.home_color
+      : legGame && leg.selection === legGame.away_team ? legGame.away_color : null;
+    return `<div class="slip-leg" style="${legColor?`border-left-color:${legColor}`:''}">
       <div class="sl-header">
         <span class="sl-sport">${sportIcon()}</span>
         <span class="sl-game">${esc(leg.awayTeam?.split(' ').pop()||leg.awayTeam||'')} @ ${esc(leg.homeTeam?.split(' ').pop()||leg.homeTeam||'')}</span>
