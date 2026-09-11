@@ -351,7 +351,7 @@ body::after{
 .featured-scroll{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;padding-left:16px;padding-right:48px}
 .featured-scroll::-webkit-scrollbar{display:none}
 .featured-card{flex-shrink:0;width:240px;background:linear-gradient(135deg,#1C1F35,#232640);border:1px solid var(--bdr-h);border-radius:var(--rl);padding:14px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .15s,transform .15s}
-.featured-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),transparent)}
+.featured-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--fc-accent,linear-gradient(90deg,var(--gold),transparent))}
 .featured-card:hover{border-color:rgba(245,166,35,.35);transform:translateY(-1px)}
 .fc-sport{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
 .fc-teams{font-size:13px;font-weight:700;line-height:1.4;margin-bottom:10px}
@@ -2686,7 +2686,8 @@ function renderFeatured(games) {
     const time = g.isLive ? '<span class="live-badge" style="font-size:10px"><span class="live-dot"></span>LIVE</span>'
                           : new Date(g.commence_time).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
     const sport = SPORTS[currentSport];
-    return `<div class="featured-card" onclick="">
+    const fcAccent = (g.away_color && g.home_color) ? `linear-gradient(90deg,${g.away_color},${g.home_color})` : null;
+    return `<div class="featured-card" onclick="" ${fcAccent?`style="--fc-accent:${fcAccent}"`:''}>
       <div class="fc-sport">${esc(sport?.label||'')}</div>
       <div class="fc-teams">
         <span>${esc(away.split(' ').slice(-1)[0])}</span>
