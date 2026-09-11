@@ -3185,17 +3185,26 @@ async function submitPickem() {
   const newBal = await applyBalanceDelta(-stake);
   if (newBal < 0) { await applyBalanceDelta(stake); btn.textContent='Submit Slate'; btn.disabled=false; showToast('Insufficient balance','error'); return; }
   const perfectPayout = stake * pickemMultiplier(total, total);
+  // Every other bet type in this table always has a real numeric `odds` (even a plain
+  // moneyline bet does) — Pick'em was the only one ever passing odds:null, which is exactly
+  // the kind of thing a NOT NULL column would silently reject. Store a real, meaningful
+  // number instead: the American-odds equivalent of the perfect-slate payout (same
+  // decimal-to-American conversion calcParlayOdds already uses), so it's both a valid value
+  // and one that actually means something if it's ever displayed.
+  const perfectDecimal = pickemMultiplier(total, total) + 1;
+  const pickemOdds = perfectDecimal >= 2 ? Math.round((perfectDecimal-1)*100) : Math.round(-100/(perfectDecimal-1));
   const { error } = await sb.from('bets').insert({
     user_id: user.id, sport: _pickemSport, game_id: 'pickem',
     home_team: `${total}-Game Pick'em${isAts?' (ATS)':''}`, away_team: SPORTS[_pickemSport]?.label || '',
     commence_time: new Date(earliest).toISOString(), market: 'pickem',
-    selection: JSON.stringify({ picks, total, mode: _pickemMode }), line: null, odds: null,
+    selection: JSON.stringify({ picks, total, mode: _pickemMode }), line: null, odds: pickemOdds,
     stake, potential_payout: perfectPayout,
   });
   if (error) {
+    console.error('pickem insert error', error);
     await applyBalanceDelta(stake);
     btn.textContent='Submit Slate'; btn.disabled=false;
-    showToast('Error submitting slate', 'error'); return;
+    showToast(`Error submitting slate${error.message?': '+error.message.slice(0,80):''}`, 'error'); return;
   }
   animateBalance(profile.balance);
   flashBalance('dn');
