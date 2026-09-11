@@ -1719,6 +1719,11 @@ async function backgroundSettle() {
 
 // ── UTILS ─────────────────────────────────────────────────────────
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// Some ESPN events (a tournament final before the semifinals finish, a bracket slot that
+// hasn't been decided yet) list a real, bettable-looking competition with "TBD" standing in
+// for the actual participant — found this live on an ATP Grand Slam final. Filtering these out
+// is what keeps the app from ever showing a "TBD vs TBD" match as if it were a real game.
+const isPlaceholderName = n => !n || /^(tbd|tba|winner of|to be determined|to be announced)/i.test(String(n).trim());
 const fmt = n => '$' + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtOdds = o => {
   if (oddsFormat === 'decimal') return toDecimal(o).toFixed(2);
@@ -2101,6 +2106,7 @@ async function fetchOdds(sport) {
       const getName = c => c.team?.displayName || c.athlete?.displayName || c.displayName || '?';
       const homeName = getName(home);
       const awayName = getName(away);
+      if (isPlaceholderName(homeName) || isPlaceholderName(awayName)) return null;
       const getLogo = c => c.team?.logo || c.athlete?.headshot?.href || null;
       const homeLogo = getLogo(home);
       const awayLogo = getLogo(away);
@@ -2417,7 +2423,9 @@ async function fetchTennisOdds(sport) {
         const home = cs.find(c => c.homeAway === 'home') || cs[1];
         const away = cs.find(c => c.homeAway === 'away') || cs[0];
         const homeName = home?.athlete?.displayName, awayName = away?.athlete?.displayName;
-        if (!homeName || !awayName) continue;
+        // A Slam's final shows up as a real, "pre"-status, bettable-looking match well before
+        // the semifinals finish — with both competitors literally named "TBD". Caught this live.
+        if (isPlaceholderName(homeName) || isPlaceholderName(awayName)) continue;
         const homeRank = rankMap[home.athlete?.id], awayRank = rankMap[away.athlete?.id];
         let homeOdds = -110, awayOdds = -110;
         if (homeRank && awayRank) {
@@ -2767,6 +2775,14 @@ function renderGames(games, pickPcts={}) {
     }
     el.innerHTML = `<div class="empty-state">${msg}</div>`; return;
   }
+  // Books sometimes just haven't posted a line yet this far out (common for UFC undercards —
+  // checked live, none of the next several UFC events had real odds from ESPN yet). Rather
+  // than a whole tab of cards showing nothing but "TBD" with no explanation, say so plainly.
+  const noOddsYet = games.every(g => !getMarket(g,'h2h') && !getMarket(g,'spreads') && !getMarket(g,'totals'));
+  const noOddsBanner = noOddsYet ? `<div class="empty-state" style="padding:14px 16px;margin-bottom:12px;text-align:left;background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);line-height:1.5">
+    <b style="color:var(--t1)">ℹ️ Odds haven't been posted yet.</b><br>
+    <span style="font-size:12px">These are real, confirmed upcoming games — the sportsbook just hasn't priced them yet. Check back closer to game time.</span>
+  </div>` : '';
   const sorted = [...games].sort((a,b) => new Date(a.commence_time)-new Date(b.commence_time));
   const nowLocal = new Date();
   const todayStr = nowLocal.toLocaleDateString('en-US');
@@ -2786,7 +2802,7 @@ function renderGames(games, pickPcts={}) {
     const key = smartLabel(g.commence_time);
     (byDate[key] = byDate[key]||[]).push(g);
   }
-  let html = '';
+  let html = noOddsBanner;
   const accentColor = SPORT_ACCENTS[currentSport] || 'var(--gold)';
   for (const [date, gs] of Object.entries(byDate)) {
     html += `<div class="date-group-hdr"><span class="dg-dot" style="background:${accentColor}"></span>${date} <span class="dg-count">${gs.length}</span></div>`;
