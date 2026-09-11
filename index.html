@@ -214,7 +214,10 @@ body::after{
 .bet-card.push{border-left-color:var(--push)}
 .bet-card.void{border-left-color:var(--push)}
 .bet-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
-.bet-matchup{font-size:12px;font-weight:700;flex:1}
+.bet-matchup{font-size:12px;font-weight:700;flex:1;display:flex;align-items:center;gap:5px}
+.bet-matchup-logos{display:inline-flex;align-items:center;flex-shrink:0}
+.bet-matchup-logos img{width:16px;height:16px;object-fit:contain;border-radius:50%;background:rgba(255,255,255,.9);padding:1px;margin-right:-4px;border:1px solid var(--bg-c)}
+.bet-matchup-logos img:last-child{margin-right:4px}
 .bet-status-badge{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:20px;flex-shrink:0}
 .bet-live-score{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--live);background:var(--live-dim);border:1px solid rgba(255,59,48,.25);border-radius:4px;padding:2px 7px;margin-bottom:6px}
 .bet-status-badge.pending{background:rgba(232,160,32,.15);color:var(--amber)}
@@ -457,10 +460,12 @@ body::after{
 .futures-card-title{font-size:12px;font-weight:800;color:var(--txt);letter-spacing:.02em}
 .futures-best-odds{font-size:10px;color:var(--t3);font-weight:600}
 .futures-rows{max-height:280px;overflow-y:auto;scrollbar-width:thin}
-.futures-row{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--bdr);transition:background .1s}
+.futures-row{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--bdr);transition:background .1s}
 .futures-row:last-child{border-bottom:none}
 .futures-row:hover,.futures-row-active{background:var(--gold-dim)}
 .futures-team{font-size:12px;color:var(--txt);flex:1}
+.futures-team-logo{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:2px}
+.futures-team-logo img{width:17px;height:17px;object-fit:contain}
 .futures-odds-btn{background:var(--bg);border:1px solid var(--bdr);border-radius:6px;padding:5px 14px;font-size:12px;font-weight:800;color:var(--gold-b);cursor:pointer;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
 .futures-odds-btn:hover,.futures-odds-btn.in-slip{background:var(--gold);color:#000;border-color:var(--gold)}
 .futures-tab{background:linear-gradient(135deg,rgba(245,166,35,.08),transparent)!important;border-color:rgba(245,166,35,.3)!important}
@@ -1161,18 +1166,25 @@ const CHAMPIONSHIP_SOURCES = {
 };
 
 // Each futures pick is itself a $ref link to an athlete/team resource (no name inline) —
-// resolved once and cached, since the same players/teams recur across markets.
-let _refNameCache = {};
-async function resolveRefName(url) {
-  if (_refNameCache[url] !== undefined) return _refNameCache[url];
+// resolved once and cached, since the same players/teams recur across markets. Team resources
+// carry a real logo too (players don't, on this endpoint), so futures cards get the same real
+// imagery as everywhere else instead of being a plain text list.
+let _refInfoCache = {};
+async function resolveRefInfo(url) {
+  if (_refInfoCache[url] !== undefined) return _refInfoCache[url];
+  let info = null;
   try {
     const res = await fetch(url);
     const json = await res.json();
-    const name = json.displayName || json.fullName || null;
-    _refNameCache[url] = name;
-    return name;
-  } catch(e) { _refNameCache[url] = null; return null; }
+    info = {
+      name: json.displayName || json.fullName || null,
+      logo: json.logos?.[0]?.href || null,
+    };
+  } catch(e) { info = null; }
+  _refInfoCache[url] = info;
+  return info;
 }
+async function resolveRefName(url) { return (await resolveRefInfo(url))?.name || null; }
 
 let _futuresMarketCache = {};
 async function fetchFuturesMarket(cfg) {
@@ -1191,7 +1203,10 @@ async function fetchFuturesMarket(cfg) {
       const prob = odds < 0 ? Math.abs(odds)/(Math.abs(odds)+100) : 100/(odds+100);
       return { ref, odds, prob };
     }).filter(Boolean).sort((a,b) => b.prob - a.prob).slice(0, 10);
-    const resolved = await Promise.all(withProb.map(async b => ({ n: await resolveRefName(b.ref), o: b.odds })));
+    const resolved = await Promise.all(withProb.map(async b => {
+      const info = await resolveRefInfo(b.ref);
+      return { n: info?.name || null, o: b.odds, logo: info?.logo || null };
+    }));
     const teams = resolved.filter(t => t.n);
     const data = { id: cacheKey, sport: cfg.sportKey, title: cfg.title, teams };
     _futuresMarketCache[cacheKey] = { data, ts: Date.now() };
@@ -2590,6 +2605,7 @@ async function renderFutures() {
     const rows = mkt.teams.map(t => {
       const inSlip = betSlipLegs.some(l=>l.gameId==='futures_'+mkt.id&&l.selection===t.n);
       return `<div class="futures-row${inSlip?' futures-row-active':''}">
+        ${t.logo?`<div class="futures-team-logo"><img src="${esc(t.logo)}" alt="" loading="lazy"></div>`:''}
         <span class="futures-team">${esc(t.n)}</span>
         <button class="futures-odds-btn${inSlip?' in-slip':''}"
           data-gid="futures_${esc(mkt.id)}" data-market="${esc(mkt.title)}"
@@ -3661,11 +3677,15 @@ function renderBets(bets) {
     }
 
     const sportIcon = SPORTS[b.sport]?.icon || '';
+    // Real team logos on the matchup line, when the game that bet came from is still loaded —
+    // same lookup used for the Bet Slip's team-colored legs.
+    const betGame = _allGames.find(g => g.id === b.game_id);
+    const betLogos = betGame ? `<span class="bet-matchup-logos">${betGame.away_logo?`<img src="${esc(betGame.away_logo)}" alt="">`:''}${betGame.home_logo?`<img src="${esc(betGame.home_logo)}" alt="">`:''}</span>` : '';
     const matchupLine = isParlay
       ? `<div class="bet-matchup">${sportIcon} ${isRR?'Round Robin':'Parlay'} · ${fmtOdds(b.odds)}</div>`
       : isPickem
       ? `<div class="bet-matchup">🏆 Pick'em${pickemMeta.mode==='ats'?' (ATS)':''} · ${pickemMeta.total||pickemMeta.picks?.length||'?'} games${pickemMeta.correct!=null?` · ${pickemMeta.correct}/${pickemMeta.total-(pickemMeta.pushes||0)} correct${pickemMeta.pushes?` · ${pickemMeta.pushes} push`:''}`:''}</div>`
-      : `<div class="bet-matchup">${sportIcon ? sportIcon+' ' : ''}${esc(b.away_team)} @ ${esc(b.home_team)}</div>`;
+      : `<div class="bet-matchup">${betLogos}${sportIcon ? sportIcon+' ' : ''}${esc(b.away_team)} @ ${esc(b.home_team)}</div>`;
 
     // Cash-out value = stake + 45% of potential profit (like real apps, slightly unfair) — but
     // only once the game has actually started. A flat 45%-of-profit payable the instant a bet
