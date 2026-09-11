@@ -469,17 +469,23 @@ body::after{
 .pickem-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .pickem-title{font-size:15px;font-weight:800}
 .pickem-progress{font-size:12px;font-weight:700;color:var(--t2)}
-.pickem-games{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
-.pickem-game-row{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--r);padding:10px 12px}
-.pickem-game-time{font-size:10px;color:var(--t3);font-weight:700;letter-spacing:.04em;margin-bottom:6px;text-align:center}
-.pickem-vs{display:flex;align-items:center;gap:8px}
-.pickem-at{font-size:10px;color:var(--t3);font-weight:700;flex-shrink:0}
-.pickem-team-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 6px;background:var(--bg);border:1px solid var(--bdr);border-radius:8px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
-.pickem-team-btn:hover{border-color:var(--gold)}
-.pickem-team-btn.picked{background:var(--gold-bg);border-color:var(--gold)}
-.pickem-team-name{font-size:12px;font-weight:700}
-.pickem-team-odds{font-size:10px;color:var(--t3);font-variant-numeric:tabular-nums}
-.pickem-team-pct{font-size:9px;color:var(--gold-b);font-weight:700;margin-top:1px}
+.pickem-games{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.pickem-game-card{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);padding:12px;transition:border-color .15s}
+.pickem-game-time{font-size:10px;color:var(--t3);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;text-align:center}
+.pickem-matchup{display:flex;align-items:center;gap:10px}
+.pickem-at{font-size:11px;color:var(--t3);font-weight:800;flex-shrink:0}
+.pickem-tile{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;background:var(--bg);border:2px solid var(--bdr);border-radius:12px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden}
+.pickem-tile::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--team-color) 16%,transparent),transparent 70%);opacity:0;transition:opacity .15s}
+.pickem-tile:hover{border-color:color-mix(in srgb,var(--team-color) 55%,var(--bdr-h))}
+.pickem-tile.picked{border-color:var(--team-color);background:color-mix(in srgb,var(--team-color) 10%,var(--bg))}
+.pickem-tile.picked::before{opacity:1}
+.pickem-tile-logo{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1}
+.pickem-tile-logo img{width:30px;height:30px;object-fit:contain}
+.pickem-tile-initial{font-size:16px;font-weight:900;color:#111}
+.pickem-tile-name{font-size:12px;font-weight:800;z-index:1}
+.pickem-tile-meta{font-size:9px;color:var(--t3);font-weight:700;display:flex;align-items:center;gap:4px;z-index:1}
+.pickem-tile-pct{color:var(--gold-b)}
+.pickem-tile-check{position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;background:var(--team-color);color:#fff;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:1}
 .pickem-submit-bar{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);padding:14px;margin-bottom:14px}
 .pickem-preview{text-align:center;font-size:12px;color:var(--t2);margin-bottom:10px}
 .pickem-payout-table{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);padding:12px 14px}
@@ -2110,6 +2116,11 @@ async function fetchOdds(sport) {
       const getLogo = c => c.team?.logo || c.athlete?.headshot?.href || null;
       const homeLogo = getLogo(home);
       const awayLogo = getLogo(away);
+      // Real team colors — ESPN gives every team's actual brand color (hex, no '#'). Used to
+      // give game cards/Pick'em real team-colored accents instead of one flat gold theme
+      // everywhere, the way ESPN's own matchup pickers do it.
+      const getColor = c => { const h = c.team?.color; return h && /^[0-9a-f]{6}$/i.test(h) ? `#${h}` : null; };
+      const homeColor = getColor(home), awayColor = getColor(away);
 
       // Real season record, straight from the same ESPN payload — replaces what used to be
       // a fabricated win-loss record stapled onto each team's name.
@@ -2185,6 +2196,7 @@ async function fetchOdds(sport) {
       return {
         id: ev.id, home_team: homeName, away_team: awayName,
         home_logo: homeLogo, away_logo: awayLogo,
+        home_color: homeColor, away_color: awayColor,
         home_record: homeRecord, away_record: awayRecord,
         home_leaders: homeLeaders, away_leaders: awayLeaders,
         home_probable: homeProbable, away_probable: awayProbable,
@@ -2983,19 +2995,31 @@ function renderPickemBuilder() {
   }
   const picked = Object.keys(_pickemPicks).filter(gid => _pickemGames.some(g=>g.id===gid)).length;
   const total = _pickemGames.length;
+  // ESPN-style matchup tiles: real logo, real team color as the picked-state accent, real
+  // record and real (de-vigged) win probability — every visual element here is real data,
+  // nothing themed or invented per team.
   const rows = _pickemGames.map(g => {
     const ml = getMarket(g,'h2h');
     const aOdds = ml?.find(o=>o.name===g.away_team), hOdds = ml?.find(o=>o.name===g.home_team);
     const fairPct = (aOdds && hOdds) ? fairWinPct(aOdds.price, hOdds.price) : null;
     const pick = _pickemPicks[g.id];
-    const row = (team, odds, isHome) => `<button class="pickem-team-btn${pick===team?' picked':''}" onclick="togglePickemPick('${esc(g.id)}',${isHome})">
-      <span class="pickem-team-name">${esc(team.split(' ').pop())}</span>
-      ${odds?`<span class="pickem-team-odds">${fmtOdds(odds.price)}</span>`:''}
-      ${fairPct?`<span class="pickem-team-pct">${isHome?fairPct.b:fairPct.a}% to win</span>`:''}
-    </button>`;
-    return `<div class="pickem-game-row">
+    const tile = (team, odds, isHome, logo, color, record) => {
+      const picked = pick === team;
+      const pct = fairPct ? (isHome?fairPct.b:fairPct.a) : null;
+      return `<button class="pickem-tile${picked?' picked':''}" style="--team-color:${color||'var(--gold)'}" onclick="togglePickemPick('${esc(g.id)}',${isHome})">
+        <div class="pickem-tile-logo">${logo?`<img src="${esc(logo)}" alt="" loading="lazy">`:`<span class="pickem-tile-initial">${esc(team[0])}</span>`}</div>
+        <div class="pickem-tile-name">${esc(team.split(' ').pop())}</div>
+        <div class="pickem-tile-meta">${record?esc(record):''}${pct!=null?`<span class="pickem-tile-pct">${pct}%</span>`:''}</div>
+        ${picked?'<div class="pickem-tile-check">✓</div>':''}
+      </button>`;
+    };
+    return `<div class="pickem-game-card">
       <div class="pickem-game-time">${new Date(g.commence_time).toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'})}</div>
-      <div class="pickem-vs">${row(g.away_team, aOdds, false)}<span class="pickem-at">@</span>${row(g.home_team, hOdds, true)}</div>
+      <div class="pickem-matchup">
+        ${tile(g.away_team, aOdds, false, g.away_logo, g.away_color, g.away_record)}
+        <div class="pickem-at">@</div>
+        ${tile(g.home_team, hOdds, true, g.home_logo, g.home_color, g.home_record)}
+      </div>
     </div>`;
   }).join('');
   const stakeInput = `<div class="bs-amount-row" style="max-width:280px;margin:0 auto 8px"><span class="bs-dollar">$</span><input class="bs-input" id="pickemStake" type="number" inputmode="numeric" min="1" value="25" oninput="updatePickemPreview()"></div>`;
