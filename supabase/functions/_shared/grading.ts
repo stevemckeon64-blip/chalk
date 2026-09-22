@@ -178,6 +178,79 @@ export async function fetchEventsForRange(espnPath: string, startMs: number, end
   return j.events || [];
 }
 
+// ── Futures (real season-long outcomes — different ESPN domain entirely) ──
+export const FUTURES_CONFIG = [
+  { sport:'football', league:'nfl', marketId:1561, title:'🏈 Super Bowl Winner', sportKey:'americanfootball_nfl', type:'championship' },
+  { sport:'football', league:'nfl', marketId:1208, title:'🏈 NFL MVP', sportKey:'americanfootball_nfl', type:'award', awardId:477 },
+  { sport:'football', league:'nfl', marketId:1210, title:'🏈 NFL Defensive Player of the Year', sportKey:'americanfootball_nfl', type:'award', awardId:479 },
+  { sport:'football', league:'college-football', marketId:2758, title:'🏈 College Football Playoff Champion', sportKey:'americanfootball_ncaaf', type:'championship' },
+  { sport:'football', league:'college-football', marketId:15234, title:'🏈 Heisman Trophy', sportKey:'americanfootball_ncaaf', type:'award', awardId:9 },
+  { sport:'basketball', league:'nba', marketId:2564, title:'🏀 NBA Champion', sportKey:'basketball_nba', type:'championship' },
+  { sport:'basketball', league:'nba', marketId:2581, title:'🏀 NBA MVP', sportKey:'basketball_nba', type:'award', awardId:33 },
+  { sport:'basketball', league:'mens-college-basketball', marketId:232692, title:'🏀 March Madness Champion', sportKey:'basketball_ncaab', type:'championship' },
+  { sport:'baseball', league:'mlb', marketId:2761, title:'⚾ World Series Winner', sportKey:'baseball_mlb', type:'championship' },
+  { sport:'hockey', league:'nhl', marketId:2118, title:'🏒 Stanley Cup Winner', sportKey:'icehockey_nhl', type:'championship' },
+  { sport:'hockey', league:'nhl', marketId:14495, title:'🏒 Hart Trophy (MVP)', sportKey:'icehockey_nhl', type:'award', awardId:112 },
+] as const;
+export const FUTURES_SEASON = 2026;
+export const CHAMPIONSHIP_SOURCES: Record<string, { espn: string; range: (y: number) => string }> = {
+  americanfootball_nfl:   { espn:'football/nfl', range: y => `${y}1101-${y+1}0301` },
+  americanfootball_ncaaf: { espn:'football/college-football', range: y => `${y}1101-${y+1}0201` },
+  basketball_nba:         { espn:'basketball/nba', range: y => `${y+1}0301-${y+1}0715` },
+  basketball_ncaab:       { espn:'basketball/mens-college-basketball', range: y => `${y+1}0201-${y+1}0430` },
+  baseball_mlb:           { espn:'baseball/mlb', range: y => `${y}0801-${y}1201` },
+  icehockey_nhl:          { espn:'hockey/nhl', range: y => `${y+1}0301-${y+1}0715` },
+};
+
+export async function resolveRefInfo(url: string) {
+  try {
+    const res = await fetch(url);
+    const j = await res.json();
+    return { name: j.displayName || j.fullName || null, logo: j.logos?.[0]?.href || null };
+  } catch { return null; }
+}
+export async function resolveRefName(url: string) { return (await resolveRefInfo(url))?.name || null; }
+
+// Real current futures odds for one market+selection — same field/sort logic as
+// fetchFuturesMarket() client-side, scoped to just the one selection being bet on.
+export async function fetchFuturesOdds(cfg: typeof FUTURES_CONFIG[number], selection: string) {
+  const res = await fetch(`https://sports.core.api.espn.com/v2/sports/${cfg.sport}/leagues/${cfg.league}/seasons/${FUTURES_SEASON}/futures/${cfg.marketId}?lang=en&region=us`);
+  const j = await res.json();
+  const books = j.futures?.[0]?.books || [];
+  for (const b of books) {
+    const ref = b.athlete?.$ref || b.team?.$ref;
+    const odds = parseInt(b.value ?? b.moneyLine ?? "");
+    if (!ref || isNaN(odds)) continue;
+    const info = await resolveRefInfo(ref);
+    if (info?.name === selection) return odds;
+  }
+  return null;
+}
+
+export async function fetchLeagueChampion(sportKey: string) {
+  const src = CHAMPIONSHIP_SOURCES[sportKey];
+  if (!src) return null;
+  const range = src.range(FUTURES_SEASON);
+  const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${src.espn}/scoreboard?dates=${range}&limit=1000`);
+  const j = await res.json();
+  const exclude = /pro bowl|all-star|all star/i;
+  const postseason = (j.events || []).filter((e: any) => e.season?.type === 3 && !exclude.test(e.name || ""));
+  const unfinished = postseason.some((e: any) => !e.status?.type?.completed);
+  const finished = postseason.filter((e: any) => e.status?.type?.completed);
+  if (unfinished || !finished.length) return null;
+  finished.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const winner = (finished[0].competitions?.[0]?.competitors || []).find((c: any) => c.winner === true);
+  return winner?.team?.displayName || null;
+}
+
+export async function fetchAwardWinner(cfg: typeof FUTURES_CONFIG[number]) {
+  const res = await fetch(`https://sports.core.api.espn.com/v2/sports/${cfg.sport}/leagues/${cfg.league}/seasons/${FUTURES_SEASON}/awards/${cfg.awardId}?lang=en&region=us`);
+  if (!res.ok) return null;
+  const j = await res.json();
+  const ref = j.winners?.[0]?.athlete?.$ref;
+  return ref ? await resolveRefName(ref) : null;
+}
+
 export function pickemMultiplier(correct: number, total: number): number {
   if (!total) return 0;
   const missed = total - correct;

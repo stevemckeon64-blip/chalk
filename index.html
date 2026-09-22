@@ -3617,6 +3617,34 @@ async function placeBet() {
     } catch(e) { console.error('place-parlay function error', e); }
   }
 
+  // Futures: server-eligible for any single (non-parlay) futures leg — re-fetches
+  // real current odds from ESPN's futures endpoint. See supabase/functions/place-futures.
+  const futuresEligible = !isParlay && !isRR && leg0.sport === 'futures';
+  if (futuresEligible) {
+    try {
+      const { data, error } = await sb.functions.invoke('place-futures', { body: { market: leg0.market, selection: leg0.selection, stake }});
+      if (!error && data?.bet) {
+        profile.balance = data.new_balance;
+        animateBalance(profile.balance);
+        const confNum = 'CHK' + Date.now().toString().slice(-8);
+        const slipSnapshot = [...betSlipLegs];
+        betSlipLegs = [];
+        updateFab(); closeBetSlip(); flashBalance('dn');
+        showBetReceipt({ label: leg0.selection, odds: data.bet.odds, stake, payout: data.bet.potential_payout,
+          confNum, isParlay:false, isRR:false, combosCount:0, legs: slipSnapshot });
+        const curBadge = parseInt(document.getElementById('betsBadge')?.textContent||'0')||0;
+        updateBetsBadge(curBadge + 1);
+        return;
+      }
+      if (data?.error === 'insufficient balance') {
+        btn.textContent='Place Bet'; btn.disabled=false; showToast('Insufficient balance','error'); return;
+      }
+      if (data?.error && data.error !== 'not_yet_supported') {
+        btn.textContent='Place Bet'; btn.disabled=false; showToast('Error placing bet','error'); return;
+      }
+    } catch(e) { console.error('place-futures function error', e); }
+  }
+
   const newBal = await applyBalanceDelta(-totalStake);
   if (newBal < 0) {
     // Balance moved (another bet, another tab) between the check above and now — undo and bail.
@@ -3956,7 +3984,21 @@ async function settleSingleBet(bet, scoreFor, staleMs) {
   // Futures resolve against a real season outcome (championship bracket / awards), checked
   // on its own — not the score-based per-game pipeline below, and never voided just because
   // time has passed (a season can take months; only genuinely unresolvable markets void).
-  if (bet.sport === 'futures') { await settleFuturesBet(bet); return; }
+  if (bet.sport === 'futures') {
+    // Server-first (see supabase/functions/settle-futures) — re-checks the real
+    // postseason bracket / real awards record itself before crediting anything.
+    try {
+      const { data, error } = await sb.functions.invoke('settle-futures', { body: { bet_id: bet.id } });
+      if (!error && data && data.status && data.status !== 'pending' && !data.already_settled) {
+        const { data: fresh } = await sb.from('profiles').select('balance').eq('id', user.id).single();
+        if (fresh) profile.balance = fresh.balance;
+        await creditAndNotify(bet, data.status, data.payout || 0, null, true);
+        return;
+      }
+      if (!error) return; // genuinely still pending (a season can take months) or already settled
+    } catch(e) { console.error('settle-futures function error', e); }
+    await settleFuturesBet(bet); return;
+  }
   // Supported single-bet shapes settle for real on the server (supabase/functions/
   // settle-bet) — it re-fetches the actual ESPN score itself rather than trusting
   // anything this tab computes. Anything it doesn't cover yet (tennis, golf, padel,
