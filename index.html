@@ -852,7 +852,7 @@ const SPORTS = {
   icehockey_nhl:          { label:'NHL',   icon:'🏒', espn:'hockey/nhl' },
   soccer_epl:             { label:'EPL',   icon:'⚽', espn:'soccer/eng.1' },
   soccer_spain_la_liga:   { label:'La Liga',icon:'⚽', espn:'soccer/esp.1' },
-  soccer_uefa_champs_league:{ label:'UCL',  icon:'⚽', espn:'soccer/uer.1' },
+  soccer_uefa_champs_league:{ label:'UCL',  icon:'⚽', espn:'soccer/uefa.champions' },
   mma_mixed_martial_arts: { label:'UFC',   icon:'🥊', espn:'mma/ufc', versus:true },
   tennis_atp:             { label:'ATP',   icon:'🎾', espn:'tennis/atp', versus:true },
   golf_pga_tour:          { label:'PGA',   icon:'⛳', espn:'golf/pga', versus:false },
@@ -4230,7 +4230,11 @@ function gradeLegOutcome(market, selection, line, homeTeam, awayTeam, homeScore,
   if (market === 'spreads' || market.startsWith('alt_sp_')) {
     const l = parseFloat(line), isHome = selection === homeTeam;
     const margin = homeScore - awayScore; // positive = home winning
-    const covered = isHome ? (margin + l) : ((-margin) + (-l));
+    // The away side's line is already stored as the away team's own correctly-signed
+    // spread (e.g. +7 when home is -7 favorite — see getMarket()'s away point:-homePt),
+    // not home's raw line, so it's added directly here, not re-negated. Re-negating it
+    // was a real bug: every away-side spread pick graded backwards until this fix.
+    const covered = isHome ? (margin + l) : ((-margin) + l);
     if (covered > 0) return 'won'; if (covered < 0) return 'lost'; return 'push';
   }
   if (market === 'totals' || market.startsWith('alt_tot_')) {

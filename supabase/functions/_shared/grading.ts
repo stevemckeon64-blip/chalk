@@ -16,7 +16,7 @@ export const ESPN_PATH: Record<string, string> = {
   icehockey_nhl: "hockey/nhl",
   soccer_epl: "soccer/eng.1",
   soccer_spain_la_liga: "soccer/esp.1",
-  soccer_uefa_champs_league: "soccer/uer.1",
+  soccer_uefa_champs_league: "soccer/uefa.champions",
   mma_mixed_martial_arts: "mma/ufc",
 };
 
@@ -83,7 +83,11 @@ export function gradeLegOutcome(
   if (market === "spreads" || market.startsWith("alt_sp_")) {
     const l = parseFloat(String(line)), isHome = selection === homeTeam;
     const margin = homeScore - awayScore;
-    const covered = isHome ? margin + l : -margin + -l;
+    // The away side's line is already stored as the away team's own correctly-signed
+    // spread (e.g. +7 when home is -7 favorite), not home's raw line, so it's added
+    // directly here, not re-negated — re-negating it graded every away-side spread
+    // pick backwards. See index.html's gradeLegOutcome for the same fix + full note.
+    const covered = isHome ? margin + l : -margin + l;
     if (covered > 0) return "won";
     if (covered < 0) return "lost";
     return "push";
