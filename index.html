@@ -2474,7 +2474,12 @@ async function fetchTennisOdds(sport) {
         // A Slam's final shows up as a real, "pre"-status, bettable-looking match well before
         // the semifinals finish — with both competitors literally named "TBD". Caught this live.
         if (isPlaceholderName(homeName) || isPlaceholderName(awayName)) continue;
-        const homeRank = rankMap[home.athlete?.id], awayRank = rankMap[away.athlete?.id];
+        // The player's ESPN id lives on the competitor object itself here (competitor.id),
+        // not nested under competitor.athlete.id the way the rankings feed shapes it — using
+        // the wrong path meant this lookup always missed and every match fell through to the
+        // -110/-110 fallback below, real matchup be damned. Confirmed live: 0 matches via
+        // .athlete.id, 49/216 via competitor.id directly.
+        const homeRank = rankMap[home.id], awayRank = rankMap[away.id];
         let homeOdds = -110, awayOdds = -110;
         if (homeRank && awayRank) {
           const pHome = Math.round(awayRank / (homeRank + awayRank) * 100); // lower rank number = better
