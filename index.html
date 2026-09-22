@@ -860,6 +860,11 @@ const SPORTS = {
   futures:                { label:'Futures',icon:'🏆', espn:null },
 };
 const MARKET_LABELS = { h2h:'Moneyline', spreads:'Spread', totals:'Total' };
+// Bet shapes that place/settle through the real server-side Edge Functions
+// (supabase/functions/place-bet, settle-bet) instead of the client-trusted path.
+// Keep this in sync with ESPN_PATH in both functions — same sports, same markets.
+const SERVER_SETTLED_MARKETS = ['h2h','spreads','totals'];
+const SERVER_SETTLED_SPORTS = ['americanfootball_nfl','americanfootball_ncaaf','basketball_nba','basketball_ncaab','baseball_mlb','icehockey_nhl','soccer_epl','soccer_spain_la_liga','soccer_uefa_champs_league','mma_mixed_martial_arts'];
 const SPORT_ACCENTS = {
   americanfootball_nfl:   '#00D4AA',
   americanfootball_ncaaf: '#FF6B35',
@@ -3508,6 +3513,45 @@ async function placeBet() {
 
   const odds = isParlay ? calcParlayOdds(betSlipLegs) : (isRR ? null : betSlipLegs[0].odds);
   const payout = isRR ? null : calcPayout(stake, odds);
+
+  // Single bets on a supported market/sport go through the server: it independently
+  // re-fetches real current ESPN odds and atomically reserves the stake against the
+  // real balance, instead of trusting whatever this tab thinks either one is. Parlay/
+  // Round Robin/unsupported markets still use the client-trusted path below until
+  // those get their own wave — see supabase/functions/place-bet.
+  const leg0 = betSlipLegs[0];
+  const serverEligible = !isParlay && !isRR
+    && SERVER_SETTLED_MARKETS.includes(leg0.market) && SERVER_SETTLED_SPORTS.includes(currentSport);
+  if (serverEligible) {
+    try {
+      const { data, error } = await sb.functions.invoke('place-bet', { body: {
+        sport: currentSport, market: leg0.market, selection: leg0.selection,
+        home_team: leg0.homeTeam, away_team: leg0.awayTeam, game_id: leg0.gameId, stake,
+      }});
+      if (!error && data?.bet) {
+        profile.balance = data.new_balance;
+        animateBalance(profile.balance);
+        const confNum = 'CHK' + Date.now().toString().slice(-8);
+        const slipSnapshot = [...betSlipLegs];
+        betSlipLegs = [];
+        updateFab(); closeBetSlip(); flashBalance('dn');
+        showBetReceipt({ label: leg0.selection, odds: data.bet.odds, stake, payout: data.bet.potential_payout,
+          confNum, isParlay:false, isRR:false, combosCount:0, legs: slipSnapshot });
+        const curBadge = parseInt(document.getElementById('betsBadge')?.textContent||'0')||0;
+        updateBetsBadge(curBadge + 1);
+        return;
+      }
+      if (data?.error === 'insufficient balance') {
+        btn.textContent='Place Bet'; btn.disabled=false; showToast('Insufficient balance','error'); return;
+      }
+      if (data?.error && data.error !== 'not_yet_supported') {
+        btn.textContent='Place Bet'; btn.disabled=false; showToast('Error placing bet','error'); return;
+      }
+      // 'not_yet_supported' (or a genuine network hiccup calling the function) — fall
+      // through to the legacy client path below rather than leaving the bet unplaced.
+    } catch(e) { console.error('place-bet function error', e); }
+  }
+
   const newBal = await applyBalanceDelta(-totalStake);
   if (newBal < 0) {
     // Balance moved (another bet, another tab) between the check above and now — undo and bail.
@@ -3848,6 +3892,22 @@ async function settleSingleBet(bet, scoreFor, staleMs) {
   // on its own — not the score-based per-game pipeline below, and never voided just because
   // time has passed (a season can take months; only genuinely unresolvable markets void).
   if (bet.sport === 'futures') { await settleFuturesBet(bet); return; }
+  // Supported single-bet shapes settle for real on the server (supabase/functions/
+  // settle-bet) — it re-fetches the actual ESPN score itself rather than trusting
+  // anything this tab computes. Anything it doesn't cover yet (tennis, golf, padel,
+  // alt lines) falls through to the existing client-side path below unchanged.
+  if (SERVER_SETTLED_MARKETS.includes(bet.market) && SERVER_SETTLED_SPORTS.includes(bet.sport)) {
+    try {
+      const { data, error } = await sb.functions.invoke('settle-bet', { body: { bet_id: bet.id } });
+      if (!error && data && data.status && data.status !== 'pending' && !data.already_settled) {
+        const { data: fresh } = await sb.from('profiles').select('balance').eq('id', user.id).single();
+        if (fresh) profile.balance = fresh.balance;
+        await creditAndNotify(bet, data.status, data.payout || 0, null, true);
+        return;
+      }
+      if (!error) return; // server confirms it's genuinely still pending, or already settled elsewhere
+    } catch(e) { console.error('settle-bet function error', e); }
+  }
   const info = scoreFor(bet.sport, bet.home_team, bet.away_team);
   let result;
   if (info.done) {
@@ -3962,8 +4022,9 @@ async function settlePickemBet(bet) {
   await creditAndNotify(bet, outcome, payout, `${correct}/${effectiveTotal} correct${pushes?` · ${pushes} push`:''}`);
 }
 
-async function creditAndNotify(bet, result, payout, pickemNote) {
-  if (payout > 0) await applyBalanceDelta(payout);
+async function creditAndNotify(bet, result, payout, pickemNote, skipCredit) {
+  // skipCredit: the server (settle-bet) already moved the balance — don't do it twice.
+  if (payout > 0 && !skipCredit) await applyBalanceDelta(payout);
   const label = bet.market === 'parlay' ? (JSON.parse(bet.selection||'{}').rr ? 'Round Robin combo' : 'Parlay')
     : bet.market === 'pickem' ? `Pick'em (${pickemNote})`
     : bet.selection;
