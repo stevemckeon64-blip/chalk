@@ -3459,22 +3459,31 @@ function openBetSlip() {
 function setSlipMode(mode) { slipMode = mode; openBetSlip(); }
 
 // ── CASH OUT ─────────────────────────────────────────────────────
-async function cashOut(betId, coValue, origStake) {
+// The value shown on the button (estCoValue below) is only ever a client-side
+// ESTIMATE for display — the real amount is computed server-side from the bet's
+// own stored row (supabase/functions/cash-out) and never trusted from here.
+// cashOut() itself now sends only the bet id, nothing else, so there's no
+// client-supplied number left for anyone to tamper with.
+async function cashOut(betId, estValue, origStake) {
   if (!profile) return;
-  const profit = coValue - origStake;
-  if (!confirm(`Cash out for ${fmt(coValue)}? (${profit >= 0 ? '+' : ''}${fmt(profit)} vs stake)`)) return;
-  // Grade the bet still-pending first so a double-click (or a settlement that races in
-  // between) can't cash out a bet that's already been paid out or marked lost.
-  const { data: rows, error: ue } = await sb.from('bets')
-    .update({ status: 'won', potential_payout: coValue, settled_at: new Date().toISOString() })
-    .eq('id', betId).eq('status', 'pending').select('id');
-  if (ue) { showToast('Cash out failed', 'error'); return; }
-  if (!rows || !rows.length) { showToast('That bet already settled', 'error'); loadMyBets(); return; }
-  const newBal = await applyBalanceDelta(coValue);
-  animateBalance(newBal);
-  flashBalance('up');
-  showToast(`Cashed out for ${fmt(coValue)} 💰`);
-  loadMyBets();
+  const profit = estValue - origStake;
+  if (!confirm(`Cash out for about ${fmt(estValue)}? (${profit >= 0 ? '+' : ''}${fmt(profit)} vs stake)`)) return;
+  try {
+    const { data, error } = await sb.functions.invoke('cash-out', { body: { bet_id: betId } });
+    if (!error && data?.payout != null) {
+      if (data.new_balance != null) profile.balance = data.new_balance;
+      animateBalance(profile.balance);
+      flashBalance('up');
+      showToast(`Cashed out for ${fmt(data.payout)} 💰`);
+      loadMyBets();
+      return;
+    }
+    showToast(data?.error === 'already settled' ? 'That bet already settled' : 'Cash out failed', 'error');
+    loadMyBets();
+  } catch(e) {
+    console.error('cash-out function error', e);
+    showToast('Cash out failed', 'error');
+  }
 }
 
 // NOTE: There is intentionally no way for a user to add funds to their own balance.
