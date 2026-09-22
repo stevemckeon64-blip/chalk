@@ -3187,6 +3187,36 @@ async function submitPickem() {
   if (stake > profile.balance) { showToast('Insufficient balance', 'error'); return; }
   const btn = document.getElementById('pickemSubmitBtn');
   btn.textContent = 'Submitting…'; btn.disabled = true;
+
+  // Server-eligible whenever the sport has a plain ESPN scoreboard (see
+  // supabase/functions/place-pickem) — it independently re-resolves every game
+  // (and, in ATS mode, the real current spread) rather than trusting the client.
+  if (SERVER_SETTLED_SPORTS.includes(_pickemSport)) {
+    try {
+      const { data, error } = await sb.functions.invoke('place-pickem', { body: {
+        sport: _pickemSport, mode: _pickemMode, stake,
+        picks: picks.map(p => ({ game_id: p.gameId, sport: p.sport, home_team: p.homeTeam, away_team: p.awayTeam, pick: p.pick })),
+      }});
+      if (!error && data?.bet) {
+        profile.balance = data.new_balance;
+        animateBalance(profile.balance);
+        flashBalance('dn');
+        showToast(`Slate submitted — ${fmt(stake)} on ${total} games${isAts?' (ATS)':''} 🏆`, 'success');
+        _pickemPicks = {};
+        loadPickem();
+        return;
+      }
+      if (data?.error === 'insufficient balance') {
+        btn.textContent='Submit Slate'; btn.disabled=false; showToast('Insufficient balance','error'); return;
+      }
+      if (data?.error && data.error !== 'not_yet_supported') {
+        btn.textContent='Submit Slate'; btn.disabled=false;
+        showToast(`Error submitting slate${data.reason?': '+data.reason:''}`, 'error'); return;
+      }
+      // 'not_yet_supported' — fall through to the legacy client path below.
+    } catch(e) { console.error('place-pickem function error', e); }
+  }
+
   const newBal = await applyBalanceDelta(-stake);
   if (newBal < 0) { await applyBalanceDelta(stake); btn.textContent='Submit Slate'; btn.disabled=false; showToast('Insufficient balance','error'); return; }
   const perfectPayout = stake * pickemMultiplier(total, total);
@@ -4030,6 +4060,25 @@ async function fetchEventsForRange(espnPath, startMs, endMs) {
   return data;
 }
 async function settlePickemBet(bet) {
+  // Server-eligible whenever every pick's sport is in the supported set (see
+  // supabase/functions/settle-pickem) — otherwise falls through to the existing
+  // client-side grading below unchanged.
+  let preData;
+  try { preData = JSON.parse(bet.selection); } catch(e) { preData = null; }
+  const prePicks = preData?.picks || [];
+  if (prePicks.length && prePicks.every(p => SERVER_SETTLED_SPORTS.includes(p.sport))) {
+    try {
+      const { data: res, error } = await sb.functions.invoke('settle-pickem', { body: { bet_id: bet.id } });
+      if (!error && res && res.status && res.status !== 'pending' && !res.already_settled) {
+        const { data: fresh } = await sb.from('profiles').select('balance').eq('id', user.id).single();
+        if (fresh) profile.balance = fresh.balance;
+        const note = `${res.correct}/${res.effectiveTotal} correct${res.pushes?` · ${res.pushes} push`:''}`;
+        await creditAndNotify(bet, res.status, res.payout || 0, note, true);
+        return;
+      }
+      if (!error) return; // still pending per the server, or already settled elsewhere
+    } catch(e) { console.error('settle-pickem function error', e); }
+  }
   let data;
   try { data = JSON.parse(bet.selection); } catch(e) { return; }
   const picks = data.picks || [];

@@ -166,3 +166,23 @@ export async function fetchScoreboard(espnPath: string) {
   const j = await res.json();
   return j.events || [];
 }
+
+// A specific date-range scoreboard fetch, for Pick'em — a slate can span several
+// days and a pick's game may already be a day or two in the past by settlement
+// time, so (unlike fetchScoreboard's "today only" call) this needs an explicit
+// window. Mirrors fetchEventsForRange() client-side.
+export async function fetchEventsForRange(espnPath: string, startMs: number, endMs: number) {
+  const fmt = (ms: number) => new Date(ms).toISOString().slice(0, 10).replace(/-/g, "");
+  const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard?dates=${fmt(startMs)}-${fmt(endMs)}&limit=1000`);
+  const j = await res.json().catch(() => ({ events: [] }));
+  return j.events || [];
+}
+
+export function pickemMultiplier(correct: number, total: number): number {
+  if (!total) return 0;
+  const missed = total - correct;
+  if (correct / total < 0.6) return 0;
+  const perfect = Math.min(40, total * 3);
+  const mult = missed === 0 ? perfect : perfect / Math.pow(2.2, missed);
+  return Math.round(mult * 10) / 10;
+}
