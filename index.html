@@ -3552,6 +3552,41 @@ async function placeBet() {
     } catch(e) { console.error('place-bet function error', e); }
   }
 
+  // Parlay/Round Robin: server-eligible only if every leg (each may be a different
+  // sport) is within the supported set — a mixed slip with one unsupported leg
+  // declines as a whole rather than half-trusting it. See supabase/functions/place-parlay.
+  const parlayEligible = (isParlay || isRR)
+    && betSlipLegs.every(l => SERVER_SETTLED_MARKETS.includes(l.market) && SERVER_SETTLED_SPORTS.includes(l.sport));
+  if (parlayEligible) {
+    try {
+      const legBody = l => ({ sport: l.sport, market: l.market, selection: l.selection, home_team: l.homeTeam, away_team: l.awayTeam, game_id: l.gameId });
+      const body = isRR ? { combos: combos.map(pair => pair.map(legBody)), stake } : { legs: betSlipLegs.map(legBody), stake };
+      const { data, error } = await sb.functions.invoke('place-parlay', { body });
+      if (!error && data?.bets?.length) {
+        profile.balance = data.new_balance;
+        animateBalance(profile.balance);
+        const confNum = 'CHK' + Date.now().toString().slice(-8);
+        const label = isRR ? `Round Robin · ${combos.length} combos` : `${betSlipLegs.length}-Leg Parlay`;
+        const rrMaxPayout = data.bets.reduce((acc,b) => acc + b.potential_payout, 0);
+        const slipSnapshot = [...betSlipLegs];
+        betSlipLegs = [];
+        updateFab(); closeBetSlip(); flashBalance('dn');
+        showBetReceipt({ label, odds: isRR ? null : data.bets[0].odds, stake: totalStake, payout: isRR ? rrMaxPayout : data.bets[0].potential_payout,
+          confNum, isParlay: isParlay||isRR, isRR, combosCount: isRR ? combos.length : 0, legs: slipSnapshot });
+        const curBadge = parseInt(document.getElementById('betsBadge')?.textContent||'0')||0;
+        updateBetsBadge(curBadge + (isRR ? combos.length : 1));
+        return;
+      }
+      if (data?.error === 'insufficient balance') {
+        btn.textContent='Place Bet'; btn.disabled=false;
+        showToast(isRR ? `Insufficient balance for ${combos.length} combos` : 'Insufficient balance','error'); return;
+      }
+      if (data?.error && data.error !== 'not_yet_supported') {
+        btn.textContent='Place Bet'; btn.disabled=false; showToast('Error placing bet','error'); return;
+      }
+    } catch(e) { console.error('place-parlay function error', e); }
+  }
+
   const newBal = await applyBalanceDelta(-totalStake);
   if (newBal < 0) {
     // Balance moved (another bet, another tab) between the check above and now — undo and bail.
@@ -3923,6 +3958,23 @@ async function settleSingleBet(bet, scoreFor, staleMs) {
 }
 
 async function settleParlayBet(bet, scoreFor, staleMs) {
+  // Server-eligible only if every leg is within the supported set (see
+  // supabase/functions/settle-parlay) — one unsupported leg declines the whole
+  // thing and it falls through to the existing client-side path below.
+  let preLegs;
+  try { preLegs = JSON.parse(bet.selection).legs || []; } catch(e) { preLegs = []; }
+  if (preLegs.length && preLegs.every(l => SERVER_SETTLED_MARKETS.includes(l.market) && SERVER_SETTLED_SPORTS.includes(l.sport))) {
+    try {
+      const { data, error } = await sb.functions.invoke('settle-parlay', { body: { bet_id: bet.id } });
+      if (!error && data && data.status && data.status !== 'pending' && !data.already_settled) {
+        const { data: fresh } = await sb.from('profiles').select('balance').eq('id', user.id).single();
+        if (fresh) profile.balance = fresh.balance;
+        await creditAndNotify(bet, data.status, data.payout || 0, null, true);
+        return;
+      }
+      if (!error) return; // server confirms still pending, or already settled elsewhere
+    } catch(e) { console.error('settle-parlay function error', e); }
+  }
   let legs;
   try { legs = JSON.parse(bet.selection).legs || []; } catch(e) { return; }
   if (!legs.length) return;
