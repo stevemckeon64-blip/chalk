@@ -8,6 +8,8 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { ESPN_PATH, scoreFor, gradeLegOutcome, fetchScoreboard, corsHeaders, json } from "../_shared/grading.ts";
 
+const STALE_MS = 6 * 60 * 60 * 1000; // matches settlePending()'s client-side staleness window
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -55,10 +57,17 @@ Deno.serve(async (req) => {
 
     const events = await fetchScoreboard(espnPath);
     const info = scoreFor(events, bet.home_team, bet.away_team);
-    if (!info.done) return json({ status: "pending", reason: "game not final yet" }, 200, origin);
-
-    const result = gradeLegOutcome(bet.market, bet.selection, bet.line, bet.home_team, bet.away_team, info.hs!, info.as!);
-    const payout = result === "won" ? bet.potential_payout : result === "push" ? bet.stake : 0;
+    let result: string;
+    if (info.done) {
+      result = gradeLegOutcome(bet.market, bet.selection, bet.line, bet.home_team, bet.away_team, info.hs!, info.as!);
+    } else if (!info.found && Date.now() - new Date(bet.commence_time).getTime() > STALE_MS) {
+      // Never found a matching real event this long after kickoff — stop waiting
+      // forever and void it, same as settlePending() does client-side.
+      result = "void";
+    } else {
+      return json({ status: "pending", reason: "game not final yet" }, 200, origin);
+    }
+    const payout = result === "won" ? bet.potential_payout : (result === "push" || result === "void") ? bet.stake : 0;
 
     await admin.from("bets").update({ status: result, settled_at: new Date().toISOString() }).eq("id", bet.id);
     if (payout > 0) await creditBalance(admin, bet.user_id, payout);
