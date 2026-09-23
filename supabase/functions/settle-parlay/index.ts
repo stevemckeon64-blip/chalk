@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
       const info = scoreFor(eventsBySport[leg.sport] || [], leg.homeTeam, leg.awayTeam);
       let result: string;
       if (info.done) {
-        result = gradeLegOutcome(leg.market, leg.selection, leg.line, leg.homeTeam, leg.awayTeam, info.hs!, info.as!);
+        result = gradeLegOutcome(leg.market, leg.selection, leg.line, leg.homeTeam, leg.awayTeam, info.hs!, info.as!, leg.sport);
       } else if (!info.found && Date.now() - new Date(leg.commenceTime).getTime() > STALE_MS) {
         result = "void";
       } else {

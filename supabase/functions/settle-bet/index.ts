@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     const info = scoreFor(events, bet.home_team, bet.away_team);
     let result: string;
     if (info.done) {
-      result = gradeLegOutcome(bet.market, bet.selection, bet.line, bet.home_team, bet.away_team, info.hs!, info.as!);
+      result = gradeLegOutcome(bet.market, bet.selection, bet.line, bet.home_team, bet.away_team, info.hs!, info.as!, bet.sport);
     } else if (!info.found && Date.now() - new Date(bet.commence_time).getTime() > STALE_MS) {
       // Never found a matching real event this long after kickoff — stop waiting
       // forever and void it, same as settlePending() does client-side.

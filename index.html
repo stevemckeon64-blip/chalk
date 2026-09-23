@@ -2199,14 +2199,20 @@ async function fetchOdds(sport) {
       // instead of only being able to notice movement across this browser session's own polls.
       const openInt = v => { const n = parseInt(v); return isNaN(n) ? null : n; };
       if (o) {
-        // Moneyline — ESPN stores as o.moneyline.home/away.close.odds (strings like "-118")
+        // Moneyline — ESPN stores as o.moneyline.home/away.close.odds (strings like "-118").
+        // Soccer carries a real third price too, o.moneyline.draw — a genuine, DraftKings-
+        // sourced outcome, not a synthetic add-on. Without it, "Home to win" had no real
+        // opposite outcome to lose to on an actual draw, so it (wrongly) pushed instead.
         const hML = parseInt(o.moneyline?.home?.close?.odds);
         const aML = parseInt(o.moneyline?.away?.close?.odds);
+        const dML = parseInt(o.moneyline?.draw?.close?.odds);
         if (!isNaN(hML) && !isNaN(aML)) {
-          markets.push({ key:'h2h', outcomes:[
+          const h2hOutcomes = [
             { name:awayName, price:aML, openPrice:openInt(o.moneyline?.away?.open?.odds) },
             { name:homeName, price:hML, openPrice:openInt(o.moneyline?.home?.open?.odds) },
-          ]});
+          ];
+          if (!isNaN(dML)) h2hOutcomes.push({ name:'Draw', price:dML, openPrice:openInt(o.moneyline?.draw?.open?.odds) });
+          markets.push({ key:'h2h', outcomes:h2hOutcomes });
         }
         // Spread — o.spread is already SIGNED (negative = home gives points, e.g. -1.5)
         // Juice lives at o.pointSpread.home/away.close.odds (strings)
@@ -2909,7 +2915,8 @@ function renderGameCard(g, gamePcts={}) {
     </button>`;
   };
 
-  const mlH = ml ? `${oddsBtn('h2h', ml.find(o=>o.name===away)||ml[0])}${oddsBtn('h2h', ml.find(o=>o.name===home)||ml[1])}` : '<span class="no-odds">TBD</span>';
+  const mlDraw = ml && ml.find(o=>o.name==='Draw');
+  const mlH = ml ? `${oddsBtn('h2h', ml.find(o=>o.name===away)||ml[0])}${oddsBtn('h2h', ml.find(o=>o.name===home)||ml[1])}${mlDraw?oddsBtn('h2h', mlDraw):''}` : '<span class="no-odds">TBD</span>';
   const spH = sp ? `${oddsBtn('spreads', sp.find(o=>o.name===away)||sp[0])}${oddsBtn('spreads', sp.find(o=>o.name===home)||sp[1])}` : '<span class="no-odds">TBD</span>';
   const totH = tot ? `${oddsBtn('totals', tot.find(o=>o.name==='Over')||tot[0])}${oddsBtn('totals', tot.find(o=>o.name==='Under')||tot[1])}` : '<span class="no-odds">TBD</span>';
 
@@ -4032,7 +4039,7 @@ async function settleSingleBet(bet, scoreFor, staleMs) {
   const info = scoreFor(bet.sport, bet.home_team, bet.away_team);
   let result;
   if (info.done) {
-    result = gradeLegOutcome(bet.market, bet.selection, bet.line, bet.home_team, bet.away_team, info.hs, info.as);
+    result = gradeLegOutcome(bet.market, bet.selection, bet.line, bet.home_team, bet.away_team, info.hs, info.as, bet.sport);
   } else if (!info.found && Date.now() - new Date(bet.commence_time).getTime() > staleMs) {
     result = 'void'; // never found a matching real event to grade against
   } else {
@@ -4069,7 +4076,7 @@ async function settleParlayBet(bet, scoreFor, staleMs) {
     const info = scoreFor(leg.sport, leg.homeTeam, leg.awayTeam);
     let result;
     if (info.done) {
-      result = gradeLegOutcome(leg.market, leg.selection, leg.line, leg.homeTeam, leg.awayTeam, info.hs, info.as);
+      result = gradeLegOutcome(leg.market, leg.selection, leg.line, leg.homeTeam, leg.awayTeam, info.hs, info.as, leg.sport);
     } else if (!info.found && Date.now() - new Date(leg.commenceTime).getTime() > staleMs) {
       result = 'void';
     } else {
@@ -4159,8 +4166,8 @@ async function settlePickemBet(bet) {
     // line locked in at submission — same gradeLegOutcome() logic the main betting flow
     // already uses for both markets, just applied per pick instead of per bet.
     const result = (data.mode === 'ats')
-      ? gradeLegOutcome('spreads', p.pick, p.line, p.homeTeam, p.awayTeam, hs, as_)
-      : gradeLegOutcome('h2h', p.pick, null, p.homeTeam, p.awayTeam, hs, as_);
+      ? gradeLegOutcome('spreads', p.pick, p.line, p.homeTeam, p.awayTeam, hs, as_, p.sport)
+      : gradeLegOutcome('h2h', p.pick, null, p.homeTeam, p.awayTeam, hs, as_, p.sport);
     graded.push({ ...p, result }); // 'won' | 'lost' | 'push'
   }
   const total = data.total || picks.length;
@@ -4223,9 +4230,17 @@ function matchEvent(events, homeTeam, awayTeam) {
 // 'void' = the market can't be fairly graded from real results — player/game props are
 // procedurally generated demo data with no real box-score behind them, so the stake is
 // refunded rather than silently forfeited (the old behavior here was an automatic loss).
-function gradeLegOutcome(market, selection, line, homeTeam, awayTeam, homeScore, awayScore) {
+const SOCCER_SPORTS = ['soccer_epl','soccer_spain_la_liga','soccer_uefa_champs_league'];
+function gradeLegOutcome(market, selection, line, homeTeam, awayTeam, homeScore, awayScore, sportKey) {
   if (market === 'h2h') {
-    if (homeScore === awayScore) return 'push';
+    if (homeScore === awayScore) {
+      // Soccer offers a real, separately-priced Draw outcome — a tie there means Home/Away
+      // picks genuinely lost to a real alternative they could have picked instead, not a
+      // push. Sports with no real 3-way market (an NFL tie, etc.) still correctly push —
+      // there was never a Draw price to have picked.
+      if (SOCCER_SPORTS.includes(sportKey)) return selection === 'Draw' ? 'won' : 'lost';
+      return 'push';
+    }
     const winner = homeScore > awayScore ? homeTeam : awayTeam;
     return winner === selection ? 'won' : 'lost';
   }

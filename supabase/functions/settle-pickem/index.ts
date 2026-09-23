@@ -74,8 +74,8 @@ Deno.serve(async (req) => {
       if (!hc || !ac) return json({ status: "pending", reason: "score not available yet" }, 200, origin);
       const hs = parseInt(hc.score) || 0, as_ = parseInt(ac.score) || 0;
       const result = parsed.mode === "ats"
-        ? gradeLegOutcome("spreads", p.pick, p.line, p.homeTeam, p.awayTeam, hs, as_)
-        : gradeLegOutcome("h2h", p.pick, null, p.homeTeam, p.awayTeam, hs, as_);
+        ? gradeLegOutcome("spreads", p.pick, p.line, p.homeTeam, p.awayTeam, hs, as_, p.sport)
+        : gradeLegOutcome("h2h", p.pick, null, p.homeTeam, p.awayTeam, hs, as_, p.sport);
       graded.push({ ...p, result });
     }
 

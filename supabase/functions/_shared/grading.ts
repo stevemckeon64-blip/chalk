@@ -20,6 +20,8 @@ export const ESPN_PATH: Record<string, string> = {
   mma_mixed_martial_arts: "mma/ufc",
 };
 
+export const SOCCER_SPORTS = ["soccer_epl", "soccer_spain_la_liga", "soccer_uefa_champs_league"];
+
 export function corsHeaders(origin: string | null) {
   return {
     "Access-Control-Allow-Origin": origin ?? "*",
@@ -74,9 +76,17 @@ export function scoreFor(events: any[], homeTeam: string, awayTeam: string) {
 export function gradeLegOutcome(
   market: string, selection: string, line: string | number | null,
   homeTeam: string, awayTeam: string, homeScore: number, awayScore: number,
+  sportKey?: string,
 ): "won" | "lost" | "push" | "void" {
   if (market === "h2h") {
-    if (homeScore === awayScore) return "push";
+    if (homeScore === awayScore) {
+      // Soccer offers a real, separately-priced Draw outcome — a tie means Home/Away
+      // picks genuinely lost to a real alternative, not a push. Sports with no real
+      // 3-way market still correctly push. See index.html's gradeLegOutcome for the
+      // full note.
+      if (sportKey && SOCCER_SPORTS.includes(sportKey)) return selection === "Draw" ? "won" : "lost";
+      return "push";
+    }
     const winner = homeScore > awayScore ? homeTeam : awayTeam;
     return winner === selection ? "won" : "lost";
   }
@@ -124,6 +134,10 @@ export function extractMarket(ev: any, market: string, selection: string, homeNa
     if (isNaN(hML) || isNaN(aML)) return null;
     if (selection === homeName) return { odds: hML, line: null as number | null };
     if (selection === awayName) return { odds: aML, line: null as number | null };
+    if (selection === "Draw") {
+      const dML = parseInt(o.moneyline?.draw?.close?.odds);
+      if (!isNaN(dML)) return { odds: dML, line: null as number | null };
+    }
     return null;
   }
   if (market === "spreads") {
