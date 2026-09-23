@@ -141,8 +141,11 @@ export function extractMarket(ev: any, market: string, selection: string, homeNa
     return null;
   }
   if (market === "spreads") {
-    if (typeof o.spread !== "number") return null;
-    const homePt = o.spread;
+    // o.spread is a convenience number some sports duplicate at the top level, but it's not
+    // universal — soccer only carries the real line inside o.pointSpread.home.close.line (a
+    // string). Reading that directly works for every sport that has a spread at all.
+    const homePt = parseFloat(o.pointSpread?.home?.close?.line ?? o.spread);
+    if (isNaN(homePt)) return null;
     const hOdds = parseInt(o.pointSpread?.home?.close?.odds ?? "-110");
     const aOdds = parseInt(o.pointSpread?.away?.close?.odds ?? "-110");
     if (selection === homeName) return { odds: isNaN(hOdds) ? -110 : hOdds, line: homePt };

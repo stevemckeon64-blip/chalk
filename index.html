@@ -2214,10 +2214,15 @@ async function fetchOdds(sport) {
           if (!isNaN(dML)) h2hOutcomes.push({ name:'Draw', price:dML, openPrice:openInt(o.moneyline?.draw?.open?.odds) });
           markets.push({ key:'h2h', outcomes:h2hOutcomes });
         }
-        // Spread — o.spread is already SIGNED (negative = home gives points, e.g. -1.5)
+        // Spread — o.spread is a convenience number some sports (NFL, etc.) duplicate at
+        // the top level, but it's NOT universal: soccer carries the real spread ONLY inside
+        // o.pointSpread.home.close.line (a string, e.g. "-0.5") with no top-level o.spread
+        // at all. Reading o.pointSpread directly works for every sport that has one — this
+        // used to mean soccer never showed a spread market at all, real data or not.
+        const homePtRaw = parseFloat(o.pointSpread?.home?.close?.line ?? o.spread);
         // Juice lives at o.pointSpread.home/away.close.odds (strings)
-        if (typeof o.spread === 'number') {
-          const homePt = o.spread;
+        if (!isNaN(homePtRaw)) {
+          const homePt = homePtRaw;
           const hSpOdds = parseInt(o.pointSpread?.home?.close?.odds ?? '-110');
           const aSpOdds = parseInt(o.pointSpread?.away?.close?.odds ?? '-110');
           markets.push({ key:'spreads', outcomes:[
