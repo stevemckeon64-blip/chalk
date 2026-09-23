@@ -3671,6 +3671,36 @@ async function placeBet() {
     } catch(e) { console.error('place-futures function error', e); }
   }
 
+  // Tennis: server-eligible for any single moneyline pick — re-derives the real
+  // ranking-based price itself. See supabase/functions/place-tennis.
+  const tennisEligible = !isParlay && !isRR && leg0.sport === 'tennis_atp' && leg0.market === 'h2h';
+  if (tennisEligible) {
+    try {
+      const { data, error } = await sb.functions.invoke('place-tennis', { body: {
+        selection: leg0.selection, home_team: leg0.homeTeam, away_team: leg0.awayTeam, game_id: leg0.gameId, stake,
+      }});
+      if (!error && data?.bet) {
+        profile.balance = data.new_balance;
+        animateBalance(profile.balance);
+        const confNum = 'CHK' + Date.now().toString().slice(-8);
+        const slipSnapshot = [...betSlipLegs];
+        betSlipLegs = [];
+        updateFab(); closeBetSlip(); flashBalance('dn');
+        showBetReceipt({ label: leg0.selection, odds: data.bet.odds, stake, payout: data.bet.potential_payout,
+          confNum, isParlay:false, isRR:false, combosCount:0, legs: slipSnapshot });
+        const curBadge = parseInt(document.getElementById('betsBadge')?.textContent||'0')||0;
+        updateBetsBadge(curBadge + 1);
+        return;
+      }
+      if (data?.error === 'insufficient balance') {
+        btn.textContent='Place Bet'; btn.disabled=false; showToast('Insufficient balance','error'); return;
+      }
+      if (data?.error && data.error !== 'not_yet_supported') {
+        btn.textContent='Place Bet'; btn.disabled=false; showToast('Error placing bet','error'); return;
+      }
+    } catch(e) { console.error('place-tennis function error', e); }
+  }
+
   const newBal = await applyBalanceDelta(-totalStake);
   if (newBal < 0) {
     // Balance moved (another bet, another tab) between the check above and now — undo and bail.
@@ -4024,6 +4054,22 @@ async function settleSingleBet(bet, scoreFor, staleMs) {
       if (!error) return; // genuinely still pending (a season can take months) or already settled
     } catch(e) { console.error('settle-futures function error', e); }
     await settleFuturesBet(bet); return;
+  }
+  if (bet.sport === 'tennis_atp' && bet.market === 'h2h') {
+    // Server-first (see supabase/functions/settle-tennis) — tennis has no numeric score,
+    // so this checks the real winner flag from a completed match, not a score comparison.
+    try {
+      const { data, error } = await sb.functions.invoke('settle-tennis', { body: { bet_id: bet.id } });
+      if (!error && data && data.status && data.status !== 'pending' && !data.already_settled) {
+        const { data: fresh } = await sb.from('profiles').select('balance').eq('id', user.id).single();
+        if (fresh) profile.balance = fresh.balance;
+        await creditAndNotify(bet, data.status, data.payout || 0, null, true);
+        return;
+      }
+      if (!error) return; // still pending, or already settled elsewhere
+    } catch(e) { console.error('settle-tennis function error', e); }
+    // Falls through to the existing scoreFor/gradeLegOutcome path below only on a genuine
+    // function-call error — that path already handles tennis via fetchTennisPseudoEvents.
   }
   // Supported single-bet shapes settle for real on the server (supabase/functions/
   // settle-bet) — it re-fetches the actual ESPN score itself rather than trusting

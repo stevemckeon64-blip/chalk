@@ -272,6 +272,74 @@ export async function fetchAwardWinner(cfg: typeof FUTURES_CONFIG[number]) {
   return ref ? await resolveRefName(ref) : null;
 }
 
+// ── Tennis (ATP) — rank-derived odds, no real betting market from ESPN ────
+// Ported from fetchTennisOdds()/fetchAtpRankings()/fetchTennisPseudoEvents() client-side.
+export function probToAmericanOdds(p: number): number {
+  if (p >= 50) return Math.round(-(p / (100 - p)) * 100);
+  return Math.round(((100 - p) / p) * 100);
+}
+export async function fetchAtpRankings(): Promise<Record<string, number>> {
+  const res = await fetch("https://site.api.espn.com/apis/site/v2/sports/tennis/atp/rankings");
+  const j = await res.json();
+  const ranks = j.rankings?.[0]?.ranks || [];
+  const map: Record<string, number> = {};
+  for (const r of ranks) if (r.athlete?.id && r.current) map[r.athlete.id] = r.current;
+  return map;
+}
+// The player's ESPN id lives on the competitor object itself (competitor.id), not nested
+// under competitor.athlete.id — see the Wave-tagged fix note in index.html's fetchTennisOdds.
+export function rankOddsFor(rankMap: Record<string, number>, homeId: string, awayId: string) {
+  const hr = rankMap[homeId], ar = rankMap[awayId];
+  if (!hr || !ar) return null;
+  const pHome = Math.round((ar / (hr + ar)) * 100);
+  const clamped = Math.min(95, Math.max(5, pHome));
+  return { homeOdds: probToAmericanOdds(clamped), awayOdds: probToAmericanOdds(100 - clamped) };
+}
+export async function findTennisMatch(homeTeam: string, awayTeam: string, daysAhead = 10) {
+  const fmtDate = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
+  const today = new Date();
+  for (let i = 0; i < daysAhead; i++) {
+    const d = new Date(today); d.setDate(today.getDate() + i);
+    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=${fmtDate(d)}`);
+    const j = await res.json().catch(() => ({ events: [] }));
+    for (const tev of (j.events || [])) {
+      const grouping = (tev.groupings || []).find((g: any) => g.grouping?.slug === "mens-singles") || tev.groupings?.[0];
+      for (const comp of (grouping?.competitions || [])) {
+        const cs = comp.competitors || [];
+        const home = cs.find((c: any) => c.homeAway === "home") || cs[1];
+        const away = cs.find((c: any) => c.homeAway === "away") || cs[0];
+        const hn = home?.athlete?.displayName, an = away?.athlete?.displayName;
+        if (hn === homeTeam && an === awayTeam) return { comp, home, away };
+      }
+    }
+  }
+  return null;
+}
+// Settlement: scans the last few days of real results for a completed match with this
+// exact matchup, same window fetchTennisPseudoEvents() uses client-side.
+export async function findCompletedTennisMatch(homeTeam: string, awayTeam: string, daysBack = 4) {
+  const fmtDate = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
+  const today = new Date();
+  for (let i = 0; i < daysBack; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=${fmtDate(d)}`);
+    const j = await res.json().catch(() => ({ events: [] }));
+    for (const tev of (j.events || [])) {
+      const grouping = (tev.groupings || []).find((g: any) => g.grouping?.slug === "mens-singles") || tev.groupings?.[0];
+      for (const comp of (grouping?.competitions || [])) {
+        if (!comp.status?.type?.completed) continue;
+        const cs = comp.competitors || [];
+        const home = cs.find((c: any) => c.homeAway === "home") || cs[1];
+        const away = cs.find((c: any) => c.homeAway === "away") || cs[0];
+        if (home?.athlete?.displayName === homeTeam && away?.athlete?.displayName === awayTeam) {
+          return { winnerIsHome: home.winner === true };
+        }
+      }
+    }
+  }
+  return null;
+}
+
 export function pickemMultiplier(correct: number, total: number): number {
   if (!total) return 0;
   const missed = total - correct;
