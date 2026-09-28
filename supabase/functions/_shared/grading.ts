@@ -203,6 +203,19 @@ export function extractMarket(ev: any, market: string, selection: string, homeNa
   return null;
 }
 
+// ── ESPN access ──────────────────────────────────────────────────────────
+// ESPN's CDN answers site.api.espn.com with 403 "Access Denied" for Supabase's servers (the
+// browser app is unaffected). site.web.api.espn.com serves the identical API and isn't
+// blocked. Every call goes through espnJson, which THROWS on any failure: a blocked or broken
+// response must never read as "game not found" — settlement voids not-found games after 6h,
+// and treating a 403 as an empty scoreboard once voided every pick in four Pick'em slates.
+export const ESPN_SITE = "https://site.web.api.espn.com/apis/site/v2/sports";
+export async function espnJson(url: string) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`ESPN ${res.status} for ${url}`);
+  try { return await res.json(); } catch { throw new Error(`ESPN returned non-JSON for ${url}`); }
+}
+
 // ── Scoreboard fetching ──────────────────────────────────────────────────
 // ESPN's scoreboard now rejects multi-day ranges (dates=YYYYMMDD-YYYYMMDD → 400) for every
 // team sport, so every window is fetched one day at a time. limit=300: at limit>=999 ESPN
@@ -211,11 +224,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export const fmtDay = (ms: number) => new Date(ms).toISOString().slice(0, 10).replace(/-/g, "");
 
 export async function fetchDay(espnPath: string, day: string, limit = 300) {
-  try {
-    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard?dates=${day}&limit=${limit}`);
-    const j = await res.json();
-    return j.events || [];
-  } catch { return []; }
+  const j = await espnJson(`${ESPN_SITE}/${espnPath}/scoreboard?dates=${day}&limit=${limit}`);
+  return j.events || [];
 }
 export async function fetchDays(espnPath: string, days: string[], limit = 300) {
   const perDay = await Promise.all([...new Set(days)].map((d) => fetchDay(espnPath, d, limit)));
@@ -282,10 +292,8 @@ export async function cashOutQuote(bet: any) {
   }
   if (!/^\d+$/.test(String(bet.game_id || ""))) return UNAVAILABLE("This bet isn't linked to a live ESPN game.");
   let j: any;
-  try {
-    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${ESPN_PATH[bet.sport]}/summary?event=${bet.game_id}`);
-    j = await res.json();
-  } catch { return UNAVAILABLE("Couldn't reach live game data. Try again in a moment."); }
+  try { j = await espnJson(`${ESPN_SITE}/${ESPN_PATH[bet.sport]}/summary?event=${bet.game_id}`); }
+  catch { return UNAVAILABLE("Couldn't reach live game data. Try again in a moment."); }
   const comp = j?.header?.competitions?.[0];
   if (!comp || !namesMatch({ competitions: [comp] }, bet.home_team, bet.away_team)) return UNAVAILABLE("Couldn't find this game's live data.");
   if (comp.status?.type?.state !== "in") return UNAVAILABLE("Cash-out opens once the game is live.");
@@ -395,8 +403,7 @@ export function probToAmericanOdds(p: number): number {
   return Math.round(((100 - p) / p) * 100);
 }
 export async function fetchAtpRankings(): Promise<Record<string, number>> {
-  const res = await fetch("https://site.api.espn.com/apis/site/v2/sports/tennis/atp/rankings");
-  const j = await res.json();
+  const j = await espnJson(`${ESPN_SITE}/tennis/atp/rankings`);
   const ranks = j.rankings?.[0]?.ranks || [];
   const map: Record<string, number> = {};
   for (const r of ranks) if (r.athlete?.id && r.current) map[r.athlete.id] = r.current;
@@ -416,8 +423,7 @@ export async function findTennisMatch(homeTeam: string, awayTeam: string, daysAh
   const today = new Date();
   for (let i = 0; i < daysAhead; i++) {
     const d = new Date(today); d.setDate(today.getDate() + i);
-    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=${fmtDate(d)}`);
-    const j = await res.json().catch(() => ({ events: [] }));
+    const j = await espnJson(`${ESPN_SITE}/tennis/atp/scoreboard?dates=${fmtDate(d)}`);
     for (const tev of (j.events || [])) {
       const grouping = (tev.groupings || []).find((g: any) => g.grouping?.slug === "mens-singles") || tev.groupings?.[0];
       for (const comp of (grouping?.competitions || [])) {
@@ -438,8 +444,7 @@ export async function findCompletedTennisMatch(homeTeam: string, awayTeam: strin
   const today = new Date();
   for (let i = 0; i < daysBack; i++) {
     const d = new Date(today); d.setDate(today.getDate() - i);
-    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=${fmtDate(d)}`);
-    const j = await res.json().catch(() => ({ events: [] }));
+    const j = await espnJson(`${ESPN_SITE}/tennis/atp/scoreboard?dates=${fmtDate(d)}`);
     for (const tev of (j.events || [])) {
       const grouping = (tev.groupings || []).find((g: any) => g.grouping?.slug === "mens-singles") || tev.groupings?.[0];
       for (const comp of (grouping?.competitions || [])) {

@@ -2609,12 +2609,12 @@ async function fetchTennisPseudoEvents() {
   const fmtDate = d => d.toISOString().slice(0,10).replace(/-/g,'');
   const today = new Date();
   const days = Array.from({length: 4}, (_, i) => { const d = new Date(today); d.setDate(today.getDate()-i); return d; });
+  // Throws if any day fails to load: a missing day must not read as "no such match", or a
+  // tennis bet would void after 6h (same rule as fetchDay).
   const perDay = await Promise.all(days.map(async d => {
-    try {
-      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=${fmtDate(d)}`);
-      const json = await res.json();
-      return json.events || [];
-    } catch(e) { return []; }
+    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=${fmtDate(d)}`);
+    if (!res.ok) throw new Error(`ESPN ${res.status}`);
+    return (await res.json()).events || [];
   }));
   const pseudoEvents = [];
   for (const tev of perDay.flat()) {
@@ -4171,10 +4171,12 @@ async function fetchLegEvents(legs, ttlMs) {
     daysAround(new Date(l.commenceTime).getTime()).forEach(d => set.add(d));
   }
   await Promise.all(Object.entries(bySport).map(async ([sport, days]) => {
-    const events = sport.startsWith('tennis_')
-      ? await fetchTennisPseudoEvents()
-      : await fetchDays(SPORTS[sport].espn, [...days], 300, ttlMs);
-    mergeTrackEvents(sport, events);
+    try {
+      const events = sport.startsWith('tennis_')
+        ? await fetchTennisPseudoEvents()
+        : await fetchDays(SPORTS[sport].espn, [...days], 300, ttlMs);
+      mergeTrackEvents(sport, events);
+    } catch(e) { console.error('live score fetch error', sport, e); }
   }));
 }
 // Open bets: any leg that's started or starts within 3 hours (older than 5 days is left to
@@ -4820,11 +4822,18 @@ async function fetchDay(espnPath, day, limit = 300, ttlMs = 45000) {
   const key = `${espnPath}_${day}_${limit}`;
   const hit = _dayCache[key];
   if (hit && Date.now() - hit.ts < ttlMs) return hit.data;
-  let data = [];
+  // A failed fetch THROWS (after falling back to any cached copy) — it must never read as an
+  // empty scoreboard, because settlement voids games it can't find once 6h have passed.
+  let data;
   try {
     const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard?dates=${day}&limit=${limit}`);
+    if (!res.ok) throw new Error(`ESPN ${res.status}`);
     data = (await res.json()).events || [];
-  } catch(e) { console.error('scoreboard fetch error', espnPath, day, e); if (hit) return hit.data; }
+  } catch(e) {
+    console.error('scoreboard fetch error', espnPath, day, e);
+    if (hit) return hit.data;
+    throw e;
+  }
   _dayCache[key] = { data, ts: Date.now() };
   return data;
 }
