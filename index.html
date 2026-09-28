@@ -399,6 +399,23 @@ body::after{
 .bet-status-tabs{display:flex;gap:6px;margin:0 0 14px;overflow-x:auto;scrollbar-width:none}
 .bst-btn{background:var(--bg-c);border:1px solid var(--bdr);border-radius:20px;color:var(--t2);font-size:11px;font-weight:700;padding:5px 12px;white-space:nowrap;transition:all .15s}
 .bst-btn.active{background:var(--gold);border-color:var(--gold);color:#000}
+.bet-search-row{margin-bottom:10px}
+.bet-search-input{width:100%;background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--r);padding:9px 12px;color:var(--t1);font-size:13px}
+.bet-search-input::placeholder{color:var(--t3)}
+.bet-search-input:focus{outline:none;border-color:var(--gold)}
+
+/* ── PARLAY / PICK'EM LEG ROWS ───────────────────────────── */
+.bet-legs-list{display:flex;flex-direction:column;gap:5px;margin:6px 0}
+.bet-leg-row{display:flex;align-items:center;gap:9px;font-size:12px;padding:7px 9px;background:rgba(255,255,255,.03);border-radius:7px}
+.leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--t3)}
+.leg-dot.lg-won{background:#30D158}.leg-dot.lg-lost{background:var(--loss)}
+.leg-dot.lg-push{background:var(--push)}.leg-dot.lg-void{background:var(--push)}
+.leg-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.leg-matchup{color:var(--t3);font-size:10px}
+.leg-pick{color:var(--t1);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leg-odds{color:var(--t2);font-weight:700;flex-shrink:0;font-size:11px}
+.legs-toggle{background:none;border:none;color:var(--gold);font-size:11px;font-weight:700;cursor:pointer;padding:4px 0 2px;text-align:left;width:100%}
+.legs-toggle:hover{text-decoration:underline}
 .bft-btn{padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.06em;border:1px solid var(--bdr);color:var(--t2);background:none;cursor:pointer;white-space:nowrap;transition:all .15s}
 .bft-btn.active{background:var(--gold-bg);border-color:var(--gold);color:var(--gold)}
 .parlay-legs-list{margin-bottom:12px}
@@ -3836,6 +3853,53 @@ function updateTierChip() {
   chip.style.borderColor = tier.color + '40';
 }
 
+// ── Readable per-leg rows for parlays & Pick'em slates ──────────────
+// Each leg/pick gets its own row with real matchup context (which game this is actually
+// from, not just the team name picked) — replaces the old cramped inline dot-list that
+// made a 5-leg parlay or a 10-game slate genuinely hard to review at a glance.
+const LEG_RESULT_CLASS = { won:'lg-won', lost:'lg-lost', push:'lg-push', void:'lg-void' };
+function legRow(matchup, pickLabel, oddsStr, result) {
+  const cls = LEG_RESULT_CLASS[result] || '';
+  return `<div class="bet-leg-row">
+    <span class="leg-dot ${cls}"></span>
+    <span class="leg-main">
+      ${matchup ? `<span class="leg-matchup">${esc(matchup)}</span>` : ''}
+      <span class="leg-pick">${esc(pickLabel)}</span>
+    </span>
+    ${oddsStr ? `<span class="leg-odds">${esc(oddsStr)}</span>` : ''}
+  </div>`;
+}
+function toggleLegsMore(id, btn, total) {
+  const r = document.getElementById(id);
+  if (!r) return;
+  const showing = r.style.display !== 'none';
+  r.style.display = showing ? 'none' : 'flex';
+  btn.textContent = showing ? `Show all ${total} legs ▾` : 'Show fewer ▴';
+}
+// Renders the first few rows inline and tucks the rest behind a "Show all" toggle —
+// keeps a 10-game Pick'em slate from turning a compact card into a wall of text.
+function buildLegsSection(rows, noun) {
+  if (!rows.length) return '';
+  const showN = 3;
+  if (rows.length <= showN) return `<div class="bet-legs-list">${rows.join('')}</div>`;
+  const id = 'legs_' + Math.random().toString(36).slice(2, 9);
+  return `<div class="bet-legs-list">${rows.slice(0, showN).join('')}</div>
+    <div class="bet-legs-list" id="${id}" style="display:none">${rows.slice(showN).join('')}</div>
+    <button class="legs-toggle" onclick="toggleLegsMore('${id}', this, ${rows.length})">Show all ${rows.length} ${noun} ▾</button>`;
+}
+// Lowercase search blob per bet — team names, sport, selection, and (for parlays/Pick'em)
+// every leg's real matchup, so searching "Chiefs" finds a bet even when it's buried inside
+// a 6-leg parlay, not just when it's the top-level selection.
+function searchBlobFor(b) {
+  const parts = [b.sport, b.home_team, b.away_team, b.selection, b.market];
+  try {
+    if (b.market === 'parlay') (JSON.parse(b.selection).legs||[]).forEach(l=>parts.push(l.homeTeam,l.awayTeam,l.selection,l.sport));
+    if (b.market === 'pickem') (JSON.parse(b.selection).picks||[]).forEach(p=>parts.push(p.homeTeam,p.awayTeam,p.pick,p.sport));
+  } catch(e) {}
+  return parts.filter(Boolean).join(' ').toLowerCase();
+}
+
+let _activeBetFilter = 'all';
 function renderBets(bets) {
   // Update "My Bets" nav badge with open bet count
   const openCount = bets.filter(b=>b.status==='pending').length;
@@ -3868,22 +3932,32 @@ function renderBets(bets) {
     const pnlVal = b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:(b.status==='push'||b.status==='void')?0:null;
     const d = new Date(b.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
 
-    // Per-leg / per-pick result chips — populated once settlement writes each one's graded
-    // outcome back into this same JSON column (same pattern for parlays and Pick'em slates).
-    const legResultDot = { won:'#30D158', lost:'var(--loss)', void:'var(--push)', push:'var(--push)' };
+    // Per-leg / per-pick rows — populated once settlement writes each one's graded outcome
+    // back into this same JSON column (same pattern for parlays and Pick'em slates). Each
+    // row shows the real matchup it came from, not just the team name that was picked —
+    // without that, a 6-leg parlay or a 10-game slate is a list of team names with no way
+    // to tell which game any of them actually belong to.
     let legsList = '';
     if (isParlay) {
       const legs = parlayMeta.legs || [];
-      legsList = `<div class="parlay-legs-count">${legs.map(l=>{
-        const dot = l.result ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${legResultDot[l.result]||'var(--t3)'};margin-right:4px"></span>` : '';
-        return `<span>${dot}${esc(l.selection)} ${fmtOdds(l.odds)}</span>`;
-      }).join(' · ')}</div>`;
+      const rows = legs.map(l => {
+        const matchup = (l.homeTeam && l.awayTeam) ? `${teamShort(l.awayTeam,l.sport)} @ ${teamShort(l.homeTeam,l.sport)}` : '';
+        const lMkt = String(l.market||'');
+        const lIsSpread = lMkt==='spreads'||lMkt.startsWith('alt_sp_'), lIsTotal = lMkt==='totals'||lMkt.startsWith('alt_tot_');
+        const lineStr = (lIsSpread||lIsTotal) && l.line!=null ? ` ${l.line>0&&lIsSpread?'+':''}${l.line}` : '';
+        const pickLabel = `${lIsTotal ? l.selection : teamShort(l.selection, l.sport)}${lineStr}`;
+        return legRow(matchup, pickLabel, fmtOdds(l.odds), l.result);
+      });
+      legsList = buildLegsSection(rows, 'legs');
     } else if (isPickem) {
+      const isAts = pickemMeta.mode === 'ats';
       const picks = pickemMeta.picks || [];
-      legsList = `<div class="parlay-legs-count">${picks.map(p=>{
-        const dot = p.result ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${legResultDot[p.result]||'var(--t3)'};margin-right:4px"></span>` : '';
-        return `<span>${dot}${esc(teamShort(p.pick, p.sport))}</span>`;
-      }).join(' · ')}</div>`;
+      const rows = picks.map(p => {
+        const matchup = (p.homeTeam && p.awayTeam) ? `${teamShort(p.awayTeam,p.sport)} @ ${teamShort(p.homeTeam,p.sport)}` : '';
+        const lineStr = isAts && p.line!=null ? ` ${p.line>0?'+':''}${p.line}` : '';
+        return legRow(matchup, `${teamShort(p.pick, p.sport)}${lineStr}`, '', p.result);
+      });
+      legsList = buildLegsSection(rows, 'picks');
     }
 
     const sportIcon = SPORTS[b.sport]?.icon || '';
@@ -3950,19 +4024,36 @@ function renderBets(bets) {
     <button class="bst-btn" onclick="filterBetView('won',this)">Won (${wonBets.length})</button>
     <button class="bst-btn" onclick="filterBetView('lost',this)">Lost (${lostBets.length})</button>
   </div>`;
-  let html = statsBar + filterTabs;
-  if (pending.length) html += `<div class="bets-section-hdr bets-grp" data-grp="open,all">Active (${pending.length})</div>${pending.map(b=>`<div class="bets-grp" data-grp="open,all">${rb(b)}</div>`).join('')}`;
-  if (wonBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="won,all">Won <span class="bets-pnl pos">+${fmt(wonBets.reduce((a,b)=>a+(b.potential_payout-b.stake),0))}</span></div>${wonBets.map(b=>`<div class="bets-grp" data-grp="won,all">${rb(b)}</div>`).join('')}`;
-  if (lostBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="lost,all">Lost <span class="bets-pnl neg">-${fmt(lostBets.reduce((a,b)=>a+b.stake,0))}</span></div>${lostBets.map(b=>`<div class="bets-grp" data-grp="lost,all">${rb(b)}</div>`).join('')}`;
-  if (otherBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="all">Pushed / Voided <span class="bets-pnl" style="color:var(--push)">${fmt(otherBets.reduce((a,b)=>a+b.stake,0))} refunded</span></div>${otherBets.map(b=>`<div class="bets-grp" data-grp="all">${rb(b)}</div>`).join('')}`;
+  // Search — matches team names, sport, and selection, reaching inside every parlay leg
+  // and every Pick'em pick too, so a bet doesn't have to be the top-level selection to be
+  // found. Combined with the status tabs above (both conditions must pass) in filterBetView.
+  const searchRow = `<div class="bet-search-row"><input type="text" class="bet-search-input" id="betSearchInput"
+    placeholder="Search by team or sport…" oninput="filterBetView()" autocomplete="off"></div>`;
+  const grp = (b, tags) => `<div class="bets-grp" data-grp="${tags}" data-search="${esc(searchBlobFor(b))}">${rb(b)}</div>`;
+  let html = statsBar + searchRow + filterTabs;
+  if (pending.length) html += `<div class="bets-section-hdr bets-grp" data-grp="open,all">Active (${pending.length})</div>${pending.map(b=>grp(b,'open,all')).join('')}`;
+  if (wonBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="won,all">Won <span class="bets-pnl pos">+${fmt(wonBets.reduce((a,b)=>a+(b.potential_payout-b.stake),0))}</span></div>${wonBets.map(b=>grp(b,'won,all')).join('')}`;
+  if (lostBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="lost,all">Lost <span class="bets-pnl neg">-${fmt(lostBets.reduce((a,b)=>a+b.stake,0))}</span></div>${lostBets.map(b=>grp(b,'lost,all')).join('')}`;
+  if (otherBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="all">Pushed / Voided <span class="bets-pnl" style="color:var(--push)">${fmt(otherBets.reduce((a,b)=>a+b.stake,0))} refunded</span></div>${otherBets.map(b=>grp(b,'all')).join('')}`;
   el.innerHTML = html;
 }
 function filterBetView(filter, btn) {
-  document.querySelectorAll('.bst-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  if (btn) {
+    document.querySelectorAll('.bst-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    _activeBetFilter = filter;
+  } else {
+    filter = _activeBetFilter;
+  }
+  const term = (document.getElementById('betSearchInput')?.value || '').trim().toLowerCase();
   document.querySelectorAll('.bets-grp').forEach(g => {
     const grps = g.dataset.grp ? g.dataset.grp.split(',') : ['all'];
-    g.style.display = grps.includes(filter) ? '' : 'none';
+    const statusOk = grps.includes(filter);
+    // Section headers ride on the status filter only — a header shouldn't vanish just
+    // because the search term happens not to match its own (nonexistent) label text.
+    const isHeader = g.classList.contains('bets-section-hdr');
+    const searchOk = isHeader || !term || (g.dataset.search||'').includes(term);
+    g.style.display = (statusOk && searchOk) ? '' : 'none';
   });
 }
 
