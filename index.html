@@ -202,34 +202,103 @@ body::after{
 
 /* ── MY BETS ─────────────────────────────────────────────── */
 .bets-inner{max-width:680px;margin:0 auto}
-.bets-section-hdr{display:flex;align-items:center;justify-content:space-between;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--bdr)}
-.bets-section-hdr:first-child{margin-top:0}
-.bets-pnl{font-size:12px;font-variant-numeric:tabular-nums;text-transform:none;letter-spacing:0;font-weight:800}
-.bets-pnl.pos{color:var(--win)}.bets-pnl.neg{color:var(--loss)}
-.bet-card{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);padding:14px;margin-bottom:8px;border-left-width:3px;position:relative;overflow:hidden}
-.bet-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:100%;opacity:.03;pointer-events:none}
-.bet-card.pending{border-left-color:var(--amber)}.bet-card.pending::before{background:var(--amber)}
-.bet-card.won{border-left-color:var(--win)}.bet-card.won::before{background:var(--win)}
-.bet-card.lost{border-left-color:var(--loss)}.bet-card.lost::before{background:var(--loss)}
-.bet-card.push{border-left-color:var(--push)}
-.bet-card.void{border-left-color:var(--push)}
-.bet-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
-.bet-matchup{font-size:12px;font-weight:700;flex:1;display:flex;align-items:center;gap:5px}
-.bet-matchup-logos{display:inline-flex;align-items:center;flex-shrink:0}
-.bet-matchup-logos img{width:16px;height:16px;object-fit:contain;border-radius:50%;background:rgba(255,255,255,.9);padding:1px;margin-right:-4px;border:1px solid var(--bg-c)}
-.bet-matchup-logos img:last-child{margin-right:4px}
-.bet-status-badge{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:20px;flex-shrink:0}
-.bet-live-score{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--live);background:var(--live-dim);border:1px solid rgba(255,59,48,.25);border-radius:4px;padding:2px 7px;margin-bottom:6px}
-.bet-status-badge.pending{background:rgba(232,160,32,.15);color:var(--amber)}
-.bet-status-badge.won{background:rgba(77,184,122,.15);color:var(--win)}
-.bet-status-badge.lost{background:rgba(217,84,84,.12);color:var(--loss)}
-.bet-status-badge.push{background:rgba(107,122,141,.12);color:var(--push)}
-.bet-status-badge.void{background:rgba(107,122,141,.12);color:var(--push)}
-.bet-pick{font-size:12px;color:var(--t2);margin-bottom:8px}
-.bet-pick b{color:var(--t1)}.bet-pick .bet-odds{color:var(--t3);font-weight:700}
-.bet-footer{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--t2)}
-.bet-footer .pos{color:var(--win);font-weight:800}.bet-footer .neg{color:var(--loss);font-weight:800}
-.bet-date{margin-left:auto;color:var(--t3)}
+.mb-seg{display:grid;grid-template-columns:1fr 1fr;gap:3px;background:var(--bg-s);border:1px solid var(--bdr);border-radius:var(--r);padding:3px;margin-bottom:10px}
+.mb-seg button{display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 8px;border-radius:7px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);transition:background .15s,color .15s}
+.mb-seg button.on{background:var(--bg-ch);color:var(--t1);box-shadow:inset 0 -2px 0 var(--gold)}
+.mb-seg button:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.mb-seg .cnt{font-size:10px;letter-spacing:0;padding:1px 7px;border-radius:10px;background:var(--gold-dim);color:var(--gold);font-variant-numeric:tabular-nums}
+.mb-seg button:not(.on) .cnt{background:rgba(255,255,255,.05);color:var(--t2)}
+.mb-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--bdr);border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden;margin-bottom:10px}
+.mb-stat{background:var(--bg-c);padding:10px 12px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.mb-stat-lbl{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t3)}
+.mb-stat-val{font-family:'Russo One',sans-serif;font-size:17px;line-height:1.15;font-variant-numeric:tabular-nums;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mb-stat-val.pos{color:var(--win)}.mb-stat-val.neg{color:var(--loss)}.mb-stat-val.live{color:var(--live)}
+.mb-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px}
+.mb-chips::-webkit-scrollbar{display:none}
+.mb-chip{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;background:var(--bg-c);border:1px solid var(--bdr);border-radius:20px;color:var(--t2);font-size:11px;font-weight:700;padding:5px 12px;white-space:nowrap;transition:all .15s}
+.mb-chip span{font-size:10px;color:var(--t3);font-variant-numeric:tabular-nums}
+.mb-chip.on{background:var(--gold);border-color:var(--gold);color:#000}
+.mb-chip.on span{color:rgba(0,0,0,.55)}
+.mb-chip:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.mb-search{width:100%;background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--r);padding:9px 12px;color:var(--t1);font:inherit;font-size:13px;margin:2px 0 4px}
+.mb-search::placeholder{color:var(--t3)}
+.mb-search:focus{outline:none;border-color:var(--gold)}
+.mb-group-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t2);margin:18px 2px 8px;font-variant-numeric:tabular-nums}
+.mb-group-hdr > span:first-child{display:inline-flex;align-items:center;gap:7px}
+.mb-group-hdr.is-live{color:var(--live)}
+.mb-group-hdr .pos{color:var(--win)}.mb-group-hdr .neg{color:var(--loss)}
+.mb-live-dot{width:7px;height:7px;border-radius:50%;background:var(--live);flex-shrink:0;animation:mbBlink 1.4s ease-in-out infinite}
+@keyframes mbBlink{50%{opacity:.35}}
+.mb-card{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);padding:12px 14px;margin-bottom:8px}
+.mb-card.b-live,.mb-card.b-winning,.mb-card.b-losing{border-color:rgba(255,59,48,.28)}
+.mb-card.b-busted{border-color:rgba(255,59,48,.16)}
+.mb-head{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left}
+.mb-title{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mb-title-main{display:flex;align-items:baseline;gap:8px;font-size:14px;font-weight:700;color:var(--t1);line-height:1.3}
+.mb-title-odds{font-size:12px;font-weight:600;color:var(--t2);font-variant-numeric:tabular-nums;flex-shrink:0}
+.mb-title-sub{display:block;font-size:11px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mb-badge{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:20px;background:rgba(255,255,255,.05);color:var(--t2);white-space:nowrap}
+.mb-badge .mb-live-dot{width:6px;height:6px;background:currentColor}
+.mb-badge.b-won,.mb-badge.b-winning{background:var(--win-dim);color:var(--win)}
+.mb-badge.b-lost,.mb-badge.b-losing,.mb-badge.b-busted{background:var(--loss-dim);color:var(--loss)}
+.mb-badge.b-live{background:var(--live-dim);color:var(--live)}
+.mb-badge.b-cashed{background:var(--gold-dim);color:var(--gold)}
+.mb-badge.b-open{background:rgba(255,159,10,.1);color:var(--amber)}
+.mb-ladder{display:flex;gap:3px;margin-top:10px}
+.mb-ladder i{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.08)}
+.mb-ladder i.st-hit{background:var(--win)}
+.mb-ladder i.st-miss{background:var(--loss)}
+.mb-ladder i.st-winning{background:rgba(48,209,88,.5);animation:mbBlink 1.4s ease-in-out infinite}
+.mb-ladder i.st-losing{background:rgba(255,59,48,.5);animation:mbBlink 1.4s ease-in-out infinite}
+.mb-ladder i.st-even,.mb-ladder i.st-live{background:rgba(255,159,10,.55);animation:mbBlink 1.4s ease-in-out infinite}
+.mb-ladder i.st-push,.mb-ladder i.st-void{background:var(--push)}
+.mb-progress{font-size:11px;color:var(--t2);margin-top:6px}
+.mb-legs{display:flex;flex-direction:column;margin-top:10px;border-top:1px solid var(--bdr)}
+.mb-leg{display:grid;grid-template-columns:68px minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 0;border-bottom:1px solid var(--bdr)}
+.mb-leg:last-child{border-bottom:none;padding-bottom:2px}
+.mb-legs.compact{padding-top:9px}
+.mb-legs.compact .mb-leg-meta{font-size:12px}
+.mb-pill{display:block;text-align:center;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:4px 2px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;background:rgba(255,255,255,.05);color:var(--t2);font-variant-numeric:tabular-nums}
+.mb-pill.st-hit{background:var(--win-dim);color:var(--win)}
+.mb-pill.st-miss{background:var(--loss-dim);color:var(--loss)}
+.mb-pill.st-winning{background:transparent;color:var(--win);box-shadow:inset 0 0 0 1px rgba(48,209,88,.55)}
+.mb-pill.st-losing{background:transparent;color:var(--loss);box-shadow:inset 0 0 0 1px rgba(255,59,48,.55)}
+.mb-pill.st-even,.mb-pill.st-live{background:transparent;color:var(--amber);box-shadow:inset 0 0 0 1px rgba(255,159,10,.55)}
+.mb-pill.st-upcoming{text-transform:none;letter-spacing:.02em}
+.mb-pill.st-awaiting{color:var(--amber)}
+.mb-pill.st-push,.mb-pill.st-void,.mb-pill.st-untracked,.mb-pill.st-checking{color:var(--t3)}
+.mb-leg-body{min-width:0;display:flex;flex-direction:column;gap:2px}
+.mb-leg-pick{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 8px;font-size:13px;font-weight:700;color:var(--t1)}
+.mb-leg-mkt{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.02em}
+.mb-leg.dim .mb-leg-pick{color:var(--t2)}
+.mb-leg-meta{display:flex;flex-wrap:wrap;align-items:center;gap:0 6px;font-size:11px;color:var(--t3)}
+.mb-leg-meta .sep{opacity:.5}
+.mb-score{color:var(--t2);font-weight:700;font-variant-numeric:tabular-nums}
+.mb-leg-need{font-size:11px;font-weight:700}
+.mb-leg-need.good{color:var(--win)}.mb-leg-need.bad{color:var(--loss)}.mb-leg-need.meh{color:var(--amber)}
+.mb-leg-note{font-size:10px;color:var(--t3)}
+.mb-leg-odds{font-size:12px;font-weight:700;color:var(--t2);font-variant-numeric:tabular-nums;margin-top:1px}
+.mb-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--t2);margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)}
+.mb-foot b{color:var(--t1);font-variant-numeric:tabular-nums}
+.mb-foot-date{margin-left:auto;color:var(--t3)}
+.mb-card.past{padding:0}
+.mb-toggle{padding:12px 14px;border-radius:var(--rl);cursor:pointer;transition:background .15s}
+.mb-toggle:hover{background:rgba(255,255,255,.025)}
+.mb-toggle:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.mb-card.past > .mb-ladder{margin:-4px 14px 12px}
+.mb-card.past > .mb-legs{margin:0 14px}
+.mb-card.past > .mb-foot{margin:0 14px;padding-bottom:12px}
+.mb-result{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.mb-pnl{font-family:'Russo One',sans-serif;font-size:15px;line-height:1.2;font-variant-numeric:tabular-nums;color:var(--t2)}
+.mb-pnl.pos{color:var(--win)}.mb-pnl.neg{color:var(--loss)}
+.mb-chev{color:var(--t3);font-size:18px;line-height:1;align-self:center;transition:transform .2s}
+.mb-card.open .mb-chev{transform:rotate(90deg)}
+.mb-more{width:100%;padding:11px;margin-top:4px;border:1px dashed var(--bdr-h);border-radius:var(--r);color:var(--t2);font-size:12px;font-weight:700}
+.mb-more:hover{color:var(--t1);border-color:var(--gold)}
+.mb-empty{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:48px 20px;color:var(--t2);font-size:13px}
+.mb-empty-btn{background:var(--gold);color:#000;border-radius:8px;padding:9px 20px;font-size:12px;font-weight:800;letter-spacing:.04em}
+@media (max-width:420px){.mb-stat{padding:9px 10px}.mb-stat-val{font-size:15px}.mb-leg{grid-template-columns:60px minmax(0,1fr) auto;gap:8px}}
+@media (prefers-reduced-motion:reduce){.mb-live-dot,.mb-ladder i{animation:none}}
 
 /* ── LEADERBOARD ─────────────────────────────────────────── */
 .lb-inner{max-width:600px;margin:0 auto}
@@ -319,8 +388,6 @@ body::after{
 /* Leaderboard row pulse on me */
 .lb-row.me{transition:background .2s}
 /* Bet card hover */
-.bet-card{transition:border-color .15s,box-shadow .15s}
-.bet-card:hover{border-color:rgba(245,166,35,.25);box-shadow:0 2px 12px rgba(0,0,0,.4)}
 /* Odds btn press scale — mobile tap feedback */
 .odds-btn:active{transform:scale(.96)}
 .auth-btn:active,.bs-place-btn:active,.modal-save:active{transform:scale(.98)}
@@ -393,29 +460,6 @@ body::after{
 .slip-single-stake{margin-bottom:8px}
 .slip-single-label{font-size:10px;color:var(--t2);margin-bottom:4px}
 
-/* ── BET FILTER TABS ─────────────────────────────────────── */
-.bet-filter-tabs{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none}
-.bet-filter-tabs::-webkit-scrollbar{display:none}
-.bet-status-tabs{display:flex;gap:6px;margin:0 0 14px;overflow-x:auto;scrollbar-width:none}
-.bst-btn{background:var(--bg-c);border:1px solid var(--bdr);border-radius:20px;color:var(--t2);font-size:11px;font-weight:700;padding:5px 12px;white-space:nowrap;transition:all .15s}
-.bst-btn.active{background:var(--gold);border-color:var(--gold);color:#000}
-.bet-search-row{margin-bottom:10px}
-.bet-search-input{width:100%;background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--r);padding:9px 12px;color:var(--t1);font-size:13px}
-.bet-search-input::placeholder{color:var(--t3)}
-.bet-search-input:focus{outline:none;border-color:var(--gold)}
-
-/* ── PARLAY / PICK'EM LEG ROWS ───────────────────────────── */
-.bet-legs-list{display:flex;flex-direction:column;gap:5px;margin:6px 0}
-.bet-leg-row{display:flex;align-items:center;gap:9px;font-size:12px;padding:7px 9px;background:rgba(255,255,255,.03);border-radius:7px}
-.leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--t3)}
-.leg-dot.lg-won{background:#30D158}.leg-dot.lg-lost{background:var(--loss)}
-.leg-dot.lg-push{background:var(--push)}.leg-dot.lg-void{background:var(--push)}
-.leg-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.leg-matchup{color:var(--t3);font-size:10px}
-.leg-pick{color:var(--t1);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.leg-odds{color:var(--t2);font-weight:700;flex-shrink:0;font-size:11px}
-.legs-toggle{background:none;border:none;color:var(--gold);font-size:11px;font-weight:700;cursor:pointer;padding:4px 0 2px;text-align:left;width:100%}
-.legs-toggle:hover{text-decoration:underline}
 .bft-btn{padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.06em;border:1px solid var(--bdr);color:var(--t2);background:none;cursor:pointer;white-space:nowrap;transition:all .15s}
 .bft-btn.active{background:var(--gold-bg);border-color:var(--gold);color:var(--gold)}
 .parlay-legs-list{margin-bottom:12px}
@@ -1762,14 +1806,21 @@ window.addEventListener('DOMContentLoaded', async () => {
   setInterval(backgroundSettle, 2 * 60 * 1000);
 });
 let _settling = false;
+// One settlement pass at a time, whoever asks (My Bets, the 2-minute timer, a live tick) —
+// two overlapping passes could both grade and credit the same bet.
+async function settleOnce() {
+  if (_settling) return;
+  _settling = true;
+  try { await settlePending(); } catch(e) { console.error('settle error', e); }
+  finally { _settling = false; }
+}
 async function backgroundSettle() {
   if (_settling || !user) return;
-  _settling = true;
-  try { await settlePending(); } catch(e) { console.error('background settle error', e); }
-  finally { _settling = false; }
-  if (currentView === 'bets') loadMyBets(); // reflect newly-settled bets if already looking at the list
+  await settleOnce();
+  if (currentView === 'bets') loadMyBets({ quiet: true, skipSettle: true }); // reflect newly-settled bets without a reload flash
   if (currentView === 'leaderboard') loadLeaderboard();
 }
+document.addEventListener('visibilitychange', () => { if (!document.hidden && currentView === 'bets') refreshBetsLive(); });
 
 // ── UTILS ─────────────────────────────────────────────────────────
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1785,9 +1836,15 @@ const isPlaceholderName = n => !n || /^(tbd|tba|winner of|to be determined|to be
 // State/Fresno State...). Truncating to just the mascot there can show two completely different
 // real teams as if they were the same matchup — "Tigers @ Tigers" instead of "Auburn @ LSU".
 const COLLEGE_SPORTS = ['americanfootball_ncaaf', 'basketball_ncaab'];
+const SOCCER_SPORTS = ['soccer_epl','soccer_spain_la_liga','soccer_uefa_champs_league'];
+// Two-word mascots, where the last word alone names two teams (Red Sox / White Sox).
+const TWO_WORD_MASCOTS = ['Red Sox','White Sox','Blue Jays','Trail Blazers','Maple Leafs','Golden Knights','Blue Jackets','Red Wings'];
 function teamShort(fullName, sportKey) {
   if (!fullName) return fullName;
-  return COLLEGE_SPORTS.includes(sportKey) ? fullName : fullName.split(' ').pop();
+  // Soccer keeps the full club name too: the last word is "United" for five EPL clubs.
+  if (COLLEGE_SPORTS.includes(sportKey) || SOCCER_SPORTS.includes(sportKey)) return fullName;
+  const two = TWO_WORD_MASCOTS.find(m => fullName.endsWith(' ' + m));
+  return two || fullName.split(' ').pop();
 }
 const fmt = n => '$' + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtOdds = o => {
@@ -3843,17 +3900,27 @@ function showBetReceipt({ label, odds, stake, payout, confNum, isParlay, isRR, c
 }
 
 // ── MY BETS ───────────────────────────────────────────────────────
-async function loadMyBets() {
-  document.getElementById('betsInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading…</span></div>';
-  await settlePending();
-  const { data: bets } = await sb.from('bets').select('*').eq('user_id', user.id).order('created_at',{ascending:false});
-  const all = bets||[];
-  const pending = all.filter(b=>b.status==='pending');
-  updateBetsBadge(pending.length);
-  // Recompute wagered total and refresh tier
-  totalWagered = all.reduce((acc,b)=>acc+Number(b.stake),0);
-  updateTierChip();
-  renderBets(all);
+async function loadMyBets(opts = {}) {
+  // A quiet reload (background settlement) keeps the list on screen instead of flashing a
+  // spinner and throwing away the scroll position.
+  if (!(opts.quiet && document.getElementById('betsList'))) {
+    document.getElementById('betsInner').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading…</span></div>';
+  }
+  const fetchAll = async () => (await sb.from('bets').select('*').eq('user_id', user.id).order('created_at',{ascending:false})).data || [];
+  const apply = all => {
+    updateBetsBadge(all.filter(b=>b.status==='pending').length);
+    // Recompute wagered total and refresh tier
+    totalWagered = all.reduce((acc,b)=>acc+Number(b.stake),0);
+    updateTierChip();
+    if (currentView === 'bets') renderBets(all); else _myBetsAll = all;
+  };
+  // Stored bets show right away; settlement and live scores fill in underneath.
+  apply(await fetchAll());
+  _trackLoading = true;
+  try { await Promise.all([trackCurrentLegs(), opts.skipSettle ? null : settleOnce()]); }
+  catch(e) { console.error('my bets refresh error', e); }
+  finally { _trackLoading = false; }
+  apply(opts.skipSettle ? _myBetsAll : await fetchAll());
 }
 
 function updateTierChip() {
@@ -3866,58 +3933,487 @@ function updateTierChip() {
   chip.style.borderColor = tier.color + '40';
 }
 
-// ── Readable per-leg rows for parlays & Pick'em slates ──────────────
-// Each leg/pick gets its own row with real matchup context (which game this is actually
-// from, not just the team name picked) — replaces the old cramped inline dot-list that
-// made a 5-leg parlay or a 10-game slate genuinely hard to review at a glance.
-const LEG_RESULT_CLASS = { won:'lg-won', lost:'lg-lost', push:'lg-push', void:'lg-void' };
-function legRow(matchup, pickLabel, oddsStr, result) {
-  const cls = LEG_RESULT_CLASS[result] || '';
-  return `<div class="bet-leg-row">
-    <span class="leg-dot ${cls}"></span>
-    <span class="leg-main">
-      ${matchup ? `<span class="leg-matchup">${esc(matchup)}</span>` : ''}
-      <span class="leg-pick">${esc(pickLabel)}</span>
-    </span>
-    ${oddsStr ? `<span class="leg-odds">${esc(oddsStr)}</span>` : ''}
-  </div>`;
+// ── MY BETS: CURRENT / PAST WITH LIVE LEG TRACKING ─────────────────
+// Every bet is broken into legs (a straight bet is one leg; each Pick'em pick is a leg too),
+// and each leg is checked against the real scoreboard for its own game's days. So a pending
+// parlay shows which legs already hit, which are winning or losing right now, and which
+// haven't started, instead of one "pending" badge until the whole thing settles. Settled
+// legs carry their stored result. Props and futures aren't tracked live: props refund at
+// settlement, and futures resolve when the real season does.
+const LIVE_LABELS = { live_nts:'Next Team to Score', live_nst:'Next Score Type', live_drv:'Score on Next Drive', live_qtot:'Current Quarter Total', live_qtw:'Team to Win Quarter', live_ngs:'Next Goal', live_ngs_nhl:'Next Goal', live_ppg:'Power Play Goal', live_ml:'Live Moneyline' };
+const RESULT_STATE = { won:'hit', lost:'miss', push:'push', void:'void' };
+const LEG_PILL = { hit:'✓ Hit', miss:'✗ Miss', push:'Push', void:'Void', winning:'Winning', losing:'Losing', even:'Even', live:'Live', awaiting:'Pending', checking:'···', untracked:'—' };
+const isTrackedMarket = m => m === 'h2h' || m === 'spreads' || m === 'totals' || /^alt_(sp|tot)_/.test(m);
+
+let _myBetsAll = [];
+let _betsTab = (() => { try { return localStorage.getItem('chalk_bets_tab') || 'current'; } catch(e) { return 'current'; } })();
+let _betsType = 'all', _betsResult = 'all', _betsQuery = '', _pastLimit = 40;
+let _expandedBets = new Set();
+let _trackEvents = {};       // sport → Map(id → real ESPN event) for legs on screen
+let _trackArr = {};          // sport → array view of the map above
+let _trackLoading = false;
+let _betsLiveTimer = null;
+let _settleAsked = new Set();
+
+function betType(b) {
+  if (b.market === 'parlay') return 'parlay';
+  if (b.market === 'pickem') return 'pickem';
+  if (b.sport === 'futures') return 'futures';
+  return 'straight';
 }
-function toggleLegsMore(id, btn, total) {
-  const r = document.getElementById(id);
-  if (!r) return;
-  const showing = r.style.display !== 'none';
-  r.style.display = showing ? 'none' : 'flex';
-  btn.textContent = showing ? `Show all ${total} legs ▾` : 'Show fewer ▴';
+function parseSel(b) { try { return JSON.parse(b.selection || '{}'); } catch(e) { return {}; } }
+// Cash-out settles a bet as 'won' at the cash-out value. A settled parlay always writes each
+// leg's result and a straight win pays exactly its odds, so either mismatch means cashed out.
+function isCashedOut(b) {
+  if (b.status !== 'won') return false;
+  const t = betType(b);
+  if (t === 'parlay') return !(parseSel(b).legs || []).some(l => l.result);
+  if (t === 'straight') return Math.abs(b.potential_payout - calcPayout(b.stake, b.odds)) > 0.05;
+  return false;
 }
-// Renders the first few rows inline and tucks the rest behind a "Show all" toggle —
-// keeps a 10-game Pick'em slate from turning a compact card into a wall of text.
-function buildLegsSection(rows, noun) {
-  if (!rows.length) return '';
-  const showN = 3;
-  if (rows.length <= showN) return `<div class="bet-legs-list">${rows.join('')}</div>`;
-  const id = 'legs_' + Math.random().toString(36).slice(2, 9);
-  return `<div class="bet-legs-list">${rows.slice(0, showN).join('')}</div>
-    <div class="bet-legs-list" id="${id}" style="display:none">${rows.slice(showN).join('')}</div>
-    <button class="legs-toggle" onclick="toggleLegsMore('${id}', this, ${rows.length})">Show all ${rows.length} ${noun} ▾</button>`;
+function betPnl(b) {
+  if (b.status === 'won') return b.potential_payout - b.stake;
+  if (b.status === 'lost') return -b.stake;
+  return 0;
 }
-// Lowercase search blob per bet — team names, sport, selection, and (for parlays/Pick'em)
-// every leg's real matchup, so searching "Chiefs" finds a bet even when it's buried inside
-// a 6-leg parlay, not just when it's the top-level selection.
+function legLine(leg) {
+  if (leg.line != null && leg.line !== '' && !isNaN(parseFloat(leg.line))) return parseFloat(leg.line);
+  const m = String(leg.market || '');
+  return /^alt_(sp|tot)_/.test(m) ? parseFloat(m.split('_').pop()) : null;
+}
+// Readable market name for any key, props included (pp_<stat>_<PlayerName>, gp_<stat>).
+function marketName(market, sport) {
+  const m = String(market || '');
+  if (m === 'h2h') return 'Moneyline';
+  if (m === 'spreads') return 'Spread';
+  if (m === 'totals') return 'Total';
+  if (m.startsWith('alt_sp_')) return 'Alt Spread';
+  if (m.startsWith('alt_tot_')) return 'Alt Total';
+  if (m.startsWith('pp_')) {
+    const k = m.slice(3, m.lastIndexOf('_'));
+    const name = m.slice(m.lastIndexOf('_') + 1).replace(/([a-z])([A-Z])/g, '$1 $2');
+    const prop = (PROP_SPORTS[sport]?.pos || []).flatMap(p => p.props).find(p => p.k === k);
+    return `${name} · ${prop?.lb || 'Player Prop'}`;
+  }
+  if (m.startsWith('gp_')) return (PROP_SPORTS[sport]?.gp || []).find(g => g.k === m.slice(3))?.lb || 'Game Prop';
+  if (m.startsWith('live_')) return LIVE_LABELS[m] || 'Live Bet';
+  return MARKET_LABELS[m] || m;
+}
+function pickText(leg) {
+  const m = String(leg.market || ''), sel = leg.selection, ln = legLine(leg);
+  if (m === 'h2h') return sel === 'Draw' ? 'Draw' : `${teamShort(sel, leg.sport)} ML`;
+  if (m === 'spreads' || m.startsWith('alt_sp_')) return `${teamShort(sel, leg.sport)} ${ln > 0 ? '+' : ''}${ln ?? ''}`;
+  if (m === 'totals' || m.startsWith('alt_tot_')) return `${sel} ${ln ?? ''}`;
+  if (m.startsWith('pp_') || m.startsWith('gp_')) {
+    const pl = leg.line != null && leg.line !== '' ? String(leg.line).replace(/^[OU]\s*/, '') : '';
+    return `${sel}${pl ? ' ' + pl : ''}`;
+  }
+  return sel;
+}
+function matchupText(leg) {
+  if (!leg.homeTeam || !leg.awayTeam) return '';
+  return `${teamShort(leg.awayTeam, leg.sport)}${SPORTS[leg.sport]?.versus ? ' vs ' : ' @ '}${teamShort(leg.homeTeam, leg.sport)}`;
+}
+function betLegs(b) {
+  const t = betType(b), sel = parseSel(b);
+  if (t === 'parlay') return (sel.legs || []).map(l => ({ ...l }));
+  if (t === 'pickem') return (sel.picks || []).map(p => ({
+    sport: p.sport, gameId: p.gameId, homeTeam: p.homeTeam, awayTeam: p.awayTeam, commenceTime: p.commenceTime,
+    market: sel.mode === 'ats' ? 'spreads' : 'h2h', selection: p.pick, line: p.line, result: p.result,
+  }));
+  if (t === 'futures') return [{ sport: 'futures', market: b.market, selection: b.selection, odds: b.odds, futures: true,
+    result: b.status === 'pending' || isCashedOut(b) ? undefined : b.status }];
+  return [{ sport: b.sport, gameId: b.game_id, homeTeam: b.home_team, awayTeam: b.away_team, commenceTime: b.commence_time,
+    market: b.market, selection: b.selection, line: b.line, odds: b.odds,
+    result: b.status === 'pending' || isCashedOut(b) ? undefined : b.status }];
+}
+function fmtStart(ms) {
+  if (!isFinite(ms)) return '';
+  const d = new Date(ms), now = new Date();
+  const time = d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+  const dayDiff = Math.round((new Date(d.toDateString()) - new Date(now.toDateString())) / DAY_MS);
+  if (dayDiff === 0) return time;
+  if (dayDiff === 1) return `Tmrw ${time}`;
+  if (dayDiff > 1 && dayDiff < 7) return `${d.toLocaleDateString('en-US', { weekday:'short' })} ${time}`;
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+function scoreText(ev) {
+  const { hc, ac } = compSides(ev.competitions?.[0]);
+  const nm = c => c?.team?.abbreviation || c?.athlete?.shortName || c?.athlete?.displayName || '?';
+  if (hc?.score != null && ac?.score != null) return `${nm(ac)} ${ac.score} – ${hc.score} ${nm(hc)}`;
+  const w = [hc, ac].find(c => c?.winner === true);
+  return w ? `${nm(w)} won` : `${nm(ac)} vs ${nm(hc)}`;
+}
+// What the leg needs from here, from the picked side's point of view.
+function needText(leg, hs, as) {
+  const m = String(leg.market || ''), l = legLine(leg), isHome = leg.selection === leg.homeTeam;
+  if (m === 'h2h') {
+    if (leg.selection === 'Draw') return hs === as ? 'Level' : `${Math.abs(hs - as)}-goal game`;
+    const d = isHome ? hs - as : as - hs;
+    return d > 0 ? `Up ${d}` : d < 0 ? `Down ${-d}` : 'Tied';
+  }
+  if (l == null) return '';
+  if (m === 'spreads' || m.startsWith('alt_sp_')) {
+    const c = +((isHome ? hs - as : as - hs) + l).toFixed(1);
+    return c > 0 ? `Covering by ${c}` : c < 0 ? `Needs ${-c} to cover` : 'On the number';
+  }
+  if (m === 'totals' || m.startsWith('alt_tot_')) {
+    const t = hs + as;
+    if (leg.selection === 'Over') return t > l ? `${t} total · cleared` : `${t} total · needs ${Math.floor(l - t) + 1} more`;
+    return t < l ? `${t} total · ${Math.ceil(l - t) - 1} to spare` : `${t} total · over the line`;
+  }
+  return '';
+}
+function trackedEventsFor(sport) { return _trackArr[sport] || []; }
+function mergeTrackEvents(sport, events) {
+  const map = _trackEvents[sport] || (_trackEvents[sport] = new Map());
+  for (const ev of flattenCompetitions(events)) map.set(String(ev.id ?? `${ev.date}_${Math.random()}`), ev);
+  _trackArr[sport] = [...map.values()];
+}
+function evalLeg(leg, past) {
+  const out = { state: 'awaiting', score: '', clock: '', need: '', note: '', start: NaN };
+  const m = String(leg.market || '');
+  const espn = SPORTS[leg.sport]?.espn;
+  const ms = new Date(leg.commenceTime).getTime();
+  out.start = ms;
+  const ev = espn && leg.homeTeam ? findGameEvent(trackedEventsFor(leg.sport), leg.gameId, leg.homeTeam, leg.awayTeam, ms) : null;
+  const st = ev?.status?.type || {};
+  if (ev && st.state && st.state !== 'pre') {
+    out.score = scoreText(ev);
+    out.clock = DEAD_STATUSES.includes(st.name) ? 'Postponed' : (st.shortDetail || st.detail || '');
+  }
+  if (leg.result) { out.state = RESULT_STATE[leg.result] || 'awaiting'; out.settled = true; return out; }
+  if (leg.futures) { out.state = 'untracked'; out.note = 'Settles when the real season result is final'; return out; }
+  if (!isTrackedMarket(m)) { out.state = 'untracked'; out.note = 'Props aren’t graded live · this leg refunds at settlement'; return out; }
+  if (!ev) {
+    if (past) { out.state = 'untracked'; return out; }
+    if (isFinite(ms) && ms > Date.now()) { out.state = 'upcoming'; return out; }
+    if (_trackLoading && espn) { out.state = 'checking'; return out; }
+    out.state = 'awaiting'; out.note = espn ? 'Waiting on the final result' : ''; return out;
+  }
+  if (DEAD_STATUSES.includes(st.name)) { out.state = 'awaiting'; out.note = 'Postponed · voids if it isn’t played'; return out; }
+  if (st.state === 'pre') { out.state = 'upcoming'; out.start = new Date(ev.date).getTime(); return out; }
+  if (st.completed) {
+    const info = scoreForEvent(ev);
+    if (!info.done) return out;
+    out.state = RESULT_STATE[gradeLegOutcome(m, leg.selection, legLine(leg), leg.homeTeam, leg.awayTeam, info.hs, info.as, leg.sport)] || 'awaiting';
+    out.final = true;
+    return out;
+  }
+  // In progress. UFC and tennis carry no running score, so they're just live.
+  const { hc, ac } = compSides(ev.competitions?.[0]);
+  if (hc?.score == null || ac?.score == null) { out.state = 'live'; return out; }
+  const hs = parseInt(hc.score) || 0, as = parseInt(ac.score) || 0;
+  const r = gradeLegOutcome(m, leg.selection, legLine(leg), leg.homeTeam, leg.awayTeam, hs, as, leg.sport);
+  out.state = r === 'won' ? 'winning' : r === 'lost' ? 'losing' : 'even';
+  out.need = needText(leg, hs, as);
+  return out;
+}
+function tallyLegs(evals) {
+  const c = { hit:0, miss:0, push:0, void:0, winning:0, losing:0, even:0, live:0, upcoming:0, awaiting:0, checking:0, untracked:0 };
+  evals.forEach(e => c[e.state]++);
+  c.inPlay = c.winning + c.losing + c.even + c.live;
+  return c;
+}
+function progressText(c, t) {
+  if (t === 'pickem') {
+    const parts = [`${c.hit} correct`];
+    if (c.miss) parts.push(`${c.miss} wrong`);
+    if (c.inPlay) parts.push(`${c.inPlay} live`);
+    if (c.upcoming) parts.push(`${c.upcoming} to play`);
+    return parts.join(' · ');
+  }
+  const parts = [];
+  if (c.hit) parts.push(`${c.hit} hit`);
+  if (c.miss) parts.push(`${c.miss} missed`);
+  if (c.winning) parts.push(`${c.winning} winning`);
+  if (c.losing) parts.push(`${c.losing} losing`);
+  if (c.even + c.live) parts.push(`${c.even + c.live} live`);
+  if (c.upcoming) parts.push(`${c.upcoming} to play`);
+  if (c.awaiting) parts.push(`${c.awaiting} pending`);
+  if (c.push + c.void) parts.push(`${c.push + c.void} void/push`);
+  return parts.join(' · ');
+}
+// Where a current bet sits: something live now, something still to play, or everything's
+// done and it's just waiting to settle.
+function currentBucket(b, c) {
+  if (betType(b) === 'futures') return 'season';
+  if (c.inPlay) return 'live';
+  if (c.upcoming) return 'next';
+  return 'done';
+}
+function readyToSettle(b, c) {
+  if (betType(b) === 'futures' || c.checking) return false;
+  if (betType(b) === 'parlay' && c.miss) return true;
+  return !c.inPlay && !c.upcoming && !c.awaiting && !c.untracked;
+}
 function searchBlobFor(b) {
-  const parts = [b.sport, b.home_team, b.away_team, b.selection, b.market];
-  try {
-    if (b.market === 'parlay') (JSON.parse(b.selection).legs||[]).forEach(l=>parts.push(l.homeTeam,l.awayTeam,l.selection,l.sport));
-    if (b.market === 'pickem') (JSON.parse(b.selection).picks||[]).forEach(p=>parts.push(p.homeTeam,p.awayTeam,p.pick,p.sport));
-  } catch(e) {}
+  const parts = [b.sport, SPORTS[b.sport]?.label, b.home_team, b.away_team, b.market];
+  for (const l of betLegs(b)) parts.push(l.homeTeam, l.awayTeam, l.selection, SPORTS[l.sport]?.label, marketName(l.market, l.sport));
   return parts.filter(Boolean).join(' ').toLowerCase();
 }
 
-let _activeBetFilter = 'all';
+// ── Fetching real scores for the legs on screen ──
+async function fetchLegEvents(legs, ttlMs) {
+  const bySport = {};
+  for (const l of legs) {
+    if (!SPORTS[l.sport]?.espn || !isTrackedMarket(String(l.market || '')) || !l.homeTeam) continue;
+    const set = bySport[l.sport] || (bySport[l.sport] = new Set());
+    daysAround(new Date(l.commenceTime).getTime()).forEach(d => set.add(d));
+  }
+  await Promise.all(Object.entries(bySport).map(async ([sport, days]) => {
+    const events = sport.startsWith('tennis_')
+      ? await fetchTennisPseudoEvents()
+      : await fetchDays(SPORTS[sport].espn, [...days], 300, ttlMs);
+    mergeTrackEvents(sport, events);
+  }));
+}
+// Open bets: any leg that's started or starts within 3 hours (older than 5 days is left to
+// settlement). Far-off legs are just "upcoming" from their start time, no fetch needed.
+async function trackCurrentLegs() {
+  const now = Date.now();
+  const legs = _myBetsAll.filter(b => b.status === 'pending').flatMap(betLegs)
+    .filter(l => !l.result && isFinite(new Date(l.commenceTime).getTime()))
+    .filter(l => { const ms = new Date(l.commenceTime).getTime(); return ms < now + 3 * 3600 * 1000 && ms > now - 5 * DAY_MS; });
+  await fetchLegEvents(legs, 45000);
+}
+async function refreshBetsLive() {
+  if (currentView !== 'bets' || document.hidden || !_myBetsAll.length) return;
+  await trackCurrentLegs();
+  renderBetList();
+  // A bet whose legs are all final (or a parlay with a missed leg) is ready to settle — kick
+  // settlement once per bet rather than waiting on the 2-minute background pass.
+  const ready = _myBetsAll.filter(b => b.status === 'pending' && !_settleAsked.has(b.id)
+    && readyToSettle(b, tallyLegs(betLegs(b).map(l => evalLeg(l)))));
+  if (ready.length) { ready.forEach(b => _settleAsked.add(b.id)); backgroundSettle(); }
+}
+function syncBetsLiveTimer() {
+  const want = currentView === 'bets' && _betsTab === 'current' && _myBetsAll.some(b => b.status === 'pending');
+  if (want && !_betsLiveTimer) _betsLiveTimer = setInterval(refreshBetsLive, 60000);
+  if (!want && _betsLiveTimer) { clearInterval(_betsLiveTimer); _betsLiveTimer = null; }
+}
+
+// ── Rendering ──
+function legRowHtml(leg, e) {
+  const pill = e.state === 'upcoming' ? (fmtStart(e.start) || 'Soon') : LEG_PILL[e.state];
+  const matchup = matchupText(leg);
+  const meta = [];
+  if (e.score) meta.push(`<span class="mb-score">${esc(e.score)}</span>`);
+  else if (matchup) meta.push(esc(matchup));
+  if (e.clock) meta.push(esc(e.clock));
+  if (!e.score && e.state === 'upcoming' && isFinite(e.start)) meta.push(esc(new Date(e.start).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })));
+  const needCls = e.state === 'winning' ? 'good' : e.state === 'losing' ? 'bad' : 'meh';
+  const mkt = leg.futures ? leg.market : marketName(leg.market, leg.sport);
+  return `<div class="mb-leg${e.state === 'untracked' ? ' dim' : ''}">
+    <span class="mb-pill st-${e.state}">${esc(pill)}</span>
+    <div class="mb-leg-body">
+      <div class="mb-leg-pick">${esc(pickText(leg))}<span class="mb-leg-mkt">${esc(mkt)}</span></div>
+      ${meta.length ? `<div class="mb-leg-meta">${meta.join('<span class="sep">·</span>')}</div>` : ''}
+      ${e.need ? `<div class="mb-leg-need ${needCls}">${esc(e.need)}</div>` : ''}
+      ${e.note ? `<div class="mb-leg-note">${esc(e.note)}</div>` : ''}
+    </div>
+    ${leg.odds != null && leg.odds !== '' ? `<span class="mb-leg-odds">${fmtOdds(leg.odds)}</span>` : ''}
+  </div>`;
+}
+// Single-leg bets already carry the pick in the card title, so the leg area is just the
+// game line: score and clock, what it needs, or when it starts.
+function legsBlock(legs, evals) {
+  if (legs.length !== 1) return `<div class="mb-legs">${legs.map((l, i) => legRowHtml(l, evals[i])).join('')}</div>`;
+  const e = evals[0], bits = [];
+  if (e.score) bits.push(`<span class="mb-score">${esc(e.score)}</span>`);
+  if (e.clock) bits.push(esc(e.clock));
+  if (!e.score && e.state === 'upcoming' && isFinite(e.start)) bits.push(`Starts ${esc(fmtStart(e.start))}`);
+  const needCls = e.state === 'winning' ? 'good' : e.state === 'losing' ? 'bad' : 'meh';
+  if (!bits.length && !e.need && !e.note) return '';
+  return `<div class="mb-legs compact"><div class="mb-leg-body">
+    ${bits.length ? `<div class="mb-leg-meta">${bits.join('<span class="sep">·</span>')}</div>` : ''}
+    ${e.need ? `<div class="mb-leg-need ${needCls}">${esc(e.need)}</div>` : ''}
+    ${e.note ? `<div class="mb-leg-note">${esc(e.note)}</div>` : ''}
+  </div></div>`;
+}
+function betTitle(b, legs) {
+  const t = betType(b), sel = parseSel(b);
+  if (t === 'parlay') return { main: sel.rr ? `Round Robin · ${legs.length}-leg combo` : `${legs.length}-Leg Parlay`, odds: fmtOdds(b.odds), sub: [...new Set(legs.map(l => SPORTS[l.sport]?.label).filter(Boolean))].join(' + ') };
+  if (t === 'pickem') return { main: `${sel.total || legs.length}-Game Pick'em`, odds: '', sub: `${SPORTS[sel.picks?.[0]?.sport]?.label || ''} · ${sel.mode === 'ats' ? 'Against the spread' : 'Straight up'}` };
+  if (t === 'futures') return { main: b.selection, odds: fmtOdds(b.odds), sub: b.market };
+  const leg = legs[0];
+  return { main: pickText(leg), odds: fmtOdds(b.odds), sub: `${SPORTS[b.sport]?.label || ''} · ${marketName(b.market, b.sport)}${matchupText(leg) ? ' · ' + matchupText(leg) : ''}` };
+}
+function badgeFor(b, c) {
+  if (b.status !== 'pending') {
+    if (isCashedOut(b)) return ['cashed', 'Cashed out'];
+    return [b.status, { won:'Won', lost:'Lost', push:'Push', void:'Void' }[b.status] || b.status];
+  }
+  const t = betType(b);
+  if (t === 'futures') return ['open', 'Open'];
+  if (t === 'parlay' && c.miss) return ['busted', 'Busted'];
+  if (c.checking) return ['open', 'Checking'];
+  if (c.inPlay) {
+    if (t === 'straight') return [c.winning ? 'winning' : c.losing ? 'losing' : 'live', c.winning ? 'Winning' : c.losing ? 'Losing' : 'Live'];
+    return ['live', 'Live'];
+  }
+  if (!c.upcoming && !c.awaiting && !c.untracked) {
+    if (t === 'straight') return c.hit ? ['winning', 'Hit · settling'] : c.miss ? ['losing', 'Missed · settling'] : ['open', 'Settling'];
+    return ['open', 'Settling'];
+  }
+  if (c.upcoming && !c.hit && !c.miss && !c.awaiting) return ['upcoming', 'Upcoming'];
+  return ['open', 'Open'];
+}
+function ladderHtml(evals) {
+  if (evals.length < 2) return '';
+  return `<div class="mb-ladder" aria-hidden="true">${evals.map(e => `<i class="st-${e.state}"></i>`).join('')}</div>`;
+}
+function currentCardHtml(b) {
+  const t = betType(b), legs = betLegs(b), evals = legs.map(l => evalLeg(l)), c = tallyLegs(evals);
+  const title = betTitle(b, legs), [bcls, blabel] = badgeFor(b, c);
+  // Cash-out value = stake + 45% of potential profit — only once the game has actually
+  // started (an instant flat 45% on placement is a free-money exploit on longshots), never
+  // on futures (months of nothing having happened), never on Pick'em (no honest mid-slate
+  // price from a flat formula).
+  const gameStarted = new Date(b.commence_time).getTime() <= Date.now();
+  const allFinal = !c.inPlay && !c.upcoming && !c.awaiting && !c.checking && !c.untracked;
+  const coValue = (t !== 'futures' && t !== 'pickem' && gameStarted && !c.miss && !allFinal) ? Math.round((b.stake + (b.potential_payout - b.stake) * 0.45) * 100) / 100 : null;
+  const showProgress = legs.length > 1;
+  return `<div class="mb-card cur b-${bcls}">
+    <div class="mb-head">
+      <div class="mb-title">
+        <div class="mb-title-main">${esc(title.main)}${title.odds ? `<span class="mb-title-odds">${esc(title.odds)}</span>` : ''}</div>
+        <div class="mb-title-sub">${esc(title.sub)}</div>
+      </div>
+      <span class="mb-badge b-${bcls}">${bcls === 'live' || bcls === 'winning' || bcls === 'losing' ? '<span class="mb-live-dot"></span>' : ''}${esc(blabel)}</span>
+    </div>
+    ${showProgress ? `${ladderHtml(evals)}<div class="mb-progress">${esc(progressText(c, t))}</div>` : ''}
+    ${legsBlock(legs, evals)}
+    <div class="mb-foot">
+      <span>Stake <b>${fmt(b.stake)}</b></span>
+      <span>${t === 'pickem' ? 'Max win' : 'To win'} <b>${fmt(b.potential_payout - b.stake)}</b></span>
+      <span class="mb-foot-date">${esc(new Date(b.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric' }))}</span>
+    </div>
+    ${coValue ? `<button class="cashout-btn" onclick="cashOut('${b.id}',${coValue},${b.stake})">Cash Out ${fmt(coValue)}</button>` : ''}
+  </div>`;
+}
+function pastSummary(b, legs, evals) {
+  const t = betType(b);
+  if (t === 'straight' || t === 'futures') return '';
+  const n = legs.length, hit = evals.filter(e => e.state === 'hit').length;
+  const missed = legs.filter((l, i) => evals[i].state === 'miss').map(pickText);
+  if (t === 'pickem') return `${hit} of ${n} correct${missed.length ? ` · missed ${missed.slice(0, 2).join(', ')}${missed.length > 2 ? ` +${missed.length - 2}` : ''}` : ''}`;
+  const known = evals.filter(e => ['hit','miss','push','void'].includes(e.state)).length;
+  if (!known) return isCashedOut(b) ? `${n} legs · cashed out early` : `${n} legs`;
+  return `${hit} of ${n} hit${missed.length ? ` · missed ${missed.slice(0, 2).join(', ')}${missed.length > 2 ? ` +${missed.length - 2}` : ''}` : ''}`;
+}
+function pastCardHtml(b) {
+  const legs = betLegs(b), evals = legs.map(l => evalLeg(l, true));
+  const title = betTitle(b, legs), [bcls, blabel] = badgeFor(b, tallyLegs(evals));
+  const pnl = betPnl(b), open = _expandedBets.has(b.id);
+  const summary = pastSummary(b, legs, evals);
+  return `<div class="mb-card past b-${bcls}${open ? ' open' : ''}">
+    <button class="mb-head mb-toggle" onclick="toggleBetCard('${b.id}')" aria-expanded="${open}">
+      <span class="mb-title">
+        <span class="mb-title-main">${esc(title.main)}${title.odds ? `<span class="mb-title-odds">${esc(title.odds)}</span>` : ''}</span>
+        <span class="mb-title-sub">${esc(summary || title.sub)}</span>
+      </span>
+      <span class="mb-result">
+        <span class="mb-pnl ${pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : ''}">${pnl > 0 ? '+' : pnl < 0 ? '−' : ''}${fmt(pnl)}</span>
+        <span class="mb-badge b-${bcls}">${esc(blabel)}</span>
+      </span>
+      <span class="mb-chev" aria-hidden="true">›</span>
+    </button>
+    ${legs.length > 1 ? ladderHtml(evals) : ''}
+    ${open ? `${legsBlock(legs, evals)}
+      <div class="mb-foot"><span>Stake <b>${fmt(b.stake)}</b></span><span>Returned <b>${fmt(b.status === 'lost' ? 0 : b.status === 'won' ? b.potential_payout : b.stake)}</b></span>
+      <span class="mb-foot-date">Placed ${esc(new Date(b.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric' }))}</span></div>` : ''}
+  </div>`;
+}
+async function toggleBetCard(id) {
+  if (_expandedBets.has(id)) _expandedBets.delete(id); else _expandedBets.add(id);
+  renderBetList();
+  if (!_expandedBets.has(id)) return;
+  // Final scores for a settled bet's legs, fetched on demand (last two weeks; ESPN day
+  // queries are cheap, but not free enough to pull for every past bet up front).
+  const b = _myBetsAll.find(x => x.id === id);
+  if (!b) return;
+  const cutoff = Date.now() - 14 * DAY_MS;
+  const legs = betLegs(b).filter(l => new Date(l.commenceTime).getTime() > cutoff
+    && !findGameEvent(trackedEventsFor(l.sport), l.gameId, l.homeTeam, l.awayTeam, new Date(l.commenceTime).getTime()));
+  if (!legs.length) return;
+  await fetchLegEvents(legs, 10 * 60 * 1000);
+  renderBetList();
+}
+function setBetsTab(tab) {
+  _betsTab = tab; _betsType = 'all'; _betsResult = 'all'; _pastLimit = 40;
+  try { localStorage.setItem('chalk_bets_tab', tab); } catch(e) {}
+  renderBets(_myBetsAll);
+}
+function setBetsType(t) { _betsType = t; renderBets(_myBetsAll); }
+function setBetsResult(r) { _betsResult = r; renderBets(_myBetsAll); }
+function setBetsQuery(q) { _betsQuery = q.trim().toLowerCase(); renderBetList(); }
+function showMorePast() { _pastLimit += 40; renderBetList(); }
+
+function betsForView() {
+  const cur = _betsTab === 'current';
+  return _myBetsAll.filter(b => (b.status === 'pending') === cur)
+    .filter(b => _betsType === 'all' || betType(b) === _betsType)
+    .filter(b => cur || _betsResult === 'all'
+      || (_betsResult === 'cashed' ? isCashedOut(b)
+        : _betsResult === 'won' ? b.status === 'won' && !isCashedOut(b)
+        : _betsResult === 'refunded' ? (b.status === 'push' || b.status === 'void')
+        : b.status === _betsResult));
+}
+function dayLabel(ms) {
+  const d = new Date(ms), today = new Date();
+  const diff = Math.round((new Date(today.toDateString()) - new Date(d.toDateString())) / DAY_MS);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+}
+function renderBetList() {
+  const el = document.getElementById('betsList');
+  if (!el) return;
+  let list = betsForView();
+  if (_betsQuery) list = list.filter(b => searchBlobFor(b).includes(_betsQuery));
+  if (!list.length) {
+    const msg = _betsQuery ? `No bets match “${esc(_betsQuery)}”.`
+      : _betsTab === 'current' ? 'No open bets right now.' : 'Nothing settled yet. Results land here as your games finish.';
+    el.innerHTML = `<div class="mb-empty"><div>${msg}</div>${_betsTab === 'current' && !_betsQuery ? `<button class="mb-empty-btn" onclick="showView('games')">Browse games</button>` : ''}</div>`;
+    return;
+  }
+  if (_betsTab === 'current') {
+    const groups = { live: [], next: [], done: [], season: [] };
+    for (const b of list) {
+      const c = tallyLegs(betLegs(b).map(l => evalLeg(l)));
+      groups[currentBucket(b, c)].push(b);
+    }
+    const nextStart = b => Math.min(...betLegs(b).map(l => evalLeg(l)).filter(e => e.state === 'upcoming').map(e => e.start).filter(isFinite), Infinity);
+    groups.next.sort((a, b) => nextStart(a) - nextStart(b));
+    const sec = (key, label, bets) => bets.length ? `<div class="mb-group-hdr${key === 'live' ? ' is-live' : ''}"><span>${key === 'live' ? '<span class="mb-live-dot"></span>' : ''}${label}</span><span>${bets.length}</span></div>${bets.map(currentCardHtml).join('')}` : '';
+    el.innerHTML = sec('live', 'Live now', groups.live) + sec('done', 'Final · settling', groups.done)
+      + sec('next', 'Up next', groups.next) + sec('season', 'Season-long', groups.season);
+    return;
+  }
+  const settledMs = b => new Date(b.settled_at || b.created_at).getTime();
+  list = [...list].sort((a, b) => settledMs(b) - settledMs(a));
+  const shown = list.slice(0, _pastLimit);
+  let html = '', lastDay = null;
+  const dayNet = {};
+  for (const b of list) { const k = new Date(settledMs(b)).toDateString(); dayNet[k] = (dayNet[k] || 0) + betPnl(b); }
+  for (const b of shown) {
+    const k = new Date(settledMs(b)).toDateString();
+    if (k !== lastDay) {
+      const net = dayNet[k];
+      html += `<div class="mb-group-hdr"><span>${esc(dayLabel(settledMs(b)))}</span><span class="${net > 0 ? 'pos' : net < 0 ? 'neg' : ''}">${net > 0 ? '+' : net < 0 ? '−' : ''}${fmt(net)}</span></div>`;
+      lastDay = k;
+    }
+    html += pastCardHtml(b);
+  }
+  if (list.length > shown.length) html += `<button class="mb-more" onclick="showMorePast()">Show ${Math.min(40, list.length - shown.length)} more</button>`;
+  el.innerHTML = html;
+}
 function renderBets(bets) {
-  // Update "My Bets" nav badge with open bet count
-  const openCount = bets.filter(b=>b.status==='pending').length;
+  _myBetsAll = bets;
+  const openCount = bets.filter(b => b.status === 'pending').length;
   const badge = document.getElementById('betsBadge');
-  if (badge) { badge.textContent = openCount; badge.style.display = openCount > 0 ? 'inline-flex' : 'none'; if (openCount > 0) { badge.classList.add('pulse'); setTimeout(()=>badge.classList.remove('pulse'),700); } }
+  if (badge) { badge.textContent = openCount; badge.style.display = openCount > 0 ? 'inline-flex' : 'none'; }
   const el = document.getElementById('betsInner');
   if (!bets.length) {
     el.innerHTML = `<div class="empty-state" style="padding:80px 30px">
@@ -3926,148 +4422,51 @@ function renderBets(bets) {
       <div style="font-size:.85rem;color:var(--t3);margin-bottom:20px">Browse today's games and add picks to your slip</div>
       <button onclick="showView('games')" style="background:var(--gold);color:#000;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.04em">Browse Games</button>
     </div>`;
+    syncBetsLiveTimer();
     return;
   }
-  const pending = bets.filter(b=>b.status==='pending');
-  const settled = bets.filter(b=>b.status!=='pending');
-  const pnl = settled.reduce((acc,b)=>acc+(b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:0),0);
-
-  const rb = b => {
-    const isParlay = b.market === 'parlay';
-    const isPickem = b.market === 'pickem';
-    let parlayMeta = {}; if (isParlay) { try { parlayMeta = JSON.parse(b.selection||'{}'); } catch(e) {} }
-    let pickemMeta = {}; if (isPickem) { try { pickemMeta = JSON.parse(b.selection||'{}'); } catch(e) {} }
-    const isRR = !!parlayMeta.rr;
-    const mktL = isParlay ? `${parlayMeta.legs?.length||'?'}-Leg ${isRR?'Round Robin Combo':'Parlay'}` : (MARKET_LABELS[b.market]||b.market);
-    const isSpread = b.market==='spreads'||b.market.startsWith('alt_sp_'), isTotal = b.market==='totals'||b.market.startsWith('alt_tot_');
-    const selL = isParlay ? '' : (isSpread&&b.line!=null?`${b.selection} ${b.line>0?'+':''}${b.line}`:isTotal&&b.line!=null?`${b.selection} ${b.line}`:b.selection);
-    const statusLabels = {won:'✓ WON',lost:'✗ LOST',push:'~ PUSH',void:'○ VOID',pending:'⏳ PENDING'};
-    const pnlVal = b.status==='won'?b.potential_payout-b.stake:b.status==='lost'?-b.stake:(b.status==='push'||b.status==='void')?0:null;
-    const d = new Date(b.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
-
-    // Per-leg / per-pick rows — populated once settlement writes each one's graded outcome
-    // back into this same JSON column (same pattern for parlays and Pick'em slates). Each
-    // row shows the real matchup it came from, not just the team name that was picked —
-    // without that, a 6-leg parlay or a 10-game slate is a list of team names with no way
-    // to tell which game any of them actually belong to.
-    let legsList = '';
-    if (isParlay) {
-      const legs = parlayMeta.legs || [];
-      const rows = legs.map(l => {
-        const matchup = (l.homeTeam && l.awayTeam) ? `${teamShort(l.awayTeam,l.sport)} @ ${teamShort(l.homeTeam,l.sport)}` : '';
-        const lMkt = String(l.market||'');
-        const lIsSpread = lMkt==='spreads'||lMkt.startsWith('alt_sp_'), lIsTotal = lMkt==='totals'||lMkt.startsWith('alt_tot_');
-        const lineStr = (lIsSpread||lIsTotal) && l.line!=null ? ` ${l.line>0&&lIsSpread?'+':''}${l.line}` : '';
-        const pickLabel = `${lIsTotal ? l.selection : teamShort(l.selection, l.sport)}${lineStr}`;
-        return legRow(matchup, pickLabel, fmtOdds(l.odds), l.result);
-      });
-      legsList = buildLegsSection(rows, 'legs');
-    } else if (isPickem) {
-      const isAts = pickemMeta.mode === 'ats';
-      const picks = pickemMeta.picks || [];
-      const rows = picks.map(p => {
-        const matchup = (p.homeTeam && p.awayTeam) ? `${teamShort(p.awayTeam,p.sport)} @ ${teamShort(p.homeTeam,p.sport)}` : '';
-        const lineStr = isAts && p.line!=null ? ` ${p.line>0?'+':''}${p.line}` : '';
-        return legRow(matchup, `${teamShort(p.pick, p.sport)}${lineStr}`, '', p.result);
-      });
-      legsList = buildLegsSection(rows, 'picks');
-    }
-
-    const sportIcon = SPORTS[b.sport]?.icon || '';
-    // Real team logos on the matchup line, when the game that bet came from is still loaded —
-    // same lookup used for the Bet Slip's team-colored legs.
-    const betGame = _allGames.find(g => g.id === b.game_id);
-    const betLogos = betGame ? `<span class="bet-matchup-logos">${betGame.away_logo?`<img src="${esc(betGame.away_logo)}" alt="">`:''}${betGame.home_logo?`<img src="${esc(betGame.home_logo)}" alt="">`:''}</span>` : '';
-    const matchupLine = isParlay
-      ? `<div class="bet-matchup">${sportIcon} ${isRR?'Round Robin':'Parlay'} · ${fmtOdds(b.odds)}</div>`
-      : isPickem
-      ? `<div class="bet-matchup">🏆 Pick'em${pickemMeta.mode==='ats'?' (ATS)':''} · ${pickemMeta.total||pickemMeta.picks?.length||'?'} games${pickemMeta.correct!=null?` · ${pickemMeta.correct}/${pickemMeta.total-(pickemMeta.pushes||0)} correct${pickemMeta.pushes?` · ${pickemMeta.pushes} push`:''}`:''}</div>`
-      : `<div class="bet-matchup">${betLogos}${sportIcon ? sportIcon+' ' : ''}${esc(b.away_team)} @ ${esc(b.home_team)}</div>`;
-
-    // Cash-out value = stake + 45% of potential profit (like real apps, slightly unfair) — but
-    // only once the game has actually started. A flat 45%-of-profit payable the instant a bet
-    // is placed is a real-money-printing exploit: stake $10 on a +2000 longshot, cash out
-    // immediately for +45% of that payout, guaranteed, before a single second of real
-    // uncertainty has resolved — repeatable without limit. It's strictly worse on a futures
-    // bet (months of "nothing has happened yet" to exploit), so those can't be cashed out at
-    // all; a normal game at least requires waiting for kickoff before there's anything to cash
-    // out of.
-    // Pick'em isn't offered a cash-out at all — fairly pricing a "current value" mid-slate,
-    // with some of 10 games decided and others not, isn't something a flat formula can do
-    // honestly, and this is a brand-new feature that shouldn't ship its own version of the
-    // exploit above just fixed for single games/parlays.
-    const gameStarted = new Date(b.commence_time).getTime() <= Date.now();
-    const coValue = (b.status==='pending' && b.sport!=='futures' && !isPickem && gameStarted) ? Math.round((b.stake + (b.potential_payout - b.stake)*0.45)*100)/100 : null;
-    const cashOutBtn = coValue ? `<button class="cashout-btn" onclick="cashOut('${b.id}',${coValue},${b.stake})">Cash Out ${fmt(coValue)}</button>` : '';
-
-    // Live score overlay
-    const liveKey = (b.home_team||'').toLowerCase();
-    const liveInfo = b.status==='pending' && liveKey && _liveScoreMap[liveKey];
-    const liveLine = liveInfo ? `<span class="bet-live-score"><span class="live-dot"></span>${liveInfo.awayTeam} ${liveInfo.awayScore}–${liveInfo.homeScore} ${liveInfo.homeTeam} <span style="opacity:.65">${esc(liveInfo.period)}</span></span>` : '';
-
-    return `<div class="bet-card ${b.status}">
-      <div class="bet-card-top">${matchupLine}<span class="bet-status-badge ${b.status}">${statusLabels[b.status]||b.status}</span></div>
-      ${liveLine}
-      ${(isParlay||isPickem) ? legsList : `<div class="bet-pick">${esc(mktL)}: <b>${esc(selL)}</b> <span class="bet-odds">${fmtOdds(b.odds)}</span></div>`}
-      <div class="bet-footer">
-        <span>Stake: <b>${fmt(b.stake)}</b></span>
-        ${pnlVal!==null?`<span class="${pnlVal>=0?'pos':'neg'}">${pnlVal>=0?'+':''}${fmt(pnlVal)}</span>`:`<span>To win: <b>${fmt(b.potential_payout-b.stake)}</b></span>`}
-        <span class="bet-date">${d}</span>
-      </div>
-      ${cashOutBtn}
-    </div>`;
-  };
-
-  // Stats bar
-  const won = settled.filter(b=>b.status==='won').length;
-  const total = settled.length;
-  const winPct = total ? Math.round((won/total)*100) : 0;
-  const wonBets = bets.filter(b=>b.status==='won');
-  const lostBets = bets.filter(b=>b.status==='lost');
-  const otherBets = bets.filter(b=>b.status==='push'||b.status==='void'); // pushes + voided/unresolvable bets — refunded, not vanished
-  const statsBar = `<div class="bet-filter-tabs">
-    <span style="color:var(--t2);font-size:13px">${pending.length} Active</span>
-    <span style="color:var(--t2);font-size:13px">${won}/${total} Won (${winPct}%)</span>
-    <span class="${pnl>=0?'pos':'neg'}" style="font-size:13px">${pnl>=0?'+':''}${fmt(pnl)} P&amp;L</span>
-  </div>`;
-  // Filter tabs
-  const filterTabs = `<div class="bet-status-tabs" id="betStatusTabs">
-    <button class="bst-btn active" onclick="filterBetView('all',this)">All (${bets.length})</button>
-    <button class="bst-btn" onclick="filterBetView('open',this)">Open (${pending.length})</button>
-    <button class="bst-btn" onclick="filterBetView('won',this)">Won (${wonBets.length})</button>
-    <button class="bst-btn" onclick="filterBetView('lost',this)">Lost (${lostBets.length})</button>
-  </div>`;
-  // Search — matches team names, sport, and selection, reaching inside every parlay leg
-  // and every Pick'em pick too, so a bet doesn't have to be the top-level selection to be
-  // found. Combined with the status tabs above (both conditions must pass) in filterBetView.
-  const searchRow = `<div class="bet-search-row"><input type="text" class="bet-search-input" id="betSearchInput"
-    placeholder="Search by team or sport…" oninput="filterBetView()" autocomplete="off"></div>`;
-  const grp = (b, tags) => `<div class="bets-grp" data-grp="${tags}" data-search="${esc(searchBlobFor(b))}">${rb(b)}</div>`;
-  let html = statsBar + searchRow + filterTabs;
-  if (pending.length) html += `<div class="bets-section-hdr bets-grp" data-grp="open,all">Active (${pending.length})</div>${pending.map(b=>grp(b,'open,all')).join('')}`;
-  if (wonBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="won,all">Won <span class="bets-pnl pos">+${fmt(wonBets.reduce((a,b)=>a+(b.potential_payout-b.stake),0))}</span></div>${wonBets.map(b=>grp(b,'won,all')).join('')}`;
-  if (lostBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="lost,all">Lost <span class="bets-pnl neg">-${fmt(lostBets.reduce((a,b)=>a+b.stake,0))}</span></div>${lostBets.map(b=>grp(b,'lost,all')).join('')}`;
-  if (otherBets.length) html += `<div class="bets-section-hdr bets-grp" data-grp="all">Pushed / Voided <span class="bets-pnl" style="color:var(--push)">${fmt(otherBets.reduce((a,b)=>a+b.stake,0))} refunded</span></div>${otherBets.map(b=>grp(b,'all')).join('')}`;
-  el.innerHTML = html;
-}
-function filterBetView(filter, btn) {
-  if (btn) {
-    document.querySelectorAll('.bst-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    _activeBetFilter = filter;
+  const current = bets.filter(b => b.status === 'pending'), past = bets.filter(b => b.status !== 'pending');
+  const cur = _betsTab === 'current';
+  let summary;
+  if (cur) {
+    const risk = current.reduce((a, b) => a + Number(b.stake), 0);
+    const toWin = current.reduce((a, b) => a + (b.potential_payout - b.stake), 0);
+    const liveN = current.filter(b => tallyLegs(betLegs(b).map(l => evalLeg(l))).inPlay).length;
+    summary = `<div class="mb-stat"><span class="mb-stat-lbl">At risk</span><span class="mb-stat-val">${fmt(risk)}</span></div>
+      <div class="mb-stat"><span class="mb-stat-lbl">To win</span><span class="mb-stat-val pos">${fmt(toWin)}</span></div>
+      <div class="mb-stat"><span class="mb-stat-lbl">Live now</span><span class="mb-stat-val${liveN ? ' live' : ''}">${liveN}</span></div>`;
   } else {
-    filter = _activeBetFilter;
+    const w = past.filter(b => b.status === 'won').length, l = past.filter(b => b.status === 'lost').length, p = past.length - w - l;
+    const net = past.reduce((a, b) => a + betPnl(b), 0);
+    summary = `<div class="mb-stat"><span class="mb-stat-lbl">Record</span><span class="mb-stat-val">${w}–${l}${p ? `–${p}` : ''}</span></div>
+      <div class="mb-stat"><span class="mb-stat-lbl">Win rate</span><span class="mb-stat-val">${w + l ? Math.round(w / (w + l) * 100) : 0}%</span></div>
+      <div class="mb-stat"><span class="mb-stat-lbl">Net</span><span class="mb-stat-val ${net > 0 ? 'pos' : net < 0 ? 'neg' : ''}">${net > 0 ? '+' : net < 0 ? '−' : ''}${fmt(net)}</span></div>`;
   }
-  const term = (document.getElementById('betSearchInput')?.value || '').trim().toLowerCase();
-  document.querySelectorAll('.bets-grp').forEach(g => {
-    const grps = g.dataset.grp ? g.dataset.grp.split(',') : ['all'];
-    const statusOk = grps.includes(filter);
-    // Section headers ride on the status filter only — a header shouldn't vanish just
-    // because the search term happens not to match its own (nonexistent) label text.
-    const isHeader = g.classList.contains('bets-section-hdr');
-    const searchOk = isHeader || !term || (g.dataset.search||'').includes(term);
-    g.style.display = (statusOk && searchOk) ? '' : 'none';
-  });
+  const pool = cur ? current : past;
+  const typeCount = t => pool.filter(b => betType(b) === t).length;
+  const types = [['all', 'All', pool.length], ['straight', 'Straight', typeCount('straight')], ['parlay', 'Parlays', typeCount('parlay')], ['pickem', "Pick'em", typeCount('pickem')], ['futures', 'Futures', typeCount('futures')]]
+    .filter(([k, , n]) => k === 'all' || n > 0);
+  const chip = (on, onclick, label, n) => `<button class="mb-chip${on ? ' on' : ''}" onclick="${onclick}">${label}${n != null ? `<span>${n}</span>` : ''}</button>`;
+  let chips = types.map(([k, label, n]) => chip(_betsType === k, `setBetsType('${k}')`, label, n)).join('');
+  let resultChips = '';
+  if (!cur) {
+    const cashed = past.filter(isCashedOut).length;
+    const results = [['all', 'Any result'], ['won', 'Won'], ['lost', 'Lost'], ['refunded', 'Push / void'], ...(cashed ? [['cashed', 'Cashed out']] : [])];
+    resultChips = `<div class="mb-chips">${results.map(([k, label]) => chip(_betsResult === k, `setBetsResult('${k}')`, label)).join('')}</div>`;
+  }
+  const liveN = current.filter(b => tallyLegs(betLegs(b).map(l => evalLeg(l))).inPlay).length;
+  el.innerHTML = `
+    <div class="mb-seg" role="tablist">
+      <button role="tab" aria-selected="${cur}" class="${cur ? 'on' : ''}" onclick="setBetsTab('current')">${liveN ? '<span class="mb-live-dot"></span>' : ''}Current<span class="cnt">${current.length}</span></button>
+      <button role="tab" aria-selected="${!cur}" class="${!cur ? 'on' : ''}" onclick="setBetsTab('past')">Past<span class="cnt">${past.length}</span></button>
+    </div>
+    <div class="mb-summary">${summary}</div>
+    <div class="mb-chips">${chips}</div>
+    ${resultChips}
+    <input type="search" class="mb-search" placeholder="Search a team, player, or sport" value="${esc(_betsQuery)}" oninput="setBetsQuery(this.value)" autocomplete="off">
+    <div id="betsList"></div>`;
+  renderBetList();
+  syncBetsLiveTimer();
 }
 
 // ── SETTLEMENT ────────────────────────────────────────────────────
@@ -4434,7 +4833,6 @@ function daysAround(ms) {
 // 'void' = the market can't be fairly graded from real results — player/game props are
 // procedurally generated demo data with no real box-score behind them, so the stake is
 // refunded rather than silently forfeited (the old behavior here was an automatic loss).
-const SOCCER_SPORTS = ['soccer_epl','soccer_spain_la_liga','soccer_uefa_champs_league'];
 function gradeLegOutcome(market, selection, line, homeTeam, awayTeam, homeScore, awayScore, sportKey) {
   if (market === 'h2h') {
     if (homeScore === awayScore) {
@@ -4693,6 +5091,7 @@ async function loadProfileView() {
 // ── NAVIGATION ────────────────────────────────────────────────────
 function showView(view) {
   currentView = view;
+  syncBetsLiveTimer();
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('view-'+view)?.classList.add('active');
