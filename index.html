@@ -2138,13 +2138,20 @@ async function fetchOdds(sport) {
     const seen = new Set();
     events = events.filter(ev => { if (seen.has(ev.id)) return false; seen.add(ev.id); return true; });
 
+    // A UFC card is ONE ESPN event holding every fight as its own competition (12-13 of
+    // them, each with its own real id/start time/status, main event last). Reading only
+    // competitions[0] meant the Games tab showed just the first prelim of each card.
+    // Flatten into one pseudo-event per competition; single-competition events (every
+    // team sport) pass through untouched, so their game ids don't change.
+    events = flattenCompetitions(events);
+
     let upcoming = events.filter(ev => ev.status?.type?.state === 'pre');
 
-    // UFC main card: limit to first 5 fights of the soonest event day
+    // UFC: show the whole soonest card, main event first (ESPN lists prelims first).
     if (isUFC && upcoming.length) {
       upcoming.sort((a, b) => new Date(a.date) - new Date(b.date));
-      const eventDay = upcoming[0].date.slice(0, 10);
-      upcoming = upcoming.filter(ev => ev.date.slice(0, 10) === eventDay).slice(0, 5);
+      const cardId = upcoming[0]._cardId;
+      upcoming = upcoming.filter(ev => ev._cardId === cardId).sort((a, b) => b._cardIdx - a._cardIdx);
     }
 
     const data = upcoming.map(ev => {
@@ -4100,8 +4107,7 @@ async function settlePending() {
     const ev = matchEvent(eventsBySport[sport] || [], homeTeam, awayTeam);
     if (!ev) return { found: false };
     if (!ev.status?.type?.completed) return { found: true, done: false };
-    const comps = ev.competitions?.[0]?.competitors || [];
-    const hc = comps.find(c => c.homeAway === 'home'), ac = comps.find(c => c.homeAway === 'away');
+    const { hc, ac } = compSides(ev.competitions?.[0]);
     if (!hc || !ac) return { found: true, done: false };
     // Team sports report a numeric score; individual-athlete sports (UFC, tennis) don't —
     // MMA has no "score" at all (decision/KO/submission, not points) and ESPN's tennis
@@ -4300,8 +4306,7 @@ async function settlePickemBet(bet) {
   for (const p of picks) {
     const ev = matchEvent(eventsBySport[p.sport] || [], p.homeTeam, p.awayTeam);
     if (!ev || !ev.status?.type?.completed) return; // at least one game not final yet — whole slate waits
-    const comps = ev.competitions?.[0]?.competitors || [];
-    const hc = comps.find(c => c.homeAway === 'home'), ac = comps.find(c => c.homeAway === 'away');
+    const { hc, ac } = compSides(ev.competitions?.[0]);
     if (!hc || !ac) return;
     const hs = parseInt(hc.score) || 0, as_ = parseInt(ac.score) || 0;
     // Straight Up grades on who actually won; Against the Spread grades on the real spread
@@ -4350,12 +4355,29 @@ async function creditAndNotify(bet, result, payout, pickemNote, skipCredit) {
   }
 }
 
+// Home/away sides of one competition. UFC fighters carry no homeAway field at all, so this
+// falls back to competitor order — the exact convention fetchOdds uses when it records a
+// bet's home_team/away_team, so placement and settlement always agree on which side is
+// which. (Requiring homeAway meant every UFC bet silently failed to match its real fight.)
+function compSides(comp) {
+  const cs = comp?.competitors || [];
+  return { hc: cs.find(c=>c.homeAway==='home') || cs[1], ac: cs.find(c=>c.homeAway==='away') || cs[0] };
+}
+// One pseudo-event per competition. A UFC card is a single ESPN event holding every fight
+// (main event last); team sports are always one competition per event and pass through.
+function flattenCompetitions(events) {
+  return (events || []).flatMap(ev => {
+    const comps = ev.competitions || [];
+    if (comps.length <= 1) return [{ ...ev, _cardId: ev.id, _cardIdx: 0 }];
+    return comps.map((c, i) => ({ ...ev, id: c.id || ev.id, date: c.date || ev.date,
+      status: c.status || ev.status, competitions: [c], _cardId: ev.id, _cardIdx: i }));
+  });
+}
 function matchEvent(events, homeTeam, awayTeam) {
   const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]/g,' ').trim().split(' ').filter(Boolean);
   const htW = norm(homeTeam), atW = norm(awayTeam);
-  for (const ev of events) {
-    const cs = ev.competitions?.[0]?.competitors||[];
-    const hc = cs.find(c=>c.homeAway==='home'), ac = cs.find(c=>c.homeAway==='away');
+  for (const ev of flattenCompetitions(events)) {
+    const { hc, ac } = compSides(ev.competitions?.[0]);
     if (!hc||!ac) continue;
     // Team sports name their competitors via c.team; individual-athlete sports (UFC, tennis)
     // via c.athlete — without this fallback, matchEvent could never find a fighter/player

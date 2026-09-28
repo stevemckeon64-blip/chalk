@@ -6,7 +6,7 @@
 // settlePickemBet() client-side.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { ESPN_PATH, matchEvent, gradeLegOutcome, pickemMultiplier, fetchEventsForRange, corsHeaders, json } from "../_shared/grading.ts";
+import { ESPN_PATH, matchEvent, gradeLegOutcome, pickemMultiplier, fetchEventsForRange, corsHeaders, json, compSides } from "../_shared/grading.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -69,8 +69,7 @@ Deno.serve(async (req) => {
         return json({ status: "pending", reason: "at least one game not final yet" }, 200, origin);
       }
       const comps = ev.competitions?.[0]?.competitors || [];
-      const hc = comps.find((c: any) => c.homeAway === "home");
-      const ac = comps.find((c: any) => c.homeAway === "away");
+      const { hc, ac } = compSides({ competitors: comps });
       if (!hc || !ac) return json({ status: "pending", reason: "score not available yet" }, 200, origin);
       const hs = parseInt(hc.score) || 0, as_ = parseInt(ac.score) || 0;
       const result = parsed.mode === "ats"

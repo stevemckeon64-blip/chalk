@@ -5,7 +5,7 @@
 // supabase/functions/place-parlay for the parlay equivalent.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { ESPN_PATH, extractMarket, findEventAcrossDays, calcPayout, corsHeaders, json } from "../_shared/grading.ts";
+import { ESPN_PATH, extractMarket, findEventAcrossDays, calcPayout, corsHeaders, json, compSides } from "../_shared/grading.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -44,8 +44,7 @@ Deno.serve(async (req) => {
 
     const comp = ev.competitions?.[0];
     const cs = comp?.competitors || [];
-    const hc = cs.find((c: any) => c.homeAway === "home");
-    const ac = cs.find((c: any) => c.homeAway === "away");
+    const { hc, ac } = compSides({ competitors: cs });
     const homeName = hc?.team?.displayName || hc?.athlete?.displayName || home_team;
     const awayName = ac?.team?.displayName || ac?.athlete?.displayName || away_team;
 

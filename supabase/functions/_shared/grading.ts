@@ -39,12 +39,31 @@ function normWords(s: string): string[] {
   return s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").trim().split(" ").filter(Boolean);
 }
 
+// Home/away sides of one competition. UFC fighters carry no homeAway field at all, so fall
+// back to competitor order — the same convention the client's fetchOdds uses when it records
+// a bet's home_team/away_team. Requiring homeAway meant every UFC bet failed to match.
+export function compSides(comp: any) {
+  const cs = comp?.competitors || [];
+  return {
+    hc: cs.find((c: any) => c.homeAway === "home") || cs[1],
+    ac: cs.find((c: any) => c.homeAway === "away") || cs[0],
+  };
+}
+// One pseudo-event per competition. A UFC card is a single ESPN event holding every fight
+// (each with its own id/date/status); team sports are one competition per event.
+export function flattenCompetitions(events: any[]) {
+  return (events || []).flatMap((ev: any) => {
+    const comps = ev.competitions || [];
+    if (comps.length <= 1) return [ev];
+    return comps.map((c: any) => ({ ...ev, id: c.id || ev.id, date: c.date || ev.date,
+      status: c.status || ev.status, competitions: [c] }));
+  });
+}
+
 export function matchEvent(events: any[], homeTeam: string, awayTeam: string) {
   const htW = normWords(homeTeam), atW = normWords(awayTeam);
-  for (const ev of events) {
-    const cs = ev.competitions?.[0]?.competitors || [];
-    const hc = cs.find((c: any) => c.homeAway === "home");
-    const ac = cs.find((c: any) => c.homeAway === "away");
+  for (const ev of flattenCompetitions(events)) {
+    const { hc, ac } = compSides(ev.competitions?.[0]);
     if (!hc || !ac) continue;
     const hn = normWords(hc.team?.displayName || hc.athlete?.displayName || "");
     const an = normWords(ac.team?.displayName || ac.athlete?.displayName || "");
@@ -59,9 +78,7 @@ export function scoreFor(events: any[], homeTeam: string, awayTeam: string) {
   const ev = matchEvent(events, homeTeam, awayTeam);
   if (!ev) return { found: false, done: false };
   if (!ev.status?.type?.completed) return { found: true, done: false };
-  const comps = ev.competitions?.[0]?.competitors || [];
-  const hc = comps.find((c: any) => c.homeAway === "home");
-  const ac = comps.find((c: any) => c.homeAway === "away");
+  const { hc, ac } = compSides(ev.competitions?.[0]);
   if (!hc || !ac) return { found: true, done: false };
   const hasNumericScore = hc.score != null && ac.score != null;
   if (hasNumericScore) {

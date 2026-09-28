@@ -10,7 +10,7 @@
 // within one slip.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { ESPN_PATH, extractMarket, findEventAcrossDays, calcPayout, calcParlayOdds, corsHeaders, json } from "../_shared/grading.ts";
+import { ESPN_PATH, extractMarket, findEventAcrossDays, calcPayout, calcParlayOdds, corsHeaders, json, compSides } from "../_shared/grading.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -27,8 +27,7 @@ async function resolveLeg(leg: LegInput) {
   if (ev.status?.type?.state !== "pre") return { error: "game already started" as const };
   const comp = ev.competitions?.[0];
   const cs = comp?.competitors || [];
-  const hc = cs.find((c: any) => c.homeAway === "home");
-  const ac = cs.find((c: any) => c.homeAway === "away");
+  const { hc, ac } = compSides({ competitors: cs });
   const homeName = hc?.team?.displayName || hc?.athlete?.displayName || leg.home_team;
   const awayName = ac?.team?.displayName || ac?.athlete?.displayName || leg.away_team;
   const real = extractMarket(ev, leg.market, leg.selection, homeName, awayName);
