@@ -8,7 +8,7 @@
 // used rather than whatever the client claims.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { ESPN_PATH, matchEvent, extractMarket, pickemMultiplier, calcParlayOdds, corsHeaders, json, compSides } from "../_shared/grading.ts";
+import { ESPN_PATH, findEventAcrossDays, extractMarket, pickemMultiplier, calcParlayOdds, corsHeaders, json, compSides } from "../_shared/grading.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -44,16 +44,8 @@ Deno.serve(async (req) => {
     let earliest = Infinity;
     for (const p of picks) {
       if (!p.pick) return json({ error: "every game needs a pick" }, 400, origin);
-      // Slate submission searches today + the next few days (matches loadPickem's
-      // own upcoming-slate window), not the wider look-back settlement needs.
-      let ev: any = null;
-      for (let i = 0; i < 8 && !ev; i++) {
-        const d = new Date(); d.setDate(d.getDate() + i);
-        const fmt = d.toISOString().slice(0, 10).replace(/-/g, "");
-        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard?dates=${fmt}`);
-        const j = await res.json().catch(() => ({ events: [] }));
-        ev = matchEvent(j.events || [], p.home_team, p.away_team);
-      }
+      // Slate submission searches the same upcoming week loadPickem lists, by exact game id.
+      const ev: any = await findEventAcrossDays(espnPath, p.home_team, p.away_team, p.game_id);
       if (!ev) return json({ error: "game not found", reason: `no matching event for ${p.home_team} vs ${p.away_team}` }, 404, origin);
       if (ev.status?.type?.state !== "pre") return json({ error: "game already started" }, 409, origin);
       const commenceMs = new Date(ev.date).getTime();

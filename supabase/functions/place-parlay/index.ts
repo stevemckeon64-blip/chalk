@@ -22,7 +22,7 @@ async function resolveLeg(leg: LegInput) {
   const espnPath = ESPN_PATH[leg.sport];
   const supported = leg.market === "h2h" || leg.market === "spreads" || leg.market === "totals";
   if (!espnPath || !supported) return { error: "not_yet_supported" as const };
-  const ev = await findEventAcrossDays(espnPath, leg.home_team, leg.away_team);
+  const ev = await findEventAcrossDays(espnPath, leg.home_team, leg.away_team, leg.game_id);
   if (!ev) return { error: "game not found" as const };
   if (ev.status?.type?.state !== "pre") return { error: "game already started" as const };
   const comp = ev.competitions?.[0];

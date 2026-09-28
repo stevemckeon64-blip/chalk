@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     if (authError || !userData?.user) return json({ error: "not authenticated" }, 401, origin);
     const userId = userData.user.id;
 
-    const ev = await findEventAcrossDays(espnPath, home_team, away_team);
+    const ev = await findEventAcrossDays(espnPath, home_team, away_team, game_id);
     if (!ev) return json({ error: "game not found", reason: "no matching upcoming ESPN event" }, 404, origin);
     if (ev.status?.type?.state !== "pre") {
       return json({ error: "game already started", reason: "bets can only be placed on games that haven't started" }, 409, origin);

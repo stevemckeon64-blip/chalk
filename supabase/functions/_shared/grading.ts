@@ -60,23 +60,46 @@ export function flattenCompetitions(events: any[]) {
   });
 }
 
-export function matchEvent(events: any[], homeTeam: string, awayTeam: string) {
+function namesMatch(ev: any, homeTeam: string, awayTeam: string) {
+  const { hc, ac } = compSides(ev.competitions?.[0]);
+  if (!hc || !ac) return false;
   const htW = normWords(homeTeam), atW = normWords(awayTeam);
-  for (const ev of flattenCompetitions(events)) {
-    const { hc, ac } = compSides(ev.competitions?.[0]);
-    if (!hc || !ac) continue;
-    const hn = normWords(hc.team?.displayName || hc.athlete?.displayName || "");
-    const an = normWords(ac.team?.displayName || ac.athlete?.displayName || "");
-    const htMatch = htW.some((w) => hn.includes(w)) || hn.some((w) => htW.includes(w));
-    const atMatch = atW.some((w) => an.includes(w)) || an.some((w) => atW.includes(w));
-    if (htMatch && atMatch) return ev;
-  }
-  return null;
+  const hn = normWords(hc.team?.displayName || hc.athlete?.displayName || "");
+  const an = normWords(ac.team?.displayName || ac.athlete?.displayName || "");
+  const htMatch = htW.some((w) => hn.includes(w)) || hn.some((w) => htW.includes(w));
+  const atMatch = atW.some((w) => an.includes(w)) || an.some((w) => atW.includes(w));
+  return htMatch && atMatch;
 }
 
-export function scoreFor(events: any[], homeTeam: string, awayTeam: string) {
-  const ev = matchEvent(events, homeTeam, awayTeam);
-  if (!ev) return { found: false, done: false };
+export function matchEvent(events: any[], homeTeam: string, awayTeam: string) {
+  return flattenCompetitions(events).find((ev: any) => namesMatch(ev, homeTeam, awayTeam)) || null;
+}
+
+// The exact game a bet was placed on. Stored ESPN id first — an MLB series is the same two
+// teams on consecutive days, so a name match alone can grade the wrong game. Falls back to
+// the name match whose start time is closest to the bet's own (old bets, pre-id UFC cards).
+export function findGameEvent(events: any[], gameId: string | null | undefined, homeTeam: string, awayTeam: string, commenceMs: number) {
+  const flat = flattenCompetitions(events);
+  if (gameId) {
+    const byId = flat.find((ev: any) => String(ev.id) === String(gameId));
+    if (byId) return byId;
+  }
+  let best: any = null, bestGap = Infinity;
+  for (const ev of flat) {
+    if (!namesMatch(ev, homeTeam, awayTeam)) continue;
+    const t = new Date(ev.date).getTime();
+    const gap = isFinite(commenceMs) && isFinite(t) ? Math.abs(t - commenceMs) : Number.MAX_SAFE_INTEGER;
+    if (gap < bestGap) { best = ev; bestGap = gap; }
+  }
+  return best;
+}
+
+// Postponed/canceled games come back as state "post" but never complete — treated as not
+// found, so they void once the staleness window passes instead of sitting pending forever.
+const DEAD_STATUSES = ["STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_CANCELLED"];
+
+export function scoreForEvent(ev: any) {
+  if (!ev || DEAD_STATUSES.includes(ev.status?.type?.name)) return { found: false, done: false };
   if (!ev.status?.type?.completed) return { found: true, done: false };
   const { hc, ac } = compSides(ev.competitions?.[0]);
   if (!hc || !ac) return { found: true, done: false };
@@ -180,40 +203,66 @@ export function extractMarket(ev: any, market: string, selection: string, homeNa
   return null;
 }
 
-// Same 8-day look-ahead window fetchOdds() uses client-side, scoped to finding
-// the one real event a specific home/away pair refers to.
-export async function findEventAcrossDays(espnPath: string, homeTeam: string, awayTeam: string) {
-  const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
-  const today = new Date();
-  const days = Array.from({ length: 8 }, (_, i) => {
-    const d = new Date(today); d.setDate(today.getDate() + i); return d;
-  });
-  for (const d of days) {
-    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard?dates=${fmt(d)}`);
-    const j = await res.json().catch(() => ({ events: [] }));
-    const ev = matchEvent(j.events || [], homeTeam, awayTeam);
-    if (ev) return ev;
+// ── Scoreboard fetching ──────────────────────────────────────────────────
+// ESPN's scoreboard now rejects multi-day ranges (dates=YYYYMMDD-YYYYMMDD → 400) for every
+// team sport, so every window is fetched one day at a time. limit=300: at limit>=999 ESPN
+// silently truncates college football to 25 games.
+const DAY_MS = 24 * 60 * 60 * 1000;
+export const fmtDay = (ms: number) => new Date(ms).toISOString().slice(0, 10).replace(/-/g, "");
+
+export async function fetchDay(espnPath: string, day: string, limit = 300) {
+  try {
+    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard?dates=${day}&limit=${limit}`);
+    const j = await res.json();
+    return j.events || [];
+  } catch { return []; }
+}
+export async function fetchDays(espnPath: string, days: string[], limit = 300) {
+  const perDay = await Promise.all([...new Set(days)].map((d) => fetchDay(espnPath, d, limit)));
+  const seen = new Set<string>(), out: any[] = [];
+  for (const ev of perDay.flat()) if (!seen.has(ev.id)) { seen.add(ev.id); out.push(ev); }
+  return out;
+}
+// ESPN files a game under its US Eastern date — the UTC date or the day before. The day
+// after is padding for late-night cards.
+export function daysAround(ms: number) {
+  if (!isFinite(ms)) return [fmtDay(Date.now())];
+  return [fmtDay(ms - DAY_MS), fmtDay(ms), fmtDay(ms + DAY_MS)];
+}
+// The scoreboard for the days a game was scheduled — not "today's" board, which a game
+// from two days ago is no longer on (that used to void real results once 6h had passed).
+export function fetchEventsAround(espnPath: string, commenceMs: number) {
+  return fetchDays(espnPath, daysAround(commenceMs));
+}
+
+// Finds the real upcoming event a bet refers to (yesterday-UTC through the next week — the
+// same window fetchOdds() lists). With a gameId, only that exact game counts as found, so a
+// bet on game 3 of a series is never priced off game 1.
+export async function findEventAcrossDays(espnPath: string, homeTeam: string, awayTeam: string, gameId?: string | null) {
+  const now = Date.now();
+  let upcoming: any = null, anyMatch: any = null;
+  for (const batch of [[-1, 0, 1], [2, 3, 4, 5, 6, 7]]) {
+    const events = await fetchDays(espnPath, batch.map((i) => fmtDay(now + i * DAY_MS)));
+    const flat = flattenCompetitions(events).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (gameId) {
+      const byId = flat.find((ev: any) => String(ev.id) === String(gameId));
+      if (byId) return byId;
+    }
+    // Without an id match, the soonest game that hasn't started beats one already underway.
+    const named = flat.filter((ev: any) => namesMatch(ev, homeTeam, awayTeam));
+    upcoming = upcoming || named.find((ev: any) => ev.status?.type?.state === "pre") || null;
+    anyMatch = anyMatch || named[0] || null;
+    if (upcoming && !gameId) return upcoming;
   }
-  return null;
+  return upcoming || anyMatch;
 }
 
-// Current scoreboard (undated call — "today's" slate), used for settlement the
-// same way settlePending() fetches it client-side.
-export async function fetchScoreboard(espnPath: string) {
-  const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard`);
-  const j = await res.json();
-  return j.events || [];
-}
-
-// A specific date-range scoreboard fetch, for Pick'em — a slate can span several
-// days and a pick's game may already be a day or two in the past by settlement
-// time, so (unlike fetchScoreboard's "today only" call) this needs an explicit
-// window. Mirrors fetchEventsForRange() client-side.
-export async function fetchEventsForRange(espnPath: string, startMs: number, endMs: number) {
-  const fmt = (ms: number) => new Date(ms).toISOString().slice(0, 10).replace(/-/g, "");
-  const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard?dates=${fmt(startMs)}-${fmt(endMs)}&limit=1000`);
-  const j = await res.json().catch(() => ({ events: [] }));
-  return j.events || [];
+// Every day in a window, for Pick'em — a slate can span several days (capped at three
+// weeks). Mirrors fetchEventsForRange() client-side.
+export function fetchEventsForRange(espnPath: string, startMs: number, endMs: number) {
+  const days: string[] = [];
+  for (let t = startMs; t <= endMs + DAY_MS && days.length < 21; t += DAY_MS) days.push(fmtDay(t));
+  return fetchDays(espnPath, days);
 }
 
 // ── Futures (real season-long outcomes — different ESPN domain entirely) ──
@@ -265,14 +314,26 @@ export async function fetchFuturesOdds(cfg: typeof FUTURES_CONFIG[number], selec
   return null;
 }
 
+// "YYYYMMDD-YYYYMMDD" → every YYYYMM it touches. ESPN still accepts whole-month queries,
+// just not day ranges.
+export function monthsInRange(range: string) {
+  const [a, b] = range.split("-");
+  let y = +a.slice(0, 4), m = +a.slice(4, 6);
+  const ey = +b.slice(0, 4), em = +b.slice(4, 6), out: string[] = [];
+  while (y < ey || (y === ey && m <= em)) {
+    out.push(`${y}${String(m).padStart(2, "0")}`);
+    if (++m > 12) { m = 1; y++; }
+  }
+  return out;
+}
+
 export async function fetchLeagueChampion(sportKey: string) {
   const src = CHAMPIONSHIP_SOURCES[sportKey];
   if (!src) return null;
-  const range = src.range(FUTURES_SEASON);
-  const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${src.espn}/scoreboard?dates=${range}&limit=1000`);
-  const j = await res.json();
+  // limit=500: a regular-season MLB month runs ~420 games.
+  const events = await fetchDays(src.espn, monthsInRange(src.range(FUTURES_SEASON)), 500);
   const exclude = /pro bowl|all-star|all star/i;
-  const postseason = (j.events || []).filter((e: any) => e.season?.type === 3 && !exclude.test(e.name || ""));
+  const postseason = events.filter((e: any) => e.season?.type === 3 && !exclude.test(e.name || ""));
   const unfinished = postseason.some((e: any) => !e.status?.type?.completed);
   const finished = postseason.filter((e: any) => e.status?.type?.completed);
   if (unfinished || !finished.length) return null;

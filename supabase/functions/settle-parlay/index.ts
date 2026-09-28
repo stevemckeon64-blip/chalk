@@ -8,7 +8,7 @@
 // rather than partially trusting one leg and not another.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { ESPN_PATH, scoreFor, gradeLegOutcome, calcPayout, calcParlayOdds, fetchScoreboard, corsHeaders, json } from "../_shared/grading.ts";
+import { ESPN_PATH, scoreForEvent, findGameEvent, gradeLegOutcome, calcPayout, calcParlayOdds, daysAround, fetchDays, corsHeaders, json } from "../_shared/grading.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -61,24 +61,36 @@ Deno.serve(async (req) => {
       }
     }
 
-    const sportsNeeded = [...new Set(legs.map((l: any) => l.sport))] as string[];
+    // Each leg's own game days (legs can be days apart), one fetch per sport per day.
+    const daysBySport: Record<string, Set<string>> = {};
+    for (const leg of legs) {
+      const set = daysBySport[leg.sport] ||= new Set<string>();
+      for (const d of daysAround(new Date(leg.commenceTime).getTime())) set.add(d);
+    }
     const eventsBySport: Record<string, any[]> = {};
-    await Promise.all(sportsNeeded.map(async (sport) => {
-      eventsBySport[sport] = await fetchScoreboard(ESPN_PATH[sport]);
+    await Promise.all(Object.entries(daysBySport).map(async ([sport, days]) => {
+      eventsBySport[sport] = await fetchDays(ESPN_PATH[sport], [...days]);
     }));
 
     const graded: any[] = [];
+    let unresolved = 0;
     for (const leg of legs) {
-      const info = scoreFor(eventsBySport[leg.sport] || [], leg.homeTeam, leg.awayTeam);
-      let result: string;
+      const ms = new Date(leg.commenceTime).getTime();
+      const info = scoreForEvent(findGameEvent(eventsBySport[leg.sport] || [], leg.gameId, leg.homeTeam, leg.awayTeam, ms));
+      let result: string | null = null;
       if (info.done) {
         result = gradeLegOutcome(leg.market, leg.selection, leg.line, leg.homeTeam, leg.awayTeam, info.hs!, info.as!, leg.sport);
-      } else if (!info.found && Date.now() - new Date(leg.commenceTime).getTime() > STALE_MS) {
+      } else if (!info.found && Date.now() - ms > STALE_MS) {
         result = "void";
       } else {
-        return json({ status: "pending", reason: "at least one leg not final yet" }, 200, origin);
+        unresolved++;
       }
-      graded.push({ ...leg, result });
+      graded.push(result ? { ...leg, result } : leg);
+    }
+    // A parlay is lost the moment any leg loses, like every real book — no waiting on the
+    // rest. Otherwise every leg has to be final.
+    if (unresolved && !graded.some((l) => l.result === "lost")) {
+      return json({ status: "pending", reason: "at least one leg not final yet" }, 200, origin);
     }
 
     let outcome: string, payout: number;

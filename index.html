@@ -1258,11 +1258,17 @@ async function fetchLeagueChampion(sportKey) {
   if (cached && Date.now() - cached.ts < 60 * 60 * 1000) return cached.data;
   let data = null;
   try {
-    const range = src.range(FUTURES_SEASON);
-    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${src.espn}/scoreboard?dates=${range}&limit=1000`);
-    const json = await res.json();
+    // ESPN no longer accepts day ranges, but whole months still work — one query per month
+    // the window touches (limit=500: a regular-season MLB month runs ~420 games).
+    const [a, b] = src.range(FUTURES_SEASON).split('-');
+    const months = [];
+    for (let y = +a.slice(0,4), m = +a.slice(4,6); y < +b.slice(0,4) || (y === +b.slice(0,4) && m <= +b.slice(4,6)); ) {
+      months.push(`${y}${String(m).padStart(2,'0')}`);
+      if (++m > 12) { m = 1; y++; }
+    }
+    const events = await fetchDays(src.espn, months, 500, 30 * 60 * 1000);
     const exclude = /pro bowl|all-star|all star/i;
-    const postseason = (json.events || []).filter(e => e.season?.type === 3 && !exclude.test(e.name || ''));
+    const postseason = events.filter(e => e.season?.type === 3 && !exclude.test(e.name || ''));
     const unfinished = postseason.some(e => !e.status?.type?.completed);
     const finished = postseason.filter(e => e.status?.type?.completed);
     if (!unfinished && finished.length) {
@@ -2557,7 +2563,7 @@ async function fetchTennisPseudoEvents() {
   for (const tev of perDay.flat()) {
     const grouping = (tev.groupings || []).find(g => g.grouping?.slug === 'mens-singles') || tev.groupings?.[0];
     for (const comp of (grouping?.competitions || [])) {
-      pseudoEvents.push({ status: comp.status, competitions: [comp] });
+      pseudoEvents.push({ id: comp.id, date: comp.date, status: comp.status, competitions: [comp] });
     }
   }
   return pseudoEvents;
@@ -4070,57 +4076,24 @@ async function settlePending() {
   const { data: pending } = await sb.from('bets').select('*').eq('user_id',user.id).eq('status','pending').lt('commence_time',now);
   if (!pending?.length) return;
 
-  // Parlay/round-robin legs can each belong to a different sport than the bet row's own
-  // top-level `sport` column, so collect every sport actually referenced before fetching —
-  // one shared scoreboard fetch per sport, reused by every single bet AND every parlay leg.
-  const sportsNeeded = new Set();
-  for (const b of pending) {
-    if (b.market === 'parlay') {
-      try { for (const l of (JSON.parse(b.selection).legs||[])) if (l.sport) sportsNeeded.add(l.sport); } catch(e) {}
-    } else if (b.sport) sportsNeeded.add(b.sport);
-  }
-  const eventsBySport = {};
-  await Promise.all([...sportsNeeded].map(async sport => {
-    const espn = SPORTS[sport]?.espn;
-    if (!espn) { eventsBySport[sport] = []; return; } // e.g. 'futures' — no real scoreboard to check against
-    // Tennis needs its own fetch: matches live nested under event.groupings[].competitions[]
-    // (see fetchTennisOdds), not on event.competitions[] like every other sport, and a bet's
-    // match may have started a day or two ago — the single dateless scoreboard call other
-    // sports use here only ever returns the current/most-recent tournament, not the match
-    // history a pending bet needs to be graded against.
-    if (sport.startsWith('tennis_')) {
-      eventsBySport[sport] = await fetchTennisPseudoEvents();
-      return;
-    }
-    try {
-      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espn}/scoreboard`);
-      const { events = [] } = await res.json();
-      eventsBySport[sport] = events;
-    } catch(e) { console.error('settlement fetch error', sport, e); eventsBySport[sport] = []; }
-  }));
-
   // If we still can't find a matching real-world event this long after kickoff (futures
   // markets, or any other bet whose team names never resolve to a real ESPN event), stop
   // waiting forever and void it out instead — refund the stake rather than leave it stuck.
   const STALE_MS = 6 * 60 * 60 * 1000;
-  const scoreFor = (sport, homeTeam, awayTeam) => {
-    const ev = matchEvent(eventsBySport[sport] || [], homeTeam, awayTeam);
-    if (!ev) return { found: false };
-    if (!ev.status?.type?.completed) return { found: true, done: false };
-    const { hc, ac } = compSides(ev.competitions?.[0]);
-    if (!hc || !ac) return { found: true, done: false };
-    // Team sports report a numeric score; individual-athlete sports (UFC, tennis) don't —
-    // MMA has no "score" at all (decision/KO/submission, not points) and ESPN's tennis
-    // competitions don't carry one either, but both mark the real winner with a boolean flag.
-    // Encode that as a 1/0 "score" so gradeLegOutcome's h2h comparison (already just
-    // `homeScore > awayScore`) works unmodified — without this, both sides fall back to 0-0
-    // and every UFC/tennis bet would incorrectly grade as a push instead of a real win/loss.
-    const hasNumericScore = hc.score != null && ac.score != null;
-    if (hasNumericScore) return { found: true, done: true, hs: parseInt(hc.score) || 0, as: parseInt(ac.score) || 0 };
-    if (typeof hc.winner === 'boolean' || typeof ac.winner === 'boolean') {
-      return { found: true, done: true, hs: hc.winner ? 1 : 0, as: ac.winner ? 1 : 0 };
-    }
-    return { found: true, done: false };
+  // Each bet (and each parlay leg — legs can be different sports on different days) is graded
+  // against the scoreboard for its own game's days, not "today's" board, which a game from two
+  // days ago is no longer on. That used to void real results once 6h had passed. Fetches are
+  // lazy and shared through fetchDay's cache, so server-settled bets cost nothing extra.
+  // Tennis needs its own fetch: matches live nested under event.groupings[].competitions[].
+  let tennisEvents = null;
+  const scoreFor = async (sport, gameId, homeTeam, awayTeam, commence) => {
+    const espn = SPORTS[sport]?.espn;
+    if (!espn) return { found: false, done: false }; // e.g. 'futures' — no real scoreboard to check against
+    const ms = new Date(commence).getTime();
+    const events = sport.startsWith('tennis_')
+      ? (tennisEvents ||= await fetchTennisPseudoEvents())
+      : await fetchDays(espn, daysAround(ms));
+    return scoreForEvent(findGameEvent(events, gameId, homeTeam, awayTeam, ms));
   };
 
   for (const bet of pending) {
@@ -4184,7 +4157,7 @@ async function settleSingleBet(bet, scoreFor, staleMs) {
       if (!error) return; // server confirms it's genuinely still pending, or already settled elsewhere
     } catch(e) { console.error('settle-bet function error', e); }
   }
-  const info = scoreFor(bet.sport, bet.home_team, bet.away_team);
+  const info = await scoreFor(bet.sport, bet.game_id, bet.home_team, bet.away_team, bet.commence_time);
   let result;
   if (info.done) {
     result = gradeLegOutcome(bet.market, bet.selection, bet.line, bet.home_team, bet.away_team, info.hs, info.as, bet.sport);
@@ -4220,18 +4193,22 @@ async function settleParlayBet(bet, scoreFor, staleMs) {
   try { legs = JSON.parse(bet.selection).legs || []; } catch(e) { return; }
   if (!legs.length) return;
   const graded = [];
+  let unresolved = 0;
   for (const leg of legs) {
-    const info = scoreFor(leg.sport, leg.homeTeam, leg.awayTeam);
-    let result;
+    const info = await scoreFor(leg.sport, leg.gameId, leg.homeTeam, leg.awayTeam, leg.commenceTime);
+    let result = null;
     if (info.done) {
       result = gradeLegOutcome(leg.market, leg.selection, leg.line, leg.homeTeam, leg.awayTeam, info.hs, info.as, leg.sport);
     } else if (!info.found && Date.now() - new Date(leg.commenceTime).getTime() > staleMs) {
       result = 'void';
     } else {
-      return; // at least one leg's game is still in progress (or unresolved) — whole slip waits
+      unresolved++;
     }
-    graded.push({ ...leg, result });
+    graded.push(result ? { ...leg, result } : leg);
   }
+  // A parlay is lost the moment any leg loses, like every real book. Otherwise every leg has
+  // to be final before it pays.
+  if (unresolved && !graded.some(l => l.result === 'lost')) return;
   let outcome, payout;
   if (graded.some(l => l.result === 'lost')) {
     outcome = 'lost'; payout = 0;
@@ -4245,30 +4222,18 @@ async function settleParlayBet(bet, scoreFor, staleMs) {
   // My Bets can show a won/lost/void chip on each leg of a settled parlay.
   await sb.from('bets').update({
     status: outcome, settled_at: new Date().toISOString(), potential_payout: payout,
-    selection: JSON.stringify({ legs: graded }),
+    selection: JSON.stringify({ legs: graded, rr: !!JSON.parse(bet.selection||'{}').rr }),
   }).eq('id', bet.id);
   await creditAndNotify(bet, outcome, payout);
 }
 
 // Pick'em settlement is self-contained (doesn't reuse settlePending's shared eventsBySport)
-// because a weekly slate can span games from several different days (Thu/Sun/Mon for NFL),
-// unlike a parlay whose legs are usually all near-term — the single dateless scoreboard fetch
-// everything else uses would miss games outside "today". Fetches a date range covering the
-// whole slate instead, same lesson learned building tennis settlement.
-let _pickemEventsCache = {};
-async function fetchEventsForRange(espnPath, startMs, endMs) {
-  const key = `${espnPath}_${Math.floor(startMs/3600000)}_${Math.floor(endMs/3600000)}`;
-  const cached = _pickemEventsCache[key];
-  if (cached && Date.now() - cached.ts < 30 * 60 * 1000) return cached.data;
-  const fmt = ms => new Date(ms).toISOString().slice(0,10).replace(/-/g,'');
-  let data = [];
-  try {
-    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard?dates=${fmt(startMs)}-${fmt(endMs)}&limit=1000`);
-    const json = await res.json();
-    data = json.events || [];
-  } catch(e) { console.error('pickem range fetch error', espnPath, e); }
-  _pickemEventsCache[key] = { data, ts: Date.now() };
-  return data;
+// because a weekly slate can span games from several different days (Thu/Sun/Mon for NFL).
+// Every day of the slate is fetched (capped at three weeks).
+function fetchEventsForRange(espnPath, startMs, endMs) {
+  const days = [];
+  for (let t = startMs; t <= endMs + DAY_MS && days.length < 21; t += DAY_MS) days.push(fmtDay(t));
+  return fetchDays(espnPath, days);
 }
 async function settlePickemBet(bet) {
   // Server-eligible whenever every pick's sport is in the supported set (see
@@ -4304,21 +4269,25 @@ async function settlePickemBet(bet) {
   }));
   const graded = [];
   for (const p of picks) {
-    const ev = matchEvent(eventsBySport[p.sport] || [], p.homeTeam, p.awayTeam);
-    if (!ev || !ev.status?.type?.completed) return; // at least one game not final yet — whole slate waits
-    const { hc, ac } = compSides(ev.competitions?.[0]);
-    if (!hc || !ac) return;
-    const hs = parseInt(hc.score) || 0, as_ = parseInt(ac.score) || 0;
+    const ms = new Date(p.commenceTime).getTime();
+    const info = scoreForEvent(findGameEvent(eventsBySport[p.sport] || [], p.gameId, p.homeTeam, p.awayTeam, ms));
+    let result;
     // Straight Up grades on who actually won; Against the Spread grades on the real spread
     // line locked in at submission — same gradeLegOutcome() logic the main betting flow
     // already uses for both markets, just applied per pick instead of per bet.
-    const result = (data.mode === 'ats')
-      ? gradeLegOutcome('spreads', p.pick, p.line, p.homeTeam, p.awayTeam, hs, as_, p.sport)
-      : gradeLegOutcome('h2h', p.pick, null, p.homeTeam, p.awayTeam, hs, as_, p.sport);
-    graded.push({ ...p, result }); // 'won' | 'lost' | 'push'
+    if (info.done) {
+      result = (data.mode === 'ats')
+        ? gradeLegOutcome('spreads', p.pick, p.line, p.homeTeam, p.awayTeam, info.hs, info.as, p.sport)
+        : gradeLegOutcome('h2h', p.pick, null, p.homeTeam, p.awayTeam, info.hs, info.as, p.sport);
+    } else if (!info.found && Date.now() - ms > 6 * 60 * 60 * 1000) {
+      result = 'void'; // postponed/canceled — drops out of the slate like a push
+    } else {
+      return; // at least one game not final yet — whole slate waits
+    }
+    graded.push({ ...p, result });
   }
   const total = data.total || picks.length;
-  const pushes = graded.filter(g => g.result === 'push').length;
+  const pushes = graded.filter(g => g.result === 'push' || g.result === 'void').length;
   const correct = graded.filter(g => g.result === 'won').length;
   // A push (exact tie against the spread) doesn't count against you, same as a real ATS
   // pick'em — it's excluded from both sides of the ratio rather than counted as a miss.
@@ -4328,7 +4297,7 @@ async function settlePickemBet(bet) {
   const outcome = payout > 0 ? 'won' : 'lost';
   await sb.from('bets').update({
     status: outcome, settled_at: new Date().toISOString(), potential_payout: payout,
-    selection: JSON.stringify({ picks: graded, total, correct, pushes }),
+    selection: JSON.stringify({ picks: graded, total, correct, pushes, mode: data.mode }),
   }).eq('id', bet.id);
   await creditAndNotify(bet, outcome, payout, `${correct}/${effectiveTotal} correct${pushes?` · ${pushes} push`:''}`);
 }
@@ -4373,21 +4342,92 @@ function flattenCompetitions(events) {
       status: c.status || ev.status, competitions: [c], _cardId: ev.id, _cardIdx: i }));
   });
 }
-function matchEvent(events, homeTeam, awayTeam) {
-  const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]/g,' ').trim().split(' ').filter(Boolean);
+function eventNamesMatch(ev, homeTeam, awayTeam) {
+  const norm = s => (s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').trim().split(' ').filter(Boolean);
+  const { hc, ac } = compSides(ev.competitions?.[0]);
+  if (!hc||!ac) return false;
+  // Team sports name their competitors via c.team; individual-athlete sports (UFC, tennis)
+  // via c.athlete — without this fallback, matchEvent could never find a fighter/player
+  // event, and every UFC/tennis bet would silently sit unmatched until it voided out.
   const htW = norm(homeTeam), atW = norm(awayTeam);
-  for (const ev of flattenCompetitions(events)) {
-    const { hc, ac } = compSides(ev.competitions?.[0]);
-    if (!hc||!ac) continue;
-    // Team sports name their competitors via c.team; individual-athlete sports (UFC, tennis)
-    // via c.athlete — without this fallback, matchEvent could never find a fighter/player
-    // event, and every UFC/tennis bet would silently sit unmatched until it voided out.
-    const hn = norm(hc.team?.displayName||hc.athlete?.displayName||''), an = norm(ac.team?.displayName||ac.athlete?.displayName||'');
-    const htMatch = htW.some(w=>hn.includes(w))||hn.some(w=>htW.includes(w));
-    const atMatch = atW.some(w=>an.includes(w))||an.some(w=>atW.includes(w));
-    if (htMatch&&atMatch) return ev;
+  const hn = norm(hc.team?.displayName||hc.athlete?.displayName||''), an = norm(ac.team?.displayName||ac.athlete?.displayName||'');
+  const htMatch = htW.some(w=>hn.includes(w))||hn.some(w=>htW.includes(w));
+  const atMatch = atW.some(w=>an.includes(w))||an.some(w=>atW.includes(w));
+  return htMatch && atMatch;
+}
+function matchEvent(events, homeTeam, awayTeam) {
+  return flattenCompetitions(events).find(ev => eventNamesMatch(ev, homeTeam, awayTeam)) || null;
+}
+// The exact game a bet was placed on. Stored ESPN id first — an MLB series is the same two
+// teams on consecutive days (sometimes twice in one day), so a name match alone can grade the
+// wrong game. Falls back to the name match closest to the bet's own start time.
+function findGameEvent(events, gameId, homeTeam, awayTeam, commenceMs) {
+  const flat = flattenCompetitions(events);
+  if (gameId) {
+    const byId = flat.find(ev => String(ev.id) === String(gameId));
+    if (byId) return byId;
   }
-  return null;
+  let best = null, bestGap = Infinity;
+  for (const ev of flat) {
+    if (!eventNamesMatch(ev, homeTeam, awayTeam)) continue;
+    const t = new Date(ev.date).getTime();
+    const gap = isFinite(commenceMs) && isFinite(t) ? Math.abs(t - commenceMs) : Number.MAX_SAFE_INTEGER;
+    if (gap < bestGap) { best = ev; bestGap = gap; }
+  }
+  return best;
+}
+// Postponed/canceled games come back as state 'post' but never complete — treated as not
+// found, so they void once the staleness window passes instead of sitting pending forever.
+const DEAD_STATUSES = ['STATUS_POSTPONED','STATUS_CANCELED','STATUS_CANCELLED'];
+function scoreForEvent(ev) {
+  if (!ev || DEAD_STATUSES.includes(ev.status?.type?.name)) return { found: false, done: false };
+  if (!ev.status?.type?.completed) return { found: true, done: false };
+  const { hc, ac } = compSides(ev.competitions?.[0]);
+  if (!hc || !ac) return { found: true, done: false };
+  // Team sports report a numeric score; individual-athlete sports (UFC, tennis) don't —
+  // MMA has no "score" at all (decision/KO/submission, not points) and ESPN's tennis
+  // competitions don't carry one either, but both mark the real winner with a boolean flag.
+  // Encode that as a 1/0 "score" so gradeLegOutcome's h2h comparison (already just
+  // `homeScore > awayScore`) works unmodified — without this, both sides fall back to 0-0
+  // and every UFC/tennis bet would incorrectly grade as a push instead of a real win/loss.
+  if (hc.score != null && ac.score != null) return { found: true, done: true, hs: parseInt(hc.score) || 0, as: parseInt(ac.score) || 0 };
+  if (typeof hc.winner === 'boolean' || typeof ac.winner === 'boolean') {
+    return { found: true, done: true, hs: hc.winner ? 1 : 0, as: ac.winner ? 1 : 0 };
+  }
+  return { found: true, done: false };
+}
+
+// ── SCOREBOARD BY DAY ─────────────────────────────────────────────
+// ESPN's scoreboard now rejects multi-day ranges (dates=YYYYMMDD-YYYYMMDD → 400) for every
+// team sport, so every window is fetched one day at a time. limit=300: at limit>=999 ESPN
+// silently truncates college football to 25 games. Short cache so a live refresh still
+// sees fresh scores, while settlement + My Bets in the same pass share one fetch.
+const DAY_MS = 24 * 60 * 60 * 1000;
+const fmtDay = ms => new Date(ms).toISOString().slice(0,10).replace(/-/g,'');
+let _dayCache = {};
+async function fetchDay(espnPath, day, limit = 300, ttlMs = 45000) {
+  const key = `${espnPath}_${day}_${limit}`;
+  const hit = _dayCache[key];
+  if (hit && Date.now() - hit.ts < ttlMs) return hit.data;
+  let data = [];
+  try {
+    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard?dates=${day}&limit=${limit}`);
+    data = (await res.json()).events || [];
+  } catch(e) { console.error('scoreboard fetch error', espnPath, day, e); if (hit) return hit.data; }
+  _dayCache[key] = { data, ts: Date.now() };
+  return data;
+}
+async function fetchDays(espnPath, days, limit, ttlMs) {
+  const perDay = await Promise.all([...new Set(days)].map(d => fetchDay(espnPath, d, limit, ttlMs)));
+  const seen = new Set(), out = [];
+  for (const ev of perDay.flat()) if (!seen.has(ev.id)) { seen.add(ev.id); out.push(ev); }
+  return out;
+}
+// ESPN files a game under its US Eastern date — the UTC date or the day before. The day
+// after is padding for late-night cards.
+function daysAround(ms) {
+  if (!isFinite(ms)) return [fmtDay(Date.now())];
+  return [fmtDay(ms - DAY_MS), fmtDay(ms), fmtDay(ms + DAY_MS)];
 }
 
 // Grade one leg (or a plain single bet) against a final score. Returns 'won' | 'lost' | 'push' | 'void'.

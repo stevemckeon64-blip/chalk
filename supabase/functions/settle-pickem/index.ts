@@ -6,8 +6,9 @@
 // settlePickemBet() client-side.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { ESPN_PATH, matchEvent, gradeLegOutcome, pickemMultiplier, fetchEventsForRange, corsHeaders, json, compSides } from "../_shared/grading.ts";
+import { ESPN_PATH, findGameEvent, scoreForEvent, gradeLegOutcome, pickemMultiplier, fetchEventsForRange, corsHeaders, json } from "../_shared/grading.ts";
 
+const STALE_MS = 6 * 60 * 60 * 1000; // matches settlePending()'s client-side staleness window
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -64,22 +65,23 @@ Deno.serve(async (req) => {
 
     const graded: any[] = [];
     for (const p of picks) {
-      const ev = matchEvent(eventsBySport[p.sport] || [], p.homeTeam, p.awayTeam);
-      if (!ev || !ev.status?.type?.completed) {
+      const ms = new Date(p.commenceTime).getTime();
+      const info = scoreForEvent(findGameEvent(eventsBySport[p.sport] || [], p.gameId, p.homeTeam, p.awayTeam, ms));
+      let result: string;
+      if (info.done) {
+        result = parsed.mode === "ats"
+          ? gradeLegOutcome("spreads", p.pick, p.line, p.homeTeam, p.awayTeam, info.hs!, info.as!, p.sport)
+          : gradeLegOutcome("h2h", p.pick, null, p.homeTeam, p.awayTeam, info.hs!, info.as!, p.sport);
+      } else if (!info.found && Date.now() - ms > STALE_MS) {
+        result = "void"; // postponed/canceled — drops out of the slate like a push
+      } else {
         return json({ status: "pending", reason: "at least one game not final yet" }, 200, origin);
       }
-      const comps = ev.competitions?.[0]?.competitors || [];
-      const { hc, ac } = compSides({ competitors: comps });
-      if (!hc || !ac) return json({ status: "pending", reason: "score not available yet" }, 200, origin);
-      const hs = parseInt(hc.score) || 0, as_ = parseInt(ac.score) || 0;
-      const result = parsed.mode === "ats"
-        ? gradeLegOutcome("spreads", p.pick, p.line, p.homeTeam, p.awayTeam, hs, as_, p.sport)
-        : gradeLegOutcome("h2h", p.pick, null, p.homeTeam, p.awayTeam, hs, as_, p.sport);
       graded.push({ ...p, result });
     }
 
     const total = parsed.total || picks.length;
-    const pushes = graded.filter((g) => g.result === "push").length;
+    const pushes = graded.filter((g) => g.result === "push" || g.result === "void").length;
     const correct = graded.filter((g) => g.result === "won").length;
     const effectiveTotal = total - pushes;
     const mult = effectiveTotal > 0 ? pickemMultiplier(correct, effectiveTotal) : 0;

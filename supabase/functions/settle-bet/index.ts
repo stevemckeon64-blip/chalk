@@ -6,7 +6,7 @@
 // settle-parlay for the parlay equivalent.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { ESPN_PATH, scoreFor, gradeLegOutcome, fetchScoreboard, corsHeaders, json } from "../_shared/grading.ts";
+import { ESPN_PATH, scoreForEvent, findGameEvent, gradeLegOutcome, fetchEventsAround, corsHeaders, json } from "../_shared/grading.ts";
 
 const STALE_MS = 6 * 60 * 60 * 1000; // matches settlePending()'s client-side staleness window
 
@@ -55,8 +55,9 @@ Deno.serve(async (req) => {
       return json({ error: "not_yet_supported", reason: "this bet type isn't server-settled yet" }, 501, origin);
     }
 
-    const events = await fetchScoreboard(espnPath);
-    const info = scoreFor(events, bet.home_team, bet.away_team);
+    const commenceMs = new Date(bet.commence_time).getTime();
+    const events = await fetchEventsAround(espnPath, commenceMs);
+    const info = scoreForEvent(findGameEvent(events, bet.game_id, bet.home_team, bet.away_team, commenceMs));
     let result: string;
     if (info.done) {
       result = gradeLegOutcome(bet.market, bet.selection, bet.line, bet.home_team, bet.away_team, info.hs!, info.as!, bet.sport);
