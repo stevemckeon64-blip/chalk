@@ -1,18 +1,17 @@
-// CHALK — cash-out Edge Function
+// CHALK — cash-out-live Edge Function (replaces cash-out)
 //
-// This closes the single most exploitable path found this session: the client
-// version of cashOut() takes its payout value as a literal argument with zero
-// server-side check — anyone could call cashOut('any-bet-id', 999999, 10) from
-// devtools for an instant, arbitrary payout on ANY pending bet. The game-started
-// gate and the 45%-of-profit formula were both purely cosmetic UI logic, never
-// actually enforced.
+// Quote, then accept. Called with { bet_id } it returns an offer; called with
+// { bet_id, accept } it re-prices from live data and pays the fresh value if it's
+// still within 2% of what the player accepted (or better). The client sends only
+// ids and the accepted number — every input to the price (stake, payout, game,
+// live win probability) is read server-side from the bet row and ESPN.
 //
-// Here, the client sends only a bet_id. Every input to the payout — the real
-// stake, the real potential_payout, the real commence_time, the real market —
-// is read straight from the bet's own row, never trusted from the request.
+// The old cash-out paid a flat stake + 45% of profit on any bet whose game had
+// started: place a bet, cash out at kickoff, keep 45% risk-free. See cashOutQuote
+// in _shared/grading.ts for how the price is set now and why.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders, json } from "../_shared/grading.ts";
+import { cashOutQuote, corsHeaders, json } from "../_shared/grading.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -35,7 +34,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(origin) });
 
   try {
-    const { bet_id } = await req.json();
+    const { bet_id, accept } = await req.json();
     if (!bet_id) return json({ error: "bet_id required" }, 400, origin);
 
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -52,12 +51,13 @@ Deno.serve(async (req) => {
     if (bet.sport === "futures") return json({ error: "futures can't be cashed out" }, 400, origin);
     if (bet.market === "pickem") return json({ error: "pick'em can't be cashed out" }, 400, origin);
 
-    const gameStarted = new Date(bet.commence_time).getTime() <= Date.now();
-    if (!gameStarted) return json({ error: "game hasn't started yet" }, 409, origin);
-
-    // Same formula as the client displayed, just actually enforced: stake + 45%
-    // of the real potential profit, read from the bet's own stored row.
-    const cashOutValue = Math.round((bet.stake + (bet.potential_payout - bet.stake) * 0.45) * 100) / 100;
+    const quote = await cashOutQuote(bet);
+    if ("error" in quote) return json(quote, 409, origin);
+    if (accept == null) return json({ quote: quote.value, prob: quote.prob }, 200, origin);
+    if (typeof accept !== "number" || quote.value < accept * 0.98) {
+      return json({ error: "price_changed", quote: quote.value, prob: quote.prob }, 409, origin);
+    }
+    const cashOutValue = quote.value;
 
     // Compare-and-swap on status so a double-click, or a settlement racing in at
     // the same moment, can't cash out a bet that's already been paid or lost.

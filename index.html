@@ -1356,7 +1356,7 @@ async function settleFuturesBet(bet) {
   if (!resultName) return false;
   const result = resultName === bet.selection ? 'won' : 'lost';
   const payout = result === 'won' ? bet.potential_payout : 0;
-  await sb.from('bets').update({ status: result, settled_at: new Date().toISOString() }).eq('id', bet.id);
+  if (!await markSettled(bet.id, { status: result, settled_at: new Date().toISOString() })) return true;
   await creditAndNotify(bet, result, payout);
   return true;
 }
@@ -3563,31 +3563,40 @@ function openBetSlip() {
 function setSlipMode(mode) { slipMode = mode; openBetSlip(); }
 
 // ── CASH OUT ─────────────────────────────────────────────────────
-// The value shown on the button (estCoValue below) is only ever a client-side
-// ESTIMATE for display — the real amount is computed server-side from the bet's
-// own stored row (supabase/functions/cash-out) and never trusted from here.
-// cashOut() itself now sends only the bet id, nothing else, so there's no
-// client-supplied number left for anyone to tamper with.
-async function cashOut(betId, estValue, origStake) {
+// Cash-out is quote-then-accept against the server (supabase/functions/cash-out-live), which
+// prices it from ESPN's real live win probability — see cashOutQuote in _shared/grading.ts.
+// Only offered on live moneyline bets in leagues ESPN publishes that probability for.
+const CASHOUT_SPORTS = ['americanfootball_nfl','americanfootball_ncaaf','basketball_nba','basketball_ncaab'];
+async function invokeCashOut(body) {
+  const { data, error } = await sb.functions.invoke('cash-out-live', { body });
+  if (!error) return data;
+  try { return await error.context.json(); } catch(e) { return { error: 'failed' }; }
+}
+async function cashOut(betId) {
   if (!profile) return;
-  const profit = estValue - origStake;
-  if (!confirm(`Cash out for about ${fmt(estValue)}? (${profit >= 0 ? '+' : ''}${fmt(profit)} vs stake)`)) return;
-  try {
-    const { data, error } = await sb.functions.invoke('cash-out', { body: { bet_id: betId } });
-    if (!error && data?.payout != null) {
-      if (data.new_balance != null) profile.balance = data.new_balance;
+  let q = await invokeCashOut({ bet_id: betId });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (q?.quote == null) {
+      showToast(q?.reason || (q?.error === 'already settled' ? 'That bet already settled' : 'Cash out isn’t available right now'), 'error');
+      if (q?.error === 'already settled') loadMyBets();
+      return;
+    }
+    const pct = q.prob != null ? ` Your pick is ${Math.round(q.prob * 100)}% to win right now.` : '';
+    if (!confirm(`Cash out for ${fmt(q.quote)}?${pct}`)) return;
+    const r = await invokeCashOut({ bet_id: betId, accept: q.quote });
+    if (r?.payout != null) {
+      if (r.new_balance != null) profile.balance = r.new_balance;
       animateBalance(profile.balance);
       flashBalance('up');
-      showToast(`Cashed out for ${fmt(data.payout)} 💰`);
+      showToast(`Cashed out for ${fmt(r.payout)} 💰`);
       loadMyBets();
       return;
     }
-    showToast(data?.error === 'already settled' ? 'That bet already settled' : 'Cash out failed', 'error');
-    loadMyBets();
-  } catch(e) {
-    console.error('cash-out function error', e);
-    showToast('Cash out failed', 'error');
+    if (r?.error !== 'price_changed') { q = r; continue; }
+    showToast(`The price moved to ${fmt(r.quote)}`, 'warn');
+    q = r;
   }
+  showToast('The price keeps moving. Try again in a moment.', 'warn');
 }
 
 // NOTE: There is intentionally no way for a user to add funds to their own balance.
@@ -4266,13 +4275,9 @@ function ladderHtml(evals) {
 function currentCardHtml(b) {
   const t = betType(b), legs = betLegs(b), evals = legs.map(l => evalLeg(l)), c = tallyLegs(evals);
   const title = betTitle(b, legs), [bcls, blabel] = badgeFor(b, c);
-  // Cash-out value = stake + 45% of potential profit — only once the game has actually
-  // started (an instant flat 45% on placement is a free-money exploit on longshots), never
-  // on futures (months of nothing having happened), never on Pick'em (no honest mid-slate
-  // price from a flat formula).
-  const gameStarted = new Date(b.commence_time).getTime() <= Date.now();
-  const allFinal = !c.inPlay && !c.upcoming && !c.awaiting && !c.checking && !c.untracked;
-  const coValue = (t !== 'futures' && t !== 'pickem' && gameStarted && !c.miss && !allFinal) ? Math.round((b.stake + (b.potential_payout - b.stake) * 0.45) * 100) / 100 : null;
+  // Cash-out only while a live moneyline game is in play in a league with a real live win
+  // probability; the server prices it (see cashOut).
+  const canCashOut = t === 'straight' && b.market === 'h2h' && CASHOUT_SPORTS.includes(b.sport) && c.inPlay > 0;
   const showProgress = legs.length > 1;
   return `<div class="mb-card cur b-${bcls}">
     <div class="mb-head">
@@ -4289,7 +4294,7 @@ function currentCardHtml(b) {
       <span>${t === 'pickem' ? 'Max win' : 'To win'} <b>${fmt(b.potential_payout - b.stake)}</b></span>
       <span class="mb-foot-date">${esc(new Date(b.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric' }))}</span>
     </div>
-    ${coValue ? `<button class="cashout-btn" onclick="cashOut('${b.id}',${coValue},${b.stake})">Cash Out ${fmt(coValue)}</button>` : ''}
+    ${canCashOut ? `<button class="cashout-btn" onclick="cashOut('${b.id}')">Cash out · get offer</button>` : ''}
   </div>`;
 }
 function pastSummary(b, legs, evals) {
@@ -4436,7 +4441,8 @@ function renderBets(bets) {
       <div class="mb-stat"><span class="mb-stat-lbl">To win</span><span class="mb-stat-val pos">${fmt(toWin)}</span></div>
       <div class="mb-stat"><span class="mb-stat-lbl">Live now</span><span class="mb-stat-val${liveN ? ' live' : ''}">${liveN}</span></div>`;
   } else {
-    const w = past.filter(b => b.status === 'won').length, l = past.filter(b => b.status === 'lost').length, p = past.length - w - l;
+    const w = past.filter(b => b.status === 'won' && !isCashedOut(b)).length, l = past.filter(b => b.status === 'lost').length;
+    const p = past.filter(b => b.status === 'push' || b.status === 'void').length;
     const net = past.reduce((a, b) => a + betPnl(b), 0);
     summary = `<div class="mb-stat"><span class="mb-stat-lbl">Record</span><span class="mb-stat-val">${w}–${l}${p ? `–${p}` : ''}</span></div>
       <div class="mb-stat"><span class="mb-stat-lbl">Win rate</span><span class="mb-stat-val">${w + l ? Math.round(w / (w + l) * 100) : 0}%</span></div>
@@ -4566,7 +4572,7 @@ async function settleSingleBet(bet, scoreFor, staleMs) {
     return; // game hasn't finished (or hasn't been posted yet) — stays pending
   }
   const payout = result === 'won' ? bet.potential_payout : (result === 'push' || result === 'void') ? bet.stake : 0;
-  await sb.from('bets').update({ status: result, settled_at: new Date().toISOString() }).eq('id', bet.id);
+  if (!await markSettled(bet.id, { status: result, settled_at: new Date().toISOString() })) return;
   await creditAndNotify(bet, result, payout);
 }
 
@@ -4619,10 +4625,10 @@ async function settleParlayBet(bet, scoreFor, staleMs) {
   }
   // Persist per-leg results back into the same JSON column (no schema change needed) so
   // My Bets can show a won/lost/void chip on each leg of a settled parlay.
-  await sb.from('bets').update({
+  if (!await markSettled(bet.id, {
     status: outcome, settled_at: new Date().toISOString(), potential_payout: payout,
     selection: JSON.stringify({ legs: graded, rr: !!JSON.parse(bet.selection||'{}').rr }),
-  }).eq('id', bet.id);
+  })) return;
   await creditAndNotify(bet, outcome, payout);
 }
 
@@ -4694,13 +4700,19 @@ async function settlePickemBet(bet) {
   const mult = effectiveTotal > 0 ? pickemMultiplier(correct, effectiveTotal) : 0;
   const payout = Math.round(bet.stake * mult * 100) / 100;
   const outcome = payout > 0 ? 'won' : 'lost';
-  await sb.from('bets').update({
+  if (!await markSettled(bet.id, {
     status: outcome, settled_at: new Date().toISOString(), potential_payout: payout,
     selection: JSON.stringify({ picks: graded, total, correct, pushes, mode: data.mode }),
-  }).eq('id', bet.id);
+  })) return;
   await creditAndNotify(bet, outcome, payout, `${correct}/${effectiveTotal} correct${pushes?` · ${pushes} push`:''}`);
 }
 
+// Flip a bet out of 'pending' only if it's still pending — true when this call did it. Two
+// settle passes racing (two open tabs) must not both credit the same win.
+async function markSettled(betId, fields) {
+  const { data } = await sb.from('bets').update(fields).eq('id', betId).eq('status', 'pending').select('id');
+  return !!data?.length;
+}
 async function creditAndNotify(bet, result, payout, pickemNote, skipCredit) {
   // skipCredit: the server (settle-bet) already moved the balance — don't do it twice.
   if (payout > 0 && !skipCredit) await applyBalanceDelta(payout);

@@ -60,7 +60,7 @@ export function flattenCompetitions(events: any[]) {
   });
 }
 
-function namesMatch(ev: any, homeTeam: string, awayTeam: string) {
+export function namesMatch(ev: any, homeTeam: string, awayTeam: string) {
   const { hc, ac } = compSides(ev.competitions?.[0]);
   if (!hc || !ac) return false;
   const htW = normWords(homeTeam), atW = normWords(awayTeam);
@@ -263,6 +263,44 @@ export function fetchEventsForRange(espnPath: string, startMs: number, endMs: nu
   const days: string[] = [];
   for (let t = startMs; t <= endMs + DAY_MS && days.length < 21; t += DAY_MS) days.push(fmtDay(t));
   return fetchDays(espnPath, days);
+}
+
+// ── Cash-out (priced from ESPN's real live win probability) ──────────────
+// Only moneyline bets in leagues where ESPN publishes an in-game win probability. The offer
+// is the stake scaled by how the pick's win chance has moved since kickoff, on ESPN's own
+// model (win% now ÷ win% at kickoff), less a 5% margin. Measuring the move, not the raw
+// probability, matters: wherever ESPN's model rates a team above the betting odds, paying
+// payout × win% would let anyone bet that side and cash out at kickoff for a sure profit.
+// This way cashing out at kickoff returns ~95% of the stake, and the offer tracks the game.
+export const CASHOUT_SPORTS = ["americanfootball_nfl", "americanfootball_ncaaf", "basketball_nba", "basketball_ncaab"];
+export const CASHOUT_MARGIN = 0.95;
+const UNAVAILABLE = (reason: string) => ({ error: "unavailable" as const, reason });
+
+export async function cashOutQuote(bet: any) {
+  if (bet.market !== "h2h" || !CASHOUT_SPORTS.includes(bet.sport)) {
+    return UNAVAILABLE("Cash-out is only offered on moneyline bets in the NFL, college football, the NBA, and college basketball, where there's a real live win probability to price it from.");
+  }
+  if (!/^\d+$/.test(String(bet.game_id || ""))) return UNAVAILABLE("This bet isn't linked to a live ESPN game.");
+  let j: any;
+  try {
+    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${ESPN_PATH[bet.sport]}/summary?event=${bet.game_id}`);
+    j = await res.json();
+  } catch { return UNAVAILABLE("Couldn't reach live game data. Try again in a moment."); }
+  const comp = j?.header?.competitions?.[0];
+  if (!comp || !namesMatch({ competitions: [comp] }, bet.home_team, bet.away_team)) return UNAVAILABLE("Couldn't find this game's live data.");
+  if (comp.status?.type?.state !== "in") return UNAVAILABLE("Cash-out opens once the game is live.");
+  const wp = j.winprobability || [];
+  const first = wp[0], last = wp[wp.length - 1];
+  if (!first || !last || typeof first.homeWinPercentage !== "number" || typeof last.homeWinPercentage !== "number") {
+    return UNAVAILABLE("ESPN hasn't posted a live win probability for this game yet.");
+  }
+  const side = (pt: any) => bet.selection === bet.home_team ? pt.homeWinPercentage
+    : bet.selection === bet.away_team ? 1 - pt.homeWinPercentage - (pt.tiePercentage || 0) : NaN;
+  const pNow = side(last), pKick = side(first);
+  if (!isFinite(pNow) || !isFinite(pKick) || pKick < 0.02) return UNAVAILABLE("No usable live win probability for this pick.");
+  const value = Math.floor(Math.min(bet.stake * (pNow / pKick), bet.potential_payout) * CASHOUT_MARGIN * 100) / 100;
+  if (value < 0.01) return UNAVAILABLE("This bet has no cash-out value left.");
+  return { value, prob: pNow };
 }
 
 // ── Futures (real season-long outcomes — different ESPN domain entirely) ──

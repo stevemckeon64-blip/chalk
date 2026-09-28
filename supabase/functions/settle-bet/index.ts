@@ -70,7 +70,10 @@ Deno.serve(async (req) => {
     }
     const payout = result === "won" ? bet.potential_payout : (result === "push" || result === "void") ? bet.stake : 0;
 
-    await admin.from("bets").update({ status: result, settled_at: new Date().toISOString() }).eq("id", bet.id);
+    // Compare-and-swap on status: two settle calls racing (two tabs, a retry) must not both credit.
+    const { data: flipped } = await admin.from("bets").update({ status: result, settled_at: new Date().toISOString() })
+      .eq("id", bet.id).eq("status", "pending").select("id");
+    if (!flipped?.length) return json({ status: result, already_settled: true }, 200, origin);
     if (payout > 0) await creditBalance(admin, bet.user_id, payout);
 
     return json({ status: result, payout }, 200, origin);
