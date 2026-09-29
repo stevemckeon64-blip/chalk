@@ -210,10 +210,20 @@ export function extractMarket(ev: any, market: string, selection: string, homeNa
 // response must never read as "game not found" — settlement voids not-found games after 6h,
 // and treating a 403 as an empty scoreboard once voided every pick in four Pick'em slates.
 export const ESPN_SITE = "https://site.web.api.espn.com/apis/site/v2/sports";
-export async function espnJson(url: string) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`ESPN ${res.status} for ${url}`);
-  try { return await res.json(); } catch { throw new Error(`ESPN returned non-JSON for ${url}`); }
+export async function espnJson(url: string, attempts = 3) {
+  for (let i = 1; ; i++) {
+    try {
+      const res = await fetch(url);
+      // 5xx is ESPN having a moment (seen: one 502 among parallel month queries) — retry.
+      // 4xx (403 block, 400 bad query) won't fix itself.
+      if (res.status >= 500 && i < attempts) throw new Error(`retry ${res.status}`);
+      if (!res.ok) throw Object.assign(new Error(`ESPN ${res.status} for ${url}`), { final: true });
+      try { return await res.json(); } catch { throw Object.assign(new Error(`ESPN returned non-JSON for ${url}`), { final: true }); }
+    } catch (e: any) {
+      if (e.final || i >= attempts) throw e;
+      await new Promise((r) => setTimeout(r, 400 * i));
+    }
+  }
 }
 
 // ── Scoreboard fetching ──────────────────────────────────────────────────
@@ -223,9 +233,15 @@ export async function espnJson(url: string) {
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const fmtDay = (ms: number) => new Date(ms).toISOString().slice(0, 10).replace(/-/g, "");
 
-export async function fetchDay(espnPath: string, day: string, limit = 300) {
-  const j = await espnJson(`${ESPN_SITE}/${espnPath}/scoreboard?dates=${day}&limit=${limit}`);
-  return j.events || [];
+export async function fetchDay(espnPath: string, day: string, limit = 300): Promise<any[]> {
+  try {
+    return (await espnJson(`${ESPN_SITE}/${espnPath}/scoreboard?dates=${day}&limit=${limit}`)).events || [];
+  } catch (e) {
+    // ESPN 502s on some big-limit queries it serves fine smaller (NHL, May, limit>=300 → 502,
+    // limit=200 → all 35 games).
+    if (limit > 200 && /ESPN 5\d\d/.test(String(e))) return fetchDay(espnPath, day, 200);
+    throw e;
+  }
 }
 export async function fetchDays(espnPath: string, days: string[], limit = 300) {
   const perDay = await Promise.all([...new Set(days)].map((d) => fetchDay(espnPath, d, limit)));
@@ -314,25 +330,60 @@ export async function cashOutQuote(bet: any) {
 // ── Futures (real season-long outcomes — different ESPN domain entirely) ──
 export const FUTURES_CONFIG = [
   { sport:'football', league:'nfl', marketId:1561, title:'🏈 Super Bowl Winner', sportKey:'americanfootball_nfl', type:'championship' },
+  { sport:'football', league:'nfl', marketId:2757, title:'🏈 AFC Champion', sportKey:'americanfootball_nfl', type:'finalist' },
+  { sport:'football', league:'nfl', marketId:3904, title:'🏈 NFC Champion', sportKey:'americanfootball_nfl', type:'finalist' },
   { sport:'football', league:'nfl', marketId:1208, title:'🏈 NFL MVP', sportKey:'americanfootball_nfl', type:'award', awardId:477 },
   { sport:'football', league:'nfl', marketId:1210, title:'🏈 NFL Defensive Player of the Year', sportKey:'americanfootball_nfl', type:'award', awardId:479 },
   { sport:'football', league:'college-football', marketId:2758, title:'🏈 College Football Playoff Champion', sportKey:'americanfootball_ncaaf', type:'championship' },
+  { sport:'football', league:'college-football', marketId:4091, title:'🏈 CFP: Reach the Title Game', sportKey:'americanfootball_ncaaf', type:'finalist' },
   { sport:'football', league:'college-football', marketId:15234, title:'🏈 Heisman Trophy', sportKey:'americanfootball_ncaaf', type:'award', awardId:9 },
   { sport:'basketball', league:'nba', marketId:2564, title:'🏀 NBA Champion', sportKey:'basketball_nba', type:'championship' },
+  { sport:'basketball', league:'nba', marketId:2566, title:'🏀 NBA East Champion', sportKey:'basketball_nba', type:'finalist' },
+  { sport:'basketball', league:'nba', marketId:2567, title:'🏀 NBA West Champion', sportKey:'basketball_nba', type:'finalist' },
   { sport:'basketball', league:'nba', marketId:2581, title:'🏀 NBA MVP', sportKey:'basketball_nba', type:'award', awardId:33 },
   { sport:'basketball', league:'mens-college-basketball', marketId:232692, title:'🏀 March Madness Champion', sportKey:'basketball_ncaab', type:'championship' },
   { sport:'baseball', league:'mlb', marketId:2761, title:'⚾ World Series Winner', sportKey:'baseball_mlb', type:'championship' },
+  { sport:'baseball', league:'mlb', marketId:3295, title:'⚾ AL Pennant', sportKey:'baseball_mlb', type:'finalist' },
+  { sport:'baseball', league:'mlb', marketId:3294, title:'⚾ NL Pennant', sportKey:'baseball_mlb', type:'finalist' },
   { sport:'hockey', league:'nhl', marketId:2118, title:'🏒 Stanley Cup Winner', sportKey:'icehockey_nhl', type:'championship' },
+  { sport:'hockey', league:'nhl', marketId:14493, title:'🏒 NHL East Champion', sportKey:'icehockey_nhl', type:'finalist' },
+  { sport:'hockey', league:'nhl', marketId:14492, title:'🏒 NHL West Champion', sportKey:'icehockey_nhl', type:'finalist' },
   { sport:'hockey', league:'nhl', marketId:14495, title:'🏒 Hart Trophy (MVP)', sportKey:'icehockey_nhl', type:'award', awardId:112 },
 ] as const;
-export const FUTURES_SEASON = 2026;
-export const CHAMPIONSHIP_SOURCES: Record<string, { espn: string; range: (y: number) => string }> = {
-  americanfootball_nfl:   { espn:'football/nfl', range: y => `${y}1101-${y+1}0301` },
-  americanfootball_ncaaf: { espn:'football/college-football', range: y => `${y}1101-${y+1}0201` },
-  basketball_nba:         { espn:'basketball/nba', range: y => `${y+1}0301-${y+1}0715` },
-  basketball_ncaab:       { espn:'basketball/mens-college-basketball', range: y => `${y+1}0201-${y+1}0430` },
-  baseball_mlb:           { espn:'baseball/mlb', range: y => `${y}0801-${y}1201` },
-  icehockey_nhl:          { espn:'hockey/nhl', range: y => `${y+1}0301-${y+1}0715` },
+
+// ESPN's season id for a league at a moment in time. NFL/NCAAF/MLB are numbered by the year
+// the season starts; NBA/NHL/NCAAB by the year it ends (the 2026-27 NBA season is 2027).
+// Using one fixed year for every league meant NBA/NHL/NCAAB futures showed LAST season's
+// leftover markets while settlement looked at the coming one.
+export function futuresSeason(league: string, ms = Date.now()) {
+  const d = new Date(ms), y = d.getUTCFullYear(), m = d.getUTCMonth() + 1;
+  if (league === "mlb") return m >= 12 ? y + 1 : y;                         // World Series ends by early Nov
+  if (league === "nfl") return m >= 3 ? y : y - 1;                          // Super Bowl in Feb
+  if (league === "college-football") return m >= 2 ? y : y - 1;             // CFP title game in Jan
+  if (league === "mens-college-basketball") return m >= 5 ? y + 1 : y;      // Final Four in April
+  return m >= 7 ? y + 1 : y;                                                // NBA/NHL Finals end in June
+}
+// The season a futures bet belongs to: stored on the bet (futures_<marketId>_<season>), or
+// for older bets the season that was current when it was placed.
+export function betSeason(bet: any, league: string) {
+  const m = String(bet.game_id || "").match(/^futures_\d+_(\d{4})$/);
+  return m ? +m[1] : futuresSeason(league, new Date(bet.created_at).getTime());
+}
+// ESPN BET (a partnership that's ended) still backs some markets — MLB's are frozen at
+// preseason prices, with non-playoff teams listed and the AL's 1 seed at +5000. A market from
+// a feed that's no longer updated isn't a real price.
+export const STALE_PROVIDERS = ["ESPN BET"];
+
+// Window to look for the final/clinching game, keyed by ESPN's season id (see futuresSeason).
+// Generous on both ends: missing part of the postseason risks declaring a champion early; a
+// too-early check just means "not resolved yet".
+export const CHAMPIONSHIP_SOURCES: Record<string, { espn: string; range: (s: number) => string; final: RegExp }> = {
+  americanfootball_nfl:   { espn:'football/nfl', range: s => `${s}1101-${s+1}0301`, final: /super bowl/i },
+  americanfootball_ncaaf: { espn:'football/college-football', range: s => `${s}1101-${s+1}0201`, final: /playoff national championship/i },
+  basketball_nba:         { espn:'basketball/nba', range: s => `${s}0301-${s}0715`, final: /nba finals/i },
+  basketball_ncaab:       { espn:'basketball/mens-college-basketball', range: s => `${s}0201-${s}0430`, final: /national championship/i },
+  baseball_mlb:           { espn:'baseball/mlb', range: s => `${s}0801-${s}1201`, final: /world series/i },
+  icehockey_nhl:          { espn:'hockey/nhl', range: s => `${s}0301-${s}0715`, final: /stanley cup final/i },
 };
 
 export async function resolveRefInfo(url: string) {
@@ -346,9 +397,9 @@ export async function resolveRefName(url: string) { return (await resolveRefInfo
 
 // Real current futures odds for one market+selection — same field/sort logic as
 // fetchFuturesMarket() client-side, scoped to just the one selection being bet on.
-export async function fetchFuturesOdds(cfg: typeof FUTURES_CONFIG[number], selection: string) {
-  const res = await fetch(`https://sports.core.api.espn.com/v2/sports/${cfg.sport}/leagues/${cfg.league}/seasons/${FUTURES_SEASON}/futures/${cfg.marketId}?lang=en&region=us`);
-  const j = await res.json();
+export async function fetchFuturesOdds(cfg: typeof FUTURES_CONFIG[number], selection: string, season: number) {
+  const j = await espnJson(`https://sports.core.api.espn.com/v2/sports/${cfg.sport}/leagues/${cfg.league}/seasons/${season}/futures/${cfg.marketId}?lang=en&region=us`);
+  if (STALE_PROVIDERS.includes(j.futures?.[0]?.provider?.name)) return null;
   const books = j.futures?.[0]?.books || [];
   for (const b of books) {
     const ref = b.athlete?.$ref || b.team?.$ref;
@@ -373,13 +424,19 @@ export function monthsInRange(range: string) {
   return out;
 }
 
-export async function fetchLeagueChampion(sportKey: string) {
+async function postseasonEvents(sportKey: string, season: number) {
   const src = CHAMPIONSHIP_SOURCES[sportKey];
-  if (!src) return null;
   // limit=500: a regular-season MLB month runs ~420 games.
-  const events = await fetchDays(src.espn, monthsInRange(src.range(FUTURES_SEASON)), 500);
+  const events = await fetchDays(src.espn, monthsInRange(src.range(season)), 500);
   const exclude = /pro bowl|all-star|all star/i;
-  const postseason = events.filter((e: any) => e.season?.type === 3 && !exclude.test(e.name || ""));
+  return events.filter((e: any) => e.season?.type === 3 && !exclude.test(e.name || ""));
+}
+const headline = (e: any) => e.competitions?.[0]?.notes?.[0]?.headline || "";
+const isPlaceholder = (n: string) => !n || /^(tbd|tba|winner of|to be determined|to be announced)/i.test(n.trim());
+
+export async function fetchLeagueChampion(sportKey: string, season: number) {
+  if (!CHAMPIONSHIP_SOURCES[sportKey]) return null;
+  const postseason = await postseasonEvents(sportKey, season);
   const unfinished = postseason.some((e: any) => !e.status?.type?.completed);
   const finished = postseason.filter((e: any) => e.status?.type?.completed);
   if (unfinished || !finished.length) return null;
@@ -387,13 +444,34 @@ export async function fetchLeagueChampion(sportKey: string) {
   const winner = (finished[0].competitions?.[0]?.competitors || []).find((c: any) => c.winner === true);
   return winner?.team?.displayName || null;
 }
+// The two teams in the final (Super Bowl, World Series, NBA Finals...), once it's set. A
+// conference/pennant future wins exactly when its team is one of them — every conference
+// market only lists its own conference's teams, so no conference lookup is needed.
+export async function fetchFinalists(sportKey: string, season: number) {
+  const src = CHAMPIONSHIP_SOURCES[sportKey];
+  if (!src) return null;
+  const finals = (await postseasonEvents(sportKey, season)).filter((e: any) => src.final.test(headline(e)));
+  const names = new Set<string>();
+  for (const e of finals) for (const c of e.competitions?.[0]?.competitors || []) {
+    const n = c.team?.displayName;
+    if (n && !isPlaceholder(n)) names.add(n);
+  }
+  return names.size === 2 ? [...names] : null;
+}
 
-export async function fetchAwardWinner(cfg: typeof FUTURES_CONFIG[number]) {
-  const res = await fetch(`https://sports.core.api.espn.com/v2/sports/${cfg.sport}/leagues/${cfg.league}/seasons/${FUTURES_SEASON}/awards/${cfg.awardId}?lang=en&region=us`);
+export async function fetchAwardWinner(cfg: typeof FUTURES_CONFIG[number], season: number) {
+  const res = await fetch(`https://sports.core.api.espn.com/v2/sports/${cfg.sport}/leagues/${cfg.league}/seasons/${season}/awards/${(cfg as any).awardId}?lang=en&region=us`);
   if (!res.ok) return null;
   const j = await res.json();
   const ref = j.winners?.[0]?.athlete?.$ref;
   return ref ? await resolveRefName(ref) : null;
+}
+// A future's real result: the winning name (championship/award), or for a conference market
+// the two finalists. null = not resolved yet.
+export async function futuresResult(cfg: typeof FUTURES_CONFIG[number], season: number): Promise<{ winners: string[] } | null> {
+  if (cfg.type === "finalist") { const f = await fetchFinalists(cfg.sportKey, season); return f ? { winners: f } : null; }
+  const name = cfg.type === "championship" ? await fetchLeagueChampion(cfg.sportKey, season) : await fetchAwardWinner(cfg, season);
+  return name ? { winners: [name] } : null;
 }
 
 // ── Tennis (ATP) — rank-derived odds, no real betting market from ESPN ────

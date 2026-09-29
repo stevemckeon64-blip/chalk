@@ -6,7 +6,7 @@
 // than trusted from the client, same principle as place-bet.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { FUTURES_CONFIG, fetchFuturesOdds, calcPayout, corsHeaders, json } from "../_shared/grading.ts";
+import { FUTURES_CONFIG, fetchFuturesOdds, futuresSeason, futuresResult, calcPayout, corsHeaders, json } from "../_shared/grading.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -30,7 +30,11 @@ Deno.serve(async (req) => {
     if (authError || !userData?.user) return json({ error: "not authenticated" }, 401, origin);
     const userId = userData.user.id;
 
-    const odds = await fetchFuturesOdds(cfg, selection);
+    const season = futuresSeason(cfg.league);
+    // A market whose real outcome is already known (finalists set, champion crowned, award
+    // announced) is closed, even if the odds feed hasn't pulled it yet.
+    if (await futuresResult(cfg, season)) return json({ error: "market closed", reason: "this market's result is already decided" }, 409, origin);
+    const odds = await fetchFuturesOdds(cfg, selection, season);
     if (odds == null) return json({ error: "selection not found", reason: "no real current odds for that pick" }, 404, origin);
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -49,7 +53,7 @@ Deno.serve(async (req) => {
     if (newBalance === null) return json({ error: "could not reserve stake, try again" }, 409, origin);
 
     const { data: bet, error: insertError } = await admin.from("bets").insert({
-      user_id: userId, sport: "futures", game_id: `futures_${cfg.marketId}`,
+      user_id: userId, sport: "futures", game_id: `futures_${cfg.marketId}_${season}`,
       home_team: "Futures", away_team: market, commence_time: new Date().toISOString(),
       market, selection, line: null, odds, stake, potential_payout: potentialPayout, status: "pending",
     }).select().single();

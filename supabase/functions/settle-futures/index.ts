@@ -8,7 +8,7 @@
 // game. Ported from settleFuturesBet() client-side.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { FUTURES_CONFIG, fetchLeagueChampion, fetchAwardWinner, corsHeaders, json } from "../_shared/grading.ts";
+import { FUTURES_CONFIG, futuresResult, betSeason, corsHeaders, json } from "../_shared/grading.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -50,10 +50,10 @@ Deno.serve(async (req) => {
     const cfg = FUTURES_CONFIG.find((c) => c.title === bet.market);
     if (!cfg) return json({ error: "not_yet_supported", reason: "market no longer configured" }, 501, origin);
 
-    const resultName = cfg.type === "championship" ? await fetchLeagueChampion(cfg.sportKey) : await fetchAwardWinner(cfg);
-    if (!resultName) return json({ status: "pending", reason: "season not resolved yet" }, 200, origin);
+    const outcome = await futuresResult(cfg, betSeason(bet, cfg.league));
+    if (!outcome) return json({ status: "pending", reason: "season not resolved yet" }, 200, origin);
 
-    const result = resultName === bet.selection ? "won" : "lost";
+    const result = outcome.winners.includes(bet.selection) ? "won" : "lost";
     const payout = result === "won" ? bet.potential_payout : 0;
 
     // Compare-and-swap on status: two settle calls racing (two tabs, a retry) must not both credit.
