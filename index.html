@@ -200,6 +200,67 @@ body::after{
 .bs-place-btn:hover{opacity:.9;box-shadow:0 6px 32px rgba(245,166,35,.5)}
 .bs-place-btn:disabled{opacity:.45;cursor:default;box-shadow:none}
 
+/* ── PLAYOFF BRACKETS ────────────────────────────────────── */
+.bk-promos{display:flex;flex-direction:column;gap:10px;padding:0 16px 4px}
+.bk-promo{position:relative;border:1px solid rgba(245,166,35,.35);border-radius:var(--rl);padding:14px;background:linear-gradient(150deg,rgba(245,166,35,.13),rgba(245,166,35,.02) 55%),var(--bg-c);display:flex;flex-direction:column;gap:6px}
+.bk-promo-top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.bk-promo-kicker{font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.bk-promo-lock{font-size:10px;font-weight:700;color:var(--amber)}
+.bk-promo-title{font-family:'Russo One',sans-serif;font-size:19px;line-height:1.2;color:var(--t1);text-wrap:balance}
+.bk-promo-sub{font-size:12px;color:var(--t2);line-height:1.45;max-width:62ch}
+.bk-promo-odds{font-size:11px;color:var(--t2);font-variant-numeric:tabular-nums}
+.bk-promo-btn{margin-top:6px;padding:11px;border-radius:var(--r);background:linear-gradient(135deg,var(--gold),var(--gold-b));color:#000;font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.bk-promo-btn.ghost{background:none;border:1px solid var(--bdr-h);color:var(--t1)}
+.bk-promo-btn:focus-visible{outline:2px solid var(--t1);outline-offset:2px}
+#bracketWrap{position:fixed;inset:0;z-index:450;background:rgba(0,0,0,.6);backdrop-filter:blur(2px);display:flex;justify-content:center;align-items:stretch}
+.bk-sheet{width:min(760px,100%);height:100%;background:var(--bg);border-left:1px solid var(--bdr);border-right:1px solid var(--bdr);display:flex;flex-direction:column}
+.bk-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--bdr)}
+.bk-title{font-family:'Russo One',sans-serif;font-size:18px;color:var(--t1)}
+.bk-lock{font-size:11px;font-weight:700;color:var(--amber);margin-top:2px}
+.bk-body{flex:1;overflow-y:auto;padding:12px 16px 0;display:flex;flex-direction:column}
+.bk-intro{font-size:12px;color:var(--t2);line-height:1.5;max-width:64ch}
+.bk-tools{display:flex;gap:6px;margin-top:10px}
+.bk-round{margin-top:18px}
+.bk-round-hdr{display:flex;justify-content:space-between;align-items:baseline;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t2);margin-bottom:8px}
+.bk-round-pts{color:var(--gold);letter-spacing:.06em}
+.bk-matches{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px}
+.bk-matches.one{grid-template-columns:minmax(0,420px);justify-content:center}
+.bk-match{background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--r);padding:8px;display:flex;flex-direction:column;gap:4px}
+.bk-match-lbl{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);padding:0 4px 2px}
+.bk-team{display:grid;grid-template-columns:22px 16px minmax(0,1fr) auto auto;align-items:center;gap:8px;width:100%;padding:8px;border-radius:8px;border:1px solid transparent;text-align:left;font-size:13px;font-weight:700;color:var(--t1);transition:background .15s,border-color .15s}
+.bk-team:hover{background:rgba(255,255,255,.035)}
+.bk-team:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.bk-team.on{border-color:var(--gold);background:var(--gold-dim)}
+.bk-team.on .bk-name{color:var(--gold)}
+.bk-team img{width:22px;height:22px;object-fit:contain;background:rgba(255,255,255,.92);border-radius:50%;padding:2px}
+.bk-seed{font-size:10px;font-weight:800;color:var(--t3);text-align:center;font-variant-numeric:tabular-nums}
+.bk-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-rec{font-size:10px;font-weight:600;color:var(--t3);font-variant-numeric:tabular-nums}
+.bk-pct{font-size:11px;font-weight:800;color:var(--t2);font-variant-numeric:tabular-nums;min-width:32px;text-align:right}
+.bk-team.on .bk-pct{color:var(--gold)}
+.bk-team.empty{display:block;font-size:11px;font-weight:600;color:var(--t3);text-align:center;border:1px dashed var(--bdr-h);padding:10px 8px}
+.bk-foot{position:sticky;bottom:0;margin:18px -16px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--bdr);box-shadow:0 -10px 24px rgba(0,0,0,.45)}
+.bk-foot-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:var(--t2)}
+.bk-foot-row b{color:var(--t1)}
+.bk-champ{font-weight:800;color:var(--gold);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-tiers{margin:10px 0 4px}
+.bk-tiers-hdr{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:4px}
+.bk-tiers-hdr span{letter-spacing:0;text-transform:none;font-weight:600}
+.bk-tier{display:grid;grid-template-columns:minmax(0,1fr) 60px 84px 70px;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--bdr);font-size:12px;font-variant-numeric:tabular-nums}
+.bk-tier:last-child{border-bottom:none}
+.bk-tier-pts{color:var(--t2);font-weight:700}
+.bk-tier-mult{font-family:'Russo One',sans-serif;font-size:14px;color:var(--gold);text-align:right}
+.bk-tier-win{color:var(--t1);font-weight:800;text-align:right}
+.bk-tier-p{color:var(--t3);font-size:10px;text-align:right}
+.bk-tiers-empty{font-size:12px;color:var(--t3);padding:10px 0}
+.bk-stake{display:flex;align-items:center;gap:6px;margin:8px 0;flex-wrap:wrap}
+.bk-chip{background:var(--bg-c);border:1px solid var(--bdr);border-radius:20px;color:var(--t2);font-size:11px;font-weight:700;padding:5px 12px}
+.bk-chip.on{background:var(--gold);border-color:var(--gold);color:#000}
+.bk-stake-input{width:84px;background:var(--bg-c);border:1px solid var(--bdr);border-radius:20px;padding:5px 12px;color:var(--t1);font:inherit;font-size:12px;font-weight:700}
+.bk-stake-input:focus{outline:none;border-color:var(--gold)}
+.bk-place{width:100%;padding:13px;border-radius:var(--r);background:linear-gradient(135deg,var(--gold),var(--gold-b));color:#000;font-size:13px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 4px 24px rgba(201,145,58,.3)}
+.bk-place:disabled{opacity:.45;box-shadow:none;cursor:default}
+@media (max-width:420px){.bk-tier{grid-template-columns:minmax(0,1fr) 52px 76px 62px;gap:6px}}
 /* ── MY BETS ─────────────────────────────────────────────── */
 .bets-inner{max-width:680px;margin:0 auto}
 .mb-seg{display:grid;grid-template-columns:1fr 1fr;gap:3px;background:var(--bg-s);border:1px solid var(--bdr);border-radius:var(--r);padding:3px;margin-bottom:10px}
@@ -877,6 +938,17 @@ body::after{
   </div>
 </div>
 
+<!-- ── BRACKET BUILDER ── -->
+<div id="bracketWrap" style="display:none" onclick="if(event.target===this)closeBracket()">
+  <div class="bk-sheet" role="dialog" aria-modal="true" aria-labelledby="bkTitle">
+    <div class="bk-head">
+      <div><div class="bk-title" id="bkTitle">Bracket</div><div class="bk-lock" id="bkLock"></div></div>
+      <button class="bs-close" onclick="closeBracket()" aria-label="Close">✕</button>
+    </div>
+    <div class="bk-body" id="bkBody"></div>
+  </div>
+</div>
+
 <!-- ── ROOM MODAL ── -->
 <div id="roomModalWrap" style="display:none" onclick="if(event.target===this)closeRoomModal()">
   <style>#roomModalWrap{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.7);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:20px}</style>
@@ -1384,6 +1456,534 @@ async function settleFuturesBet(bet) {
   if (!await markSettled(bet.id, { status: result, settled_at: new Date().toISOString() })) return true;
   await creditAndNotify(bet, result, payout);
   return true;
+}
+
+// ── PLAYOFF BRACKET ENGINE ────────────────────────────────────────
+// Verbatim copy of supabase/functions/_shared/bracket.js (with `export` removed) — read the
+// header there for how brackets score and how payouts are priced. Edit both together.
+const BRACKET_DEFS = {
+  mlb: {
+    league: 'mlb', sportKey: 'baseball_mlb', espn: 'baseball/mlb', title: 'MLB Postseason',
+    confs: ['AL', 'NL'], seedsPerConf: 6,
+    rounds: [
+      { key: 'wc', name: 'Wild Card', short: 'WC', pts: 1, bestOf: 3 },
+      { key: 'ds', name: 'Division Series', short: 'DS', pts: 2, bestOf: 5 },
+      { key: 'cs', name: 'League Championship', short: 'LCS', pts: 4, bestOf: 7 },
+      { key: 'ws', name: 'World Series', short: 'WS', pts: 8, bestOf: 7 },
+    ],
+    // Fixed bracket, in play order: #1 seed gets the 4/5 winner, #2 gets the 3/6 winner.
+    slots: [
+      { id: 'AL-WC1', r: 'wc', conf: 'AL', a: { seed: 'AL3' }, b: { seed: 'AL6' } },
+      { id: 'AL-WC2', r: 'wc', conf: 'AL', a: { seed: 'AL4' }, b: { seed: 'AL5' } },
+      { id: 'NL-WC1', r: 'wc', conf: 'NL', a: { seed: 'NL3' }, b: { seed: 'NL6' } },
+      { id: 'NL-WC2', r: 'wc', conf: 'NL', a: { seed: 'NL4' }, b: { seed: 'NL5' } },
+      { id: 'AL-DS1', r: 'ds', conf: 'AL', a: { seed: 'AL1' }, b: { slot: 'AL-WC2' } },
+      { id: 'AL-DS2', r: 'ds', conf: 'AL', a: { seed: 'AL2' }, b: { slot: 'AL-WC1' } },
+      { id: 'NL-DS1', r: 'ds', conf: 'NL', a: { seed: 'NL1' }, b: { slot: 'NL-WC2' } },
+      { id: 'NL-DS2', r: 'ds', conf: 'NL', a: { seed: 'NL2' }, b: { slot: 'NL-WC1' } },
+      { id: 'AL-CS', r: 'cs', conf: 'AL', a: { slot: 'AL-DS1' }, b: { slot: 'AL-DS2' } },
+      { id: 'NL-CS', r: 'cs', conf: 'NL', a: { slot: 'NL-DS1' }, b: { slot: 'NL-DS2' } },
+      { id: 'WS', r: 'ws', a: { slot: 'AL-CS' }, b: { slot: 'NL-CS' } },
+    ],
+    // ESPN's headline on each game: "ALWC - Game 1", "NLDS - Game 3", "World Series - Game 7".
+    labelRe: (slot) => slot.r === 'ws' ? /^world series\b/i
+      : new RegExp('^' + slot.conf + ({ wc: 'WC', ds: 'DS', cs: 'CS' })[slot.r] + '\\b', 'i'),
+    // Months to search for results (ESPN accepts whole months, not day ranges).
+    months: (season) => [`${season}09`, `${season}10`, `${season}11`],
+    PYTHAG_EXP: 1.83,
+  },
+};
+
+const TIER_FRACS = [1, 0.7, 0.5, 0.3];
+const TIER_SHARES = [0.2, 0.3, 0.3, 0.2];
+const RTP = 0.9;
+const MAX_MULT = 10000;
+
+const headlineOf = (e) => e?.competitions?.[0]?.notes?.[0]?.headline || '';
+const roundOf = (def, slot) => def.rounds.find((r) => r.key === slot.r);
+const slotPts = (def, slot) => roundOf(def, slot).pts;
+const maxPoints = (def) => def.slots.reduce((a, s) => a + slotPts(def, s), 0);
+
+// The 12 seeded teams, from ESPN's standings (apis/v2/sports/<espn>/standings?season=).
+function fieldFromStandings(def, standings) {
+  const field = {};
+  for (const c of standings?.children || []) {
+    const conf = c.abbreviation;
+    if (!def.confs.includes(conf)) continue;
+    for (const e of c.standings?.entries || []) {
+      const st = {};
+      for (const x of e.stats || []) st[x.name] = x.value;
+      const seed = st.playoffSeed;
+      if (!(seed >= 1 && seed <= def.seedsPerConf)) continue;
+      field[conf + seed] = {
+        key: conf + seed, conf, seed, id: String(e.team.id), name: e.team.displayName,
+        abbr: e.team.abbreviation, logo: e.team.logos?.[0]?.href || null,
+        w: st.wins, l: st.losses, rs: st.pointsFor, ra: st.pointsAgainst,
+      };
+    }
+  }
+  return field;
+}
+
+// Real posted moneylines for upcoming postseason games → de-vigged win probability.
+// Keyed "Team A|Team B" → P(A beats B), both orientations.
+function marketOddsFromEvents(events) {
+  const imp = (o) => (o < 0 ? -o / (-o + 100) : 100 / (o + 100));
+  const out = {};
+  for (const e of events || []) {
+    if (e.season?.type !== 3 || e.status?.type?.state !== 'pre') continue;
+    const c = e.competitions?.[0], o = c?.odds?.[0];
+    const h = c?.competitors?.find((x) => x.homeAway === 'home'), a = c?.competitors?.find((x) => x.homeAway === 'away');
+    const hml = parseInt(o?.moneyline?.home?.close?.odds), aml = parseInt(o?.moneyline?.away?.close?.odds);
+    if (!h || !a || isNaN(hml) || isNaN(aml)) continue;
+    const ph = imp(hml) / (imp(hml) + imp(aml));
+    const hn = h.team.displayName, an = a.team.displayName;
+    // Several games of one series can be posted; the soonest one wins.
+    if (out[`${hn}|${an}`] == null) { out[`${hn}|${an}`] = ph; out[`${an}|${hn}`] = 1 - ph; }
+  }
+  return out;
+}
+
+function makePGame(def, market) {
+  const py = (t) => { const a = Math.pow(t.rs, def.PYTHAG_EXP), b = Math.pow(t.ra, def.PYTHAG_EXP); return a / (a + b); };
+  return (A, B) => {
+    const m = market[`${A.name}|${B.name}`];
+    if (m != null) return m;
+    const pa = py(A), pb = py(B);
+    return (pa - pa * pb) / (pa + pb - 2 * pa * pb);
+  };
+}
+
+function comb(n, k) { let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return r; }
+// P(A wins a best-of series) with per-game win probability p, from a given series score.
+function seriesWinProb(p, bestOf, aWins = 0, bWins = 0) {
+  const need = Math.ceil(bestOf / 2), na = need - aWins, nb = need - bWins;
+  if (na <= 0) return 1;
+  if (nb <= 0) return 0;
+  let total = 0;
+  for (let k = 0; k < nb; k++) total += comb(na - 1 + k, k) * Math.pow(p, na) * Math.pow(1 - p, k);
+  return total;
+}
+
+// Who plays in a slot given winners decided so far (team keys like "AL4").
+function slotTeams(slot, winners) {
+  return [slot.a.seed || winners[slot.a.slot], slot.b.seed || winners[slot.b.slot]];
+}
+
+// Every way the postseason can play out (2^11 = 2048 for MLB) with its probability.
+// `fixed` (slotId → key) pins series already decided; `live` (slotId → {aWins, bWins})
+// prices series in progress from their current score.
+function enumerateOutcomes(def, field, pGame, fixed = {}, live = {}) {
+  const outs = [];
+  const winners = {};
+  const rec = (i, p) => {
+    if (p <= 0) return;
+    if (i === def.slots.length) { outs.push({ p, winners: { ...winners } }); return; }
+    const s = def.slots[i];
+    const [ak, bk] = slotTeams(s, winners);
+    let pA;
+    if (fixed[s.id]) pA = fixed[s.id] === ak ? 1 : 0;
+    else {
+      const st = live[s.id] && live[s.id].a === ak ? live[s.id] : null;
+      pA = seriesWinProb(pGame(field[ak], field[bk]), roundOf(def, s).bestOf, st ? st.aWins : 0, st ? st.bWins : 0);
+    }
+    winners[s.id] = ak; rec(i + 1, p * pA);
+    winners[s.id] = bk; rec(i + 1, p * (1 - pA));
+    delete winners[s.id];
+  };
+  rec(0, 1);
+  return outs;
+}
+
+function scorePicks(def, picks, winners) {
+  let pts = 0;
+  for (const s of def.slots) if (winners[s.id] && winners[s.id] === picks[s.id]) pts += slotPts(def, s);
+  return pts;
+}
+
+// Every slot needs a pick, and it has to be one of the two teams your own earlier picks put there.
+function validatePicks(def, field, picks) {
+  if (!picks || typeof picks !== 'object') return 'No picks';
+  for (const s of def.slots) {
+    const [a, b] = slotTeams(s, picks);
+    if (!a || !b || !field[a] || !field[b]) return `Missing an earlier pick before ${s.id}`;
+    if (picks[s.id] !== a && picks[s.id] !== b) return `Pick a winner for ${s.id}`;
+  }
+  return null;
+}
+
+// Payout tiers for one bracket. Returns { maxPts, tiers: [{min, mult, p}], titleOdds }.
+function priceBracket(def, field, pGame, picks) {
+  const maxPts = maxPoints(def);
+  const thr = TIER_FRACS.map((f) => Math.ceil(f * maxPts - 1e-9));
+  const outs = enumerateOutcomes(def, field, pGame);
+  const pTier = thr.map(() => 0);
+  for (const o of outs) {
+    const pts = scorePicks(def, picks, o.winners);
+    const k = thr.findIndex((t) => pts >= t);
+    if (k >= 0) pTier[k] += o.p;
+  }
+  let shares = TIER_SHARES.map((sh, k) => (pTier[k] > 1e-12 ? sh : 0));
+  const tot = shares.reduce((a, b) => a + b, 0) || 1;
+  shares = shares.map((x) => x / tot);
+  let mult = shares.map((sh, k) => (sh > 0 ? (RTP * sh) / pTier[k] : 0));
+  // A higher tier never pays less than a lower one; then rescale back to the target return.
+  for (let k = mult.length - 2; k >= 0; k--) if (mult[k] && mult[k] < mult[k + 1]) mult[k] = mult[k + 1];
+  const ev = mult.reduce((a, m, k) => a + m * pTier[k], 0) || 1;
+  mult = mult.map((m) => (m * RTP) / ev);
+  mult = mult.map((m) => Math.min(MAX_MULT, m >= 10 ? Math.floor(m) : Math.floor(m * 100) / 100));
+  return {
+    maxPts,
+    tiers: thr.map((t, k) => ({ min: t, mult: mult[k], p: pTier[k] })).filter((t) => t.mult > 0),
+  };
+}
+
+// Each team's chance to win it all, and each slot's pick probabilities (for the builder UI).
+function teamOdds(def, field, pGame) {
+  const outs = enumerateOutcomes(def, field, pGame);
+  const last = def.slots[def.slots.length - 1].id;
+  const title = {};
+  for (const o of outs) title[o.winners[last]] = (title[o.winners[last]] || 0) + o.p;
+  return title;
+}
+
+// Results so far from ESPN postseason events: winners by slot, plus each started series' score.
+function slotResults(def, field, events) {
+  const winners = {}, state = {};
+  const byId = {};
+  for (const t of Object.values(field)) byId[t.id] = t.key;
+  for (const s of def.slots) {
+    const [ak, bk] = slotTeams(s, winners);
+    if (!ak || !bk) continue;
+    const A = field[ak], B = field[bk], re = def.labelRe(s);
+    const need = Math.ceil(roundOf(def, s).bestOf / 2);
+    const games = (events || []).filter((e) => {
+      if (e.season?.type !== 3 || !re.test(headlineOf(e))) return false;
+      const ids = (e.competitions?.[0]?.competitors || []).map((c) => String(c.team?.id));
+      return ids.includes(A.id) && ids.includes(B.id);
+    }).sort((x, y) => new Date(x.date) - new Date(y.date));
+    let aWins = 0, bWins = 0;
+    for (const g of games) {
+      if (!g.status?.type?.completed) continue;
+      const w = (g.competitions?.[0]?.competitors || []).find((c) => c.winner === true);
+      if (String(w?.team?.id) === A.id) aWins++; else if (String(w?.team?.id) === B.id) bWins++;
+    }
+    // ESPN's own series tally on the latest game, in case a game is missing from our fetch.
+    const ser = games.length ? games[games.length - 1].competitions?.[0]?.series : null;
+    if (ser?.competitors) {
+      for (const c of ser.competitors) {
+        if (String(c.id) === A.id) aWins = Math.max(aWins, c.wins || 0);
+        if (String(c.id) === B.id) bWins = Math.max(bWins, c.wins || 0);
+      }
+    }
+    const liveGame = games.find((g) => g.status?.type?.state === 'in');
+    const nextGame = games.find((g) => g.status?.type?.state === 'pre');
+    state[s.id] = {
+      a: ak, b: bk, aWins, bWins, started: games.some((g) => g.status?.type?.state !== 'pre'),
+      live: !!liveGame, nextMs: nextGame ? new Date(nextGame.date).getTime() : null,
+    };
+    if (aWins >= need) winners[s.id] = ak; else if (bWins >= need) winners[s.id] = bk;
+  }
+  return { winners, state };
+}
+
+// Where a bracket stands: points so far, the most it can still reach, whether it's final.
+function bracketStatus(def, picks, results) {
+  const out = new Set();
+  for (const s of def.slots) {
+    const w = results.winners[s.id], st = results.state[s.id];
+    if (w && st) out.add(w === st.a ? st.b : st.a);
+  }
+  let pts = 0, possible = 0, decided = 0;
+  for (const s of def.slots) {
+    const w = results.winners[s.id], v = slotPts(def, s);
+    if (w) { decided++; if (w === picks[s.id]) pts += v; }
+    else if (!out.has(picks[s.id])) possible += v;
+  }
+  return { pts, maxPossible: pts + possible, decided, complete: decided === def.slots.length, eliminated: [...out] };
+}
+
+// Tier reached for a score (highest tier whose minimum it meets), or null.
+function tierFor(tiers, pts) {
+  return [...tiers].sort((a, b) => b.min - a.min).find((t) => pts >= t.min) || null;
+}
+
+// Is the bracket still open? Every first-round series must be on the schedule with the
+// seeded teams in it (proves the field is set) and none may have started.
+function firstRoundState(def, field, events) {
+  const first = def.slots.filter((s) => s.r === def.rounds[0].key);
+  let lockMs = Infinity;
+  for (const s of first) {
+    const A = field[s.a.seed], B = field[s.b.seed];
+    if (!A || !B) return { open: false, reason: 'The playoff field isn’t set yet.' };
+    const games = (events || []).filter((e) => {
+      if (e.season?.type !== 3 || !def.labelRe(s).test(headlineOf(e))) return false;
+      const ids = (e.competitions?.[0]?.competitors || []).map((c) => String(c.team?.id));
+      return ids.includes(A.id) && ids.includes(B.id);
+    });
+    if (!games.length) return { open: false, reason: 'First-round games aren’t on the schedule yet.' };
+    for (const g of games) {
+      if (g.status?.type?.state !== 'pre') return { open: false, locked: true, reason: 'Brackets locked when the first game started.' };
+      lockMs = Math.min(lockMs, new Date(g.date).getTime());
+    }
+  }
+  if (Date.now() >= lockMs) return { open: false, locked: true, reason: 'Brackets locked when the first game started.' };
+  return { open: true, lockMs };
+}
+
+// ── PLAYOFF BRACKETS: data, builder, placement ────────────────────
+// Engine above is shared verbatim with supabase/functions/_shared/bracket.js. The app prices
+// a bracket locally so the payout tiers update as you pick; place-bracket re-prices it on the
+// server from its own ESPN data and places only if the price you saw still holds (±3%).
+let _bracketMarket = {};
+async function loadBracketMarket(league) {
+  const def = BRACKET_DEFS[league], season = futuresSeason(def.league);
+  const key = `${league}_${season}`, hit = _bracketMarket[key];
+  if (hit && Date.now() - hit.ts < 5 * 60 * 1000) return hit.data;
+  const res = await fetch(`https://site.api.espn.com/apis/v2/sports/${def.espn}/standings?season=${season}`);
+  if (!res.ok) throw new Error(`ESPN ${res.status}`);
+  const field = fieldFromStandings(def, await res.json());
+  const now = Date.now();
+  const events = await fetchDays(def.espn, [-1, 0, 1, 2, 3].map(i => fmtDay(now + i * DAY_MS)));
+  const fr = firstRoundState(def, field, events);
+  const pGame = makePGame(def, marketOddsFromEvents(events));
+  const complete = Object.keys(field).length === def.seedsPerConf * def.confs.length;
+  const data = { def, season, field, fr, pGame, title: complete ? teamOdds(def, field, pGame) : {} };
+  _bracketMarket[key] = { data, ts: Date.now() };
+  return data;
+}
+function fmtLock(ms) {
+  const left = ms - Date.now();
+  if (!(left > 0)) return 'Locked';
+  const h = Math.floor(left / 3600e3), m = Math.floor((left % 3600e3) / 60e3);
+  return `Locks in ${h ? `${h}h ${m}m` : `${m}m`} · ${new Date(ms).toLocaleString('en-US', { weekday:'short', hour:'numeric', minute:'2-digit' })}`;
+}
+// Futures tab: one card per league whose field is set.
+async function bracketsSectionHtml() {
+  const cards = [];
+  for (const league of Object.keys(BRACKET_DEFS)) {
+    let m;
+    try { m = await loadBracketMarket(league); } catch(e) { console.error('bracket market error', league, e); continue; }
+    if (!m.fr.open && !m.fr.locked) continue;
+    const top = Object.entries(m.title).sort((a, b) => b[1] - a[1]).slice(0, 3)
+      .map(([k, p]) => `${esc(teamShort(m.field[k].name, m.def.sportKey))} ${Math.round(p * 100)}%`).join(' · ');
+    const nSeries = m.def.slots.length, maxPts = maxPoints(m.def);
+    cards.push(`<div class="bk-promo">
+      <div class="bk-promo-top">
+        <span class="bk-promo-kicker">${m.fr.open ? 'Bracket challenge · open' : 'Bracket challenge · locked'}</span>
+        <span class="bk-promo-lock">${m.fr.open ? esc(fmtLock(m.fr.lockMs)) : ''}</span>
+      </div>
+      <div class="bk-promo-title">${esc(SPORTS[m.def.sportKey]?.icon || '')} ${esc(m.def.title)} ${m.season}</div>
+      <div class="bk-promo-sub">Pick all ${nSeries} series · points double each round (${m.def.rounds.map(r => r.pts).join(' · ')}, ${maxPts} max) · payouts priced from real odds for your exact picks</div>
+      ${top ? `<div class="bk-promo-odds">Title chances: ${top}</div>` : ''}
+      ${m.fr.open ? `<button class="bk-promo-btn" onclick="openBracket('${league}')">Fill out your bracket</button>`
+        : `<button class="bk-promo-btn ghost" onclick="showView('bets')">See your brackets in My Bets</button>`}
+    </div>`);
+  }
+  return cards.length ? `<div class="bk-promos">${cards.join('')}</div>` : '';
+}
+
+let _bk = null;
+async function openBracket(league) {
+  const wrap = document.getElementById('bracketWrap');
+  wrap.style.display = 'flex';
+  document.getElementById('bkBody').innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading the field…</span></div>';
+  try {
+    const m = await loadBracketMarket(league);
+    _bk = { league, m, picks: (_bk && _bk.league === league) ? _bk.picks : {}, stake: _bk?.stake || 25, quote: null };
+    bkReprice();
+    renderBracket();
+  } catch(e) {
+    document.getElementById('bkBody').innerHTML = `<div class="mb-empty">Couldn't load the playoff field. Try again in a moment.</div>`;
+  }
+}
+function closeBracket() { document.getElementById('bracketWrap').style.display = 'none'; }
+function bkReprice() {
+  const { def, field, pGame } = _bk.m;
+  _bk.quote = validatePicks(def, field, _bk.picks) ? null : priceBracket(def, field, pGame, _bk.picks);
+}
+// Changing a pick clears any later pick that no longer has that team available.
+function bkPick(slotId, key) {
+  const { def } = _bk.m;
+  _bk.picks[slotId] = key;
+  for (const s of def.slots) {
+    const opts = slotTeams(s, _bk.picks);
+    if (_bk.picks[s.id] && !opts.includes(_bk.picks[s.id])) delete _bk.picks[s.id];
+  }
+  bkReprice(); renderBracket();
+}
+function bkFill(mode) {
+  const { def, field, pGame } = _bk.m;
+  _bk.picks = {};
+  if (mode === 'favorites') for (const s of def.slots) {
+    const [a, b] = slotTeams(s, _bk.picks);
+    _bk.picks[s.id] = pGame(field[a], field[b]) >= 0.5 ? a : b;
+  }
+  bkReprice(); renderBracket();
+}
+function bkSetStake(v) {
+  const n = Math.round(parseFloat(v) * 100) / 100;
+  _bk.stake = n > 0 ? n : 0;
+  const btn = document.getElementById('bkPlaceBtn');
+  if (btn) { btn.textContent = `Place bracket · ${fmt(_bk.stake)}`; }
+  document.querySelectorAll('.bk-chip').forEach(c => c.classList.toggle('on', +c.dataset.v === _bk.stake));
+  document.querySelectorAll('.bk-tier-win').forEach(el => { el.textContent = fmt(_bk.stake * +el.dataset.mult); });
+}
+function renderBracket() {
+  const { def, field, pGame, fr, season } = _bk.m;
+  const picks = _bk.picks, n = def.slots.filter(s => picks[s.id]).length;
+  const teamBtn = (s, key, other) => {
+    if (!key) {
+      const src = s.a.slot && !picks[s.a.slot] ? s.a.slot : s.b.slot;
+      const [x, y] = slotTeams(def.slots.find(z => z.id === src), picks);
+      const hint = x && y ? `Winner of ${field[x].abbr} / ${field[y].abbr}` : 'Winner of an earlier series';
+      return `<div class="bk-team empty">${esc(hint)}</div>`;
+    }
+    const t = field[key], on = picks[s.id] === key;
+    const pct = other ? Math.round(seriesWinProb(pGame(t, field[other]), def.rounds.find(r => r.key === s.r).bestOf) * 100) : null;
+    return `<button class="bk-team${on ? ' on' : ''}" onclick="bkPick('${s.id}','${key}')" aria-pressed="${on}">
+      ${t.logo ? `<img src="${esc(t.logo)}" alt="" loading="lazy">` : ''}
+      <span class="bk-seed">${t.seed}</span>
+      <span class="bk-name">${esc(teamShort(t.name, def.sportKey))}</span>
+      <span class="bk-rec">${t.w}-${t.l}</span>
+      ${pct != null ? `<span class="bk-pct">${pct}%</span>` : ''}
+    </button>`;
+  };
+  const rounds = def.rounds.map(r => {
+    const slots = def.slots.filter(s => s.r === r.key);
+    const cards = slots.map(s => {
+      const [a, b] = slotTeams(s, picks);
+      const lbl = s.conf ? `${s.conf}${r.short === 'LCS' ? 'CS' : r.short}` : r.name;
+      return `<div class="bk-match">
+        <div class="bk-match-lbl">${esc(lbl)} · best of ${r.bestOf}</div>
+        ${teamBtn(s, a, b)}${teamBtn(s, b, a)}
+      </div>`;
+    }).join('');
+    return `<section class="bk-round">
+      <div class="bk-round-hdr"><span>${esc(r.name)}</span><span class="bk-round-pts">${r.pts} pt${r.pts > 1 ? 's' : ''} each</span></div>
+      <div class="bk-matches${slots.length === 1 ? ' one' : ''}">${cards}</div>
+    </section>`;
+  }).join('');
+  const last = def.slots[def.slots.length - 1].id;
+  const champ = picks[last] ? field[picks[last]] : null;
+  const q = _bk.quote;
+  const tiers = q ? q.tiers.map(t => `<div class="bk-tier">
+      <span class="bk-tier-pts">${t.min === q.maxPts ? `Perfect · ${t.min}` : `${t.min}+`} pts</span>
+      <span class="bk-tier-mult">${t.mult}×</span>
+      <span class="bk-tier-win" data-mult="${t.mult}">${fmt(_bk.stake * t.mult)}</span>
+      <span class="bk-tier-p">${t.p >= 0.01 ? Math.round(t.p * 100) + '%' : t.p >= 0.001 ? (t.p * 100).toFixed(1) + '%' : '<0.1%'} likely</span>
+    </div>`).join('') : '';
+  document.getElementById('bkTitle').textContent = `${def.title} ${season}`;
+  document.getElementById('bkLock').textContent = fr.open ? fmtLock(fr.lockMs) : 'Locked';
+  document.getElementById('bkBody').innerHTML = `
+    <p class="bk-intro">Pick the winner of every series. A pick scores if that team wins that series, whoever they end up facing. Percentages are each side's real chance to win the series: the posted moneyline where there is one, otherwise season run differential.</p>
+    <div class="bk-tools">
+      <button class="mb-chip" onclick="bkFill('favorites')">Fill with favorites</button>
+      <button class="mb-chip" onclick="bkFill('clear')">Clear</button>
+    </div>
+    ${rounds}
+    <div class="bk-foot">
+      <div class="bk-foot-row">
+        <span class="bk-progress"><b>${n}</b> of ${def.slots.length} picked</span>
+        <span class="bk-champ">${champ ? `🏆 ${esc(champ.name)}` : 'Pick a champion'}</span>
+      </div>
+      ${q ? `<div class="bk-tiers"><div class="bk-tiers-hdr">What your bracket pays <span>(multiplier · win on your stake · how often)</span></div>${tiers}</div>`
+          : `<div class="bk-tiers-empty">Your payout tiers appear once all ${def.slots.length} series are picked.</div>`}
+      <div class="bk-stake">
+        ${[10, 25, 50, 100].map(v => `<button class="bk-chip${_bk.stake === v ? ' on' : ''}" data-v="${v}" onclick="bkSetStake(${v})">$${v}</button>`).join('')}
+        <input type="number" min="1" step="1" class="bk-stake-input" value="${_bk.stake}" oninput="bkSetStake(this.value)" aria-label="Stake">
+      </div>
+      <button id="bkPlaceBtn" class="bk-place" ${q && fr.open ? '' : 'disabled'} onclick="placeBracket()">Place bracket · ${fmt(_bk.stake)}</button>
+    </div>`;
+}
+async function placeBracket() {
+  if (!_bk?.quote || !profile) return;
+  if (!(_bk.stake > 0)) { showToast('Enter a stake', 'error'); return; }
+  if (_bk.stake > profile.balance) { showToast('Not enough balance for that stake', 'error'); return; }
+  const btn = document.getElementById('bkPlaceBtn');
+  btn.disabled = true; btn.textContent = 'Placing…';
+  let data;
+  try {
+    const r = await sb.functions.invoke('place-bracket', { body: {
+      league: _bk.league, picks: _bk.picks, stake: _bk.stake, quote: { tiers: _bk.quote.tiers.map(t => ({ min: t.min, mult: t.mult })) },
+    }});
+    data = r.error ? await r.error.context.json().catch(() => ({ error: 'failed' })) : r.data;
+  } catch(e) { data = { error: 'failed' }; }
+  if (data?.bet) {
+    profile.balance = data.new_balance;
+    animateBalance(profile.balance); flashBalance('dn');
+    closeBracket();
+    showToast(`Bracket placed · 🏆 ${data.bet.away_team}`, 'success');
+    updateBetsBadge((parseInt(document.getElementById('betsBadge')?.textContent || '0') || 0) + 1, true);
+    _bk.picks = {}; _bk.quote = null;
+    return;
+  }
+  if (data?.error === 'price_changed' && data.quote) {
+    _bk.quote = data.quote; renderBracket();
+    showToast('The odds moved. Check the new payouts and place again.', 'warn');
+    return;
+  }
+  renderBracket();
+  showToast(data?.reason || (data?.error === 'insufficient balance' ? 'Not enough balance' : 'Couldn’t place the bracket'), 'error');
+}
+
+// ── Brackets in My Bets ──
+// Postseason results for a league/season. Past months change rarely; the current one is fresh.
+let _bracketEvents = {};
+async function fetchBracketEvents(league, season) {
+  const def = BRACKET_DEFS[league], cur = new Date().toISOString().slice(0, 7).replace('-', '');
+  const lists = await Promise.all(def.months(season).filter(m => m <= cur).map(m =>
+    fetchDays(def.espn, [m], 500, m < cur ? 6 * 3600e3 : 60e3)));
+  _bracketEvents[`${league}_${season}`] = lists.flat();
+}
+function bracketResultsFor(sel) {
+  const events = _bracketEvents[`${sel.league}_${sel.season}`];
+  if (!events) return null;
+  return slotResults(BRACKET_DEFS[sel.league], sel.field, events);
+}
+function evalBracketLeg(leg) {
+  const out = { state: 'upcoming', score: '', clock: '', need: '', note: '', start: NaN };
+  if (leg.result) { out.state = RESULT_STATE[leg.result]; out.settled = true; return out; }
+  const res = bracketResultsFor(leg.sel);
+  if (!res) { out.state = _trackLoading ? 'checking' : 'upcoming'; out.pill = 'Later'; return out; }
+  const w = res.winners[leg.slotId], st = res.state[leg.slotId], f = leg.sel.field, pick = leg.pickKey;
+  const out_ = new Set();
+  for (const [id, win] of Object.entries(res.winners)) { const s2 = res.state[id]; if (s2) out_.add(win === s2.a ? s2.b : s2.a); }
+  if (st) {
+    const lead = st.aWins === st.bWins ? `Series tied ${st.aWins}-${st.bWins}` : `${f[st.aWins > st.bWins ? st.a : st.b].abbr} ${w ? 'won' : 'leads'} ${Math.max(st.aWins, st.bWins)}-${Math.min(st.aWins, st.bWins)}`;
+    out.score = `${f[st.a].abbr} vs ${f[st.b].abbr}`;
+    if (st.started) out.clock = lead;
+  }
+  if (w) { out.state = w === pick ? 'hit' : 'miss'; out.final = true; return out; }
+  if (out_.has(pick)) { out.state = 'miss'; out.note = `${f[pick].name} were eliminated`; return out; }
+  if (!st) { out.state = 'upcoming'; out.pill = 'Later'; out.note = 'Matchup set by earlier rounds'; return out; }
+  if (st.started) {
+    if (![st.a, st.b].includes(pick)) { out.state = 'even'; return out; }
+    const mine = pick === st.a ? st.aWins : st.bWins, theirs = pick === st.a ? st.bWins : st.aWins;
+    out.state = mine > theirs ? 'winning' : mine < theirs ? 'losing' : 'even';
+    if (st.live) out.need = 'Game in progress';
+    return out;
+  }
+  out.state = 'upcoming'; out.start = st.nextMs ?? NaN;
+  return out;
+}
+function bracketProgressText(b) {
+  const sel = parseSel(b), res = bracketResultsFor(sel);
+  if (!res) return `${sel.maxPts} pts possible`;
+  const st = bracketStatus(BRACKET_DEFS[sel.league], sel.picks, res);
+  const next = [...sel.tiers].sort((a, b2) => a.min - b2.min).find(t => t.min > st.pts && t.min <= st.maxPossible);
+  const cur = tierFor(sel.tiers, st.pts);
+  return `${st.pts} pts · up to ${st.maxPossible} still possible${cur ? ` · ${cur.min}+ tier pays ${cur.mult}×` : ''}${next && (!cur || next.min > cur.min) ? ` · ${next.min}+ pays ${next.mult}×` : ''}`;
+}
+let _bracketSettleAt = {};
+async function settleBracketBet(bet) {
+  if (Date.now() - (_bracketSettleAt[bet.id] || 0) < 5 * 60 * 1000) return;
+  _bracketSettleAt[bet.id] = Date.now();
+  const { data, error } = await sb.functions.invoke('settle-bracket', { body: { bet_id: bet.id } });
+  if (error || !data || data.status === 'pending' || data.already_settled) return;
+  const { data: fresh } = await sb.from('profiles').select('balance').eq('id', user.id).single();
+  if (fresh) profile.balance = fresh.balance;
+  await creditAndNotify(bet, data.status, data.payout || 0, null, true);
 }
 
 // ── SGP COMBO ─────────────────────────────────────────────────────
@@ -2723,7 +3323,7 @@ async function fetchPickPercentages(games) {
 async function renderFutures() {
   const el = document.getElementById('gamesInner');
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading real futures odds…</span></div>`;
-  const markets = await fetchAllFutures();
+  const [markets, brackets] = await Promise.all([fetchAllFutures(), bracketsSectionHtml().catch(() => '')]);
   if (currentSport !== 'futures') return; // user navigated away while this was loading
   // Prices are fetched live from ESPN (DraftKings-sourced), not a snapshot, and these bets now
   // actually settle for real once the real season resolves — a championship future grades off
@@ -2734,7 +3334,7 @@ async function renderFutures() {
   let html = `<div class="empty-state" style="padding:14px 16px;margin-bottom:12px;text-align:left;background:var(--bg-c);border:1px solid var(--bdr);border-radius:var(--rl);line-height:1.5">
     <b style="color:var(--t1)">ℹ️ Real, live futures odds — and they really settle.</b><br>
     <span style="font-size:12px">These prices are fetched live from ESPN (DraftKings-sourced), not a snapshot. Once the real season resolves — the actual champion is crowned, the real award is announced — your bet grades for real. Until then it just stays pending; a season can take months.</span>
-  </div><div class="futures-grid">`;
+  </div>${brackets}<div class="futures-grid">`;
   if (!markets.length) html += `<div class="empty-state">Couldn't load futures odds right now — try again in a bit.</div>`;
   for (const mkt of markets) {
     const accent = SPORT_ACCENTS[mkt.sport] || 'var(--gold)';
@@ -3990,6 +4590,7 @@ let _betsLiveTimer = null;
 let _settleAsked = new Set();
 
 function betType(b) {
+  if (b.market === 'bracket') return 'bracket';
   if (b.market === 'parlay') return 'parlay';
   if (b.market === 'pickem') return 'pickem';
   if (b.sport === 'futures') return 'futures';
@@ -4034,6 +4635,7 @@ function marketName(market, sport) {
   return MARKET_LABELS[m] || m;
 }
 function pickText(leg) {
+  if (leg.bracket) return `${teamShort(leg.selection, leg.sport)} win ${leg.roundLabel}`;
   const m = String(leg.market || ''), sel = leg.selection, ln = legLine(leg);
   if (m === 'h2h') return sel === 'Draw' ? 'Draw' : `${teamShort(sel, leg.sport)} ML`;
   if (m === 'spreads' || m.startsWith('alt_sp_')) return `${teamShort(sel, leg.sport)} ${ln > 0 ? '+' : ''}${ln ?? ''}`;
@@ -4050,6 +4652,16 @@ function matchupText(leg) {
 }
 function betLegs(b) {
   const t = betType(b), sel = parseSel(b);
+  if (t === 'bracket') {
+    const def = BRACKET_DEFS[sel.league];
+    if (!def) return [];
+    return def.slots.map(s => {
+      const r = def.rounds.find(x => x.key === s.r), key = sel.picks?.[s.id], w = sel.results?.[s.id];
+      return { bracket: true, sel, slotId: s.id, pickKey: key, sport: def.sportKey, market: 'bracket',
+        selection: sel.field?.[key]?.name || key, roundLabel: s.conf ? `${s.conf}${r.short === 'LCS' ? 'CS' : r.short}` : r.name,
+        roundName: r.name, pts: r.pts, result: w ? (w === key ? 'won' : 'lost') : undefined };
+    });
+  }
   if (t === 'parlay') return (sel.legs || []).map(l => ({ ...l }));
   if (t === 'pickem') return (sel.picks || []).map(p => ({
     sport: p.sport, gameId: p.gameId, homeTeam: p.homeTeam, awayTeam: p.awayTeam, commenceTime: p.commenceTime,
@@ -4105,6 +4717,7 @@ function mergeTrackEvents(sport, events) {
   _trackArr[sport] = [...map.values()];
 }
 function evalLeg(leg, past) {
+  if (leg.bracket) return evalBracketLeg(leg);
   const out = { state: 'awaiting', score: '', clock: '', need: '', note: '', start: NaN };
   const m = String(leg.market || '');
   const espn = SPORTS[leg.sport]?.espn;
@@ -4178,6 +4791,7 @@ function currentBucket(b, c) {
 }
 function readyToSettle(b, c) {
   if (betType(b) === 'futures' || c.checking) return false;
+  if (betType(b) === 'bracket') return !c.inPlay && !c.upcoming && !c.awaiting;
   if (betType(b) === 'parlay' && c.miss) return true;
   return !c.inPlay && !c.upcoming && !c.awaiting && !c.untracked;
 }
@@ -4208,6 +4822,8 @@ async function fetchLegEvents(legs, ttlMs) {
 // settlement). Far-off legs are just "upcoming" from their start time, no fetch needed.
 async function trackCurrentLegs() {
   const now = Date.now();
+  const bracketKeys = new Set(_myBetsAll.filter(b => b.market === 'bracket' && b.status === 'pending').map(b => { const s = parseSel(b); return `${s.league}|${s.season}`; }));
+  await Promise.all([...bracketKeys].map(k => { const [lg, ss] = k.split('|'); return fetchBracketEvents(lg, +ss).catch(e => console.error('bracket results error', e)); }));
   const legs = _myBetsAll.filter(b => b.status === 'pending').flatMap(betLegs)
     .filter(l => !l.result && isFinite(new Date(l.commenceTime).getTime()))
     .filter(l => { const ms = new Date(l.commenceTime).getTime(); return ms < now + 3 * 3600 * 1000 && ms > now - 5 * DAY_MS; });
@@ -4231,7 +4847,7 @@ function syncBetsLiveTimer() {
 
 // ── Rendering ──
 function legRowHtml(leg, e) {
-  const pill = e.state === 'upcoming' ? (fmtStart(e.start) || 'Soon') : LEG_PILL[e.state];
+  const pill = e.pill || (e.state === 'upcoming' ? (fmtStart(e.start) || 'Soon') : LEG_PILL[e.state]);
   const matchup = matchupText(leg);
   const meta = [];
   if (e.score) meta.push(`<span class="mb-score">${esc(e.score)}</span>`);
@@ -4239,7 +4855,7 @@ function legRowHtml(leg, e) {
   if (e.clock) meta.push(esc(e.clock));
   if (!e.score && e.state === 'upcoming' && isFinite(e.start)) meta.push(esc(new Date(e.start).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })));
   const needCls = e.state === 'winning' ? 'good' : e.state === 'losing' ? 'bad' : 'meh';
-  const mkt = leg.futures ? leg.market : marketName(leg.market, leg.sport);
+  const mkt = leg.futures ? leg.market : leg.bracket ? `${leg.pts} pt${leg.pts > 1 ? 's' : ''}` : marketName(leg.market, leg.sport);
   return `<div class="mb-leg${e.state === 'untracked' ? ' dim' : ''}">
     <span class="mb-pill st-${e.state}">${esc(pill)}</span>
     <div class="mb-leg-body">
@@ -4272,6 +4888,7 @@ function betTitle(b, legs) {
   if (t === 'parlay') return { main: sel.rr ? `Round Robin · ${legs.length}-leg combo` : `${legs.length}-Leg Parlay`, odds: fmtOdds(b.odds), sub: [...new Set(legs.map(l => SPORTS[l.sport]?.label).filter(Boolean))].join(' + ') };
   if (t === 'pickem') return { main: `${sel.total || legs.length}-Game Pick'em`, odds: '', sub: `${SPORTS[sel.picks?.[0]?.sport]?.label || ''} · ${sel.mode === 'ats' ? 'Against the spread' : 'Straight up'}` };
   if (t === 'futures') return { main: b.selection, odds: fmtOdds(b.odds), sub: b.market };
+  if (t === 'bracket') return { main: b.home_team, odds: '', sub: `Champion pick: ${teamShort(b.away_team, b.sport)} · ${sel.maxPts} pts max` };
   const leg = legs[0];
   return { main: pickText(leg), odds: fmtOdds(b.odds), sub: `${SPORTS[b.sport]?.label || ''} · ${marketName(b.market, b.sport)}${matchupText(leg) ? ' · ' + matchupText(leg) : ''}` };
 }
@@ -4314,11 +4931,11 @@ function currentCardHtml(b) {
       </div>
       <span class="mb-badge b-${bcls}">${bcls === 'live' || bcls === 'winning' || bcls === 'losing' ? '<span class="mb-live-dot"></span>' : ''}${esc(blabel)}</span>
     </div>
-    ${showProgress ? `${ladderHtml(evals)}<div class="mb-progress">${esc(progressText(c, t))}</div>` : ''}
+    ${showProgress ? `${ladderHtml(evals)}<div class="mb-progress">${esc(t === 'bracket' ? bracketProgressText(b) : progressText(c, t))}</div>` : ''}
     ${legsBlock(legs, evals)}
     <div class="mb-foot">
       <span>Stake <b>${fmt(b.stake)}</b></span>
-      <span>${t === 'pickem' ? 'Max win' : 'To win'} <b>${fmt(b.potential_payout - b.stake)}</b></span>
+      <span>${t === 'pickem' || t === 'bracket' ? 'Max win' : 'To win'} <b>${fmt(b.potential_payout - b.stake)}</b></span>
       <span class="mb-foot-date">${esc(new Date(b.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric' }))}</span>
     </div>
     ${canCashOut ? `<button class="cashout-btn" onclick="cashOut('${b.id}')">Cash out · get offer</button>` : ''}
@@ -4327,6 +4944,7 @@ function currentCardHtml(b) {
 function pastSummary(b, legs, evals) {
   const t = betType(b);
   if (t === 'straight' || t === 'futures') return '';
+  if (t === 'bracket') { const sel = parseSel(b); return sel.points != null ? `${sel.points} of ${sel.maxPts} pts` : `${sel.maxPts} pts max`; }
   const n = legs.length, hit = evals.filter(e => e.state === 'hit').length;
   const missed = legs.filter((l, i) => evals[i].state === 'miss').map(pickText);
   if (t === 'pickem') return `${hit} of ${n} correct${missed.length ? ` · missed ${missed.slice(0, 2).join(', ')}${missed.length > 2 ? ` +${missed.length - 2}` : ''}` : ''}`;
@@ -4477,7 +5095,7 @@ function renderBets(bets) {
   }
   const pool = cur ? current : past;
   const typeCount = t => pool.filter(b => betType(b) === t).length;
-  const types = [['all', 'All', pool.length], ['straight', 'Straight', typeCount('straight')], ['parlay', 'Parlays', typeCount('parlay')], ['pickem', "Pick'em", typeCount('pickem')], ['futures', 'Futures', typeCount('futures')]]
+  const types = [['all', 'All', pool.length], ['straight', 'Straight', typeCount('straight')], ['parlay', 'Parlays', typeCount('parlay')], ['pickem', "Pick'em", typeCount('pickem')], ['bracket', 'Brackets', typeCount('bracket')], ['futures', 'Futures', typeCount('futures')]]
     .filter(([k, , n]) => k === 'all' || n > 0);
   const chip = (on, onclick, label, n) => `<button class="mb-chip${on ? ' on' : ''}" onclick="${onclick}">${label}${n != null ? `<span>${n}</span>` : ''}</button>`;
   let chips = types.map(([k, label, n]) => chip(_betsType === k, `setBetsType('${k}')`, label, n)).join('');
@@ -4530,7 +5148,8 @@ async function settlePending() {
 
   for (const bet of pending) {
     try {
-      if (bet.market === 'parlay') await settleParlayBet(bet, scoreFor, STALE_MS);
+      if (bet.market === 'bracket') await settleBracketBet(bet);
+      else if (bet.market === 'parlay') await settleParlayBet(bet, scoreFor, STALE_MS);
       else if (bet.market === 'pickem') await settlePickemBet(bet);
       else await settleSingleBet(bet, scoreFor, STALE_MS);
     } catch(e) { console.error('settle bet error', bet.id, e); }
@@ -4743,7 +5362,7 @@ async function markSettled(betId, fields) {
 async function creditAndNotify(bet, result, payout, pickemNote, skipCredit) {
   // skipCredit: the server (settle-bet) already moved the balance — don't do it twice.
   if (payout > 0 && !skipCredit) await applyBalanceDelta(payout);
-  const label = bet.market === 'parlay' ? (JSON.parse(bet.selection||'{}').rr ? 'Round Robin combo' : 'Parlay')
+  const label = bet.market === 'bracket' ? bet.home_team : bet.market === 'parlay' ? (JSON.parse(bet.selection||'{}').rr ? 'Round Robin combo' : 'Parlay')
     : bet.market === 'pickem' ? `Pick'em (${pickemNote})`
     : bet.selection;
   if (result === 'won') {
@@ -5118,6 +5737,8 @@ async function loadProfileView() {
         try { const sel = JSON.parse(b.selection); label = `${sel.legs?.length||'?'}-Leg ${sel.rr?'RR Combo':'Parlay'}`; } catch(e) { label = 'Parlay'; }
       } else if (b.market === 'pickem') {
         try { const sel = JSON.parse(b.selection); label = `Pick'em (${sel.total||sel.picks?.length||'?'} games)`; } catch(e) { label = "Pick'em"; }
+      } else if (b.market === 'bracket') {
+        label = b.home_team || 'Bracket';
       }
       const sport = SPORTS[b.sport]?.label||b.sport||'Bet';
       const icon = isWon ? '✅' : isLost ? '❌' : '⏳';
